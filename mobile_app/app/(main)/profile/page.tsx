@@ -710,7 +710,12 @@ function GoogleProfileRow({
 
             return (
               <div key={loc.name}>
-                <LocationRow location={loc} googleLink={googleLink} t={t} />
+                <LocationRow
+                  location={loc}
+                  googleLink={googleLink}
+                  t={t}
+                  isDark={isDark}
+                />
 
                 {i < locations.length - 1 && (
                   <div
@@ -755,11 +760,13 @@ function GoogleProfileRow({
 function LocationRow({
   location,
   googleLink,
+  isDark,
   t,
 }: {
   location: any;
   googleLink: string;
   t: any;
+  isDark: boolean;
 }) {
   return (
     <div
@@ -775,7 +782,7 @@ function LocationRow({
           width: 30,
           height: 30,
           borderRadius: 8,
-          background: "white",
+          background: isDark ? "#1e2a42" : "#f1f5f9",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
