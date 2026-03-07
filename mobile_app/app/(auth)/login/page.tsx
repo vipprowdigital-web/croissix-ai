@@ -203,7 +203,7 @@ export default function LoginPage() {
       },
       {
         onSuccess: () => {
-          router.push("/dashboard");
+          router.push("/");
         },
         onError: () => {
           setError("Invalid email or password");

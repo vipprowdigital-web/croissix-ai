@@ -27,7 +27,7 @@ const D = {
 };
 
 const L = {
-  pageBg: "#f2f2f7",
+  pageBg: "#ffffff",
   cardBg: "#ffffff",
   surface: "#f8fafc",
   border: "rgba(0,0,0,0.06)",
@@ -987,12 +987,12 @@ export default function ProfilePage() {
     <div
       style={{
         minHeight: "100vh",
-        paddingTop:"3.5rem",
+        paddingTop:"0.5rem",
         background: t.pageBg,
         transition: "background .3s",
       }}
     >
-      <div style={{ maxWidth: 430, margin: "0 auto", paddingBottom: 110 }}>
+      <div style={{ maxWidth: "100%", margin: "0 auto", paddingBottom: 20 }}>
         {/* ── Profile card ── */}
         <div
           style={{

@@ -48,7 +48,7 @@ const allowedOrigins = [
   process.env.ADMIN_FRONTEND_URL, // Admin production site
   process.env.REACT_NATIVE_FRONTEND_URL, // React Native local
 
-  "http://192.168.29.175:3000",
+  "http://192.168.29.192:3000",
 ];
 
 // ===============================================
