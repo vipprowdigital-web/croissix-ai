@@ -30,6 +30,11 @@ yarn-error.log*
 # local env files
 .env*.local
 
+backend/.env*
+backend/.env
+mobile_app/.env*
+mobile_app/.env
+
 # vercel
 .vercel
 
