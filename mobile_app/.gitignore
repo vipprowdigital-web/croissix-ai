@@ -1,8 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-backend/node_modules
-mobile_app/node_modules
+/node_modules
 /.pnp
 .pnp.js
 
@@ -14,9 +13,7 @@ mobile_app/node_modules
 /out/
 
 # production
-
-backend/build
-mobile_app/build
+/build
 
 # misc
 .DS_Store
