@@ -10,9 +10,7 @@ export default function MainLayout({
     <div className="relative flex flex-col min-h-screen">
       <MobileNavbar />
 
-      <main className="container mx-auto max-w-7xl flex-grow">
-        {children}
-      </main>
+      <main className="container mx-auto max-w-7xl flex-grow">{children}</main>
 
       <Footer />
     </div>

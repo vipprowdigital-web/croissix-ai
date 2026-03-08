@@ -598,8 +598,7 @@ export default function GooglePostPage() {
               <path d="M5.76 13.062A6.05 6.05 0 0 1 5.44 12c0-.37.063-.73.163-1.062V8.121H2.15A9.987 9.987 0 0 0 2 12c0 1.61.387 3.13 1.07 4.477l3.69-2.817z" fill="#FBBC05"/>
               <path d="M12 5.958c1.637 0 3.105.563 4.26 1.667l3.195-3.195C17.455 2.693 14.965 1.6 12 1.6 7.7 1.6 3.96 3.617 2.15 7.12l3.61 2.817C6.64 7.305 9.1 5.958 12 5.958z" fill="#EA4335"/>
             </svg>
-            <h1 className={`text-[18px] font-black tracking-tight ${isDark?"text-white":"text-slate-900"}`}
-              style={{ fontFamily:"-apple-system,'SF Pro Display',sans-serif", letterSpacing:"-0.03em" }}>
+            <h1 className={`text-[18px] font-black tracking-tight ${isDark?"text-white":"text-slate-900"}`}>
               Create Post
             </h1>
           </div>

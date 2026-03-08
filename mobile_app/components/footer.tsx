@@ -5,259 +5,188 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-const navItems = [
-  {
-    href: "/",
-    label: "Home",
-    icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M3 12L12 3L21 12V21H15V15H9V21H3V12Z"
-          fill={active ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth={active ? 0 : 1.8}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "/analysis",
-    label: "Analysis",
-    icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle
-          cx="11"
-          cy="11"
-          r="7.5"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          fill={active ? "currentColor" : "none"}
-          fillOpacity={active ? 0.15 : 0}
-        />
-        <path
-          d="M17 17L21 21"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-        {active && <circle cx="11" cy="11" r="3" fill="currentColor" />}
-      </svg>
-    ),
-  },
-  {
-    href: "/post",
-    label: "Post",
-    icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle
-          cx="11"
-          cy="11"
-          r="7.5"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          fill={active ? "currentColor" : "none"}
-          fillOpacity={active ? 0.15 : 0}
-        />
-        <path
-          d="M17 17L21 21"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-        {active && <circle cx="11" cy="11" r="3" fill="currentColor" />}
-      </svg>
-    ),
-  },
-  {
-    href: "/reviews/google",
-    label: "Reviews",
-    icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle
-          cx="11"
-          cy="11"
-          r="7.5"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          fill={active ? "currentColor" : "none"}
-          fillOpacity={active ? 0.15 : 0}
-        />
-        <path
-          d="M17 17L21 21"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-        {active && <circle cx="11" cy="11" r="3" fill="currentColor" />}
-      </svg>
-    ),
-  },
-  {
-    href: "/profile",
-    label: "Profile",
-    icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle
-          cx="12"
-          cy="8"
-          r="4"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          fill={active ? "currentColor" : "none"}
-          fillOpacity={active ? 0.15 : 0}
-        />
-        <path
-          d="M4 20c0-4 3.6-7 8-7s8 3 8 7"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          fill={active ? "currentColor" : "none"}
-          fillOpacity={active ? 0.1 : 0}
-        />
-      </svg>
-    ),
-  },
-];
+/* ── icons ──────────────────────────────────────────────── */
+const HomeIcon = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M3 12L12 3L21 12V21H15V15H9V21H3V12Z"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.18 : 0}
+      stroke="currentColor"
+      strokeWidth={active ? 1.6 : 1.8}
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    />
+    {active && (
+      <path d="M9 21V15H15V21" fill="currentColor" fillOpacity={0.25} stroke="none"/>
+    )}
+  </svg>
+);
 
+const AnalysisIcon = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="12" width="4" height="9" rx="1.5"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.2 : 0}
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <rect x="10" y="7" width="4" height="14" rx="1.5"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.2 : 0}
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <rect x="17" y="3" width="4" height="18" rx="1.5"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.2 : 0}
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+  </svg>
+);
+
+const PostIcon = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="3" width="18" height="18" rx="4"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.12 : 0}
+      stroke="currentColor" strokeWidth="1.8"/>
+    <path d="M12 8v8M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const ReviewsIcon = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M12 2l2.4 4.8 5.6.8-4 3.9.9 5.5L12 14.5 7.1 17l.9-5.5L4 7.6l5.6-.8L12 2z"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.18 : 0}
+      stroke="currentColor" strokeWidth="1.8"
+      strokeLinejoin="round" strokeLinecap="round"/>
+  </svg>
+);
+
+const ProfileIcon = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="8" r="3.5"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.18 : 0}
+      stroke="currentColor" strokeWidth="1.8"/>
+    <path d="M4.5 20.5c0-4 3.4-7 7.5-7s7.5 3 7.5 7"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+  </svg>
+);
+
+/* ── nav config ─────────────────────────────────────────── */
+const NAV = [
+  { href: "/",              label: "Home",     Icon: HomeIcon     },
+  { href: "/analysis",      label: "Analysis", Icon: AnalysisIcon },
+  { href: "/post",          label: "Post",     Icon: PostIcon      },
+  { href: "/reviews/google",label: "Reviews",  Icon: ReviewsIcon  },
+  { href: "/profile",       label: "Profile",  Icon: ProfileIcon  },
+] as const;
+
+/* ══════════════════════════════════════════════════════════ */
 export default function Footer() {
-  const pathname = usePathname();
-  const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
+  const pathname               = usePathname();
+  const { resolvedTheme }      = useTheme();
+  const [mounted, setMounted]  = useState(false);
   useEffect(() => setMounted(true), []);
 
   const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <>
-      {/* Spacer */}
-      <div className="h-20 md:h-0" />
+      {/* body spacer so content isn't hidden behind fixed bar */}
+      <div className="h-[84px] md:h-0" />
 
-      <footer
-        className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
-        style={
-          {
-            /* Switch CSS vars by toggling a data attribute so all tokens update at once */
-            ...(mounted && isDark
-              ? {
-                  "--color-nav-bg": "var(--color-nav-bg-dark)",
-                  "--color-nav-border": "var(--color-nav-border-dark)",
-                  "--color-nav-active": "var(--color-nav-active-dark)",
-                  "--color-nav-active-bg": "var(--color-nav-active-bg-dark)",
-                  "--color-nav-inactive": "var(--color-nav-inactive-dark)",
-                  "--color-nav-shadow": "var(--color-nav-shadow-dark)",
-                  "--color-badge-border": "var(--color-badge-border-dark)",
-                }
-              : {}),
-            background: "var(--color-nav-bg)",
-            backdropFilter: "blur(24px) saturate(180%)",
-            WebkitBackdropFilter: "blur(24px) saturate(180%)",
-            borderTop: "1px solid var(--color-nav-border)",
-            paddingBottom: "env(safe-area-inset-bottom)",
-            boxShadow: "0 -4px 32px var(--color-nav-shadow)",
-            transition:
-              "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
-          } as React.CSSProperties
-        }
-      >
-        <nav className="flex items-center justify-around px-2 pt-2 pb-1">
-          {navItems.map(({ href, label, icon, badge }) => {
-            const active =
-              href === "/" ? pathname === "/" : pathname?.startsWith(href);
+      <footer className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
 
-            return (
-              <Link
-                key={href}
-                href={href}
-                className="flex flex-col items-center gap-0.5 min-w-[60px] relative"
-                style={{ textDecoration: "none" }}
-              >
-                {/* Icon pill */}
-                <span
-                  style={{
-                    width: 44,
-                    height: 32,
-                    borderRadius: 16,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-                    background: active
-                      ? "var(--color-nav-active-bg)"
-                      : "transparent",
-                    color: active
-                      ? "var(--color-nav-active)"
-                      : "var(--color-nav-inactive)",
-                    transition: "background 0.2s ease, color 0.2s ease",
-                  }}
+        {/* glass shell */}
+        <div
+          className="mx-3 mb-3 rounded-[26px] overflow-hidden"
+          style={{
+            background: isDark
+              ? "rgba(13, 18, 30, 0.82)"
+              : "rgba(255, 255, 255, 0.78)",
+            backdropFilter: "blur(28px) saturate(200%)",
+            WebkitBackdropFilter: "blur(28px) saturate(200%)",
+            border: isDark
+              ? "1px solid rgba(255,255,255,0.08)"
+              : "1px solid rgba(0,0,0,0.07)",
+            boxShadow: isDark
+              ? "0 8px 40px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset"
+              : "0 8px 32px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.9) inset",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          }}
+        >
+          <nav className="flex items-center justify-around px-1 pt-2 pb-2">
+            {NAV.map(({ href, label, Icon }) => {
+              const active = href === "/" ? pathname === "/" : pathname?.startsWith(href);
+
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex flex-col items-center gap-[3px] min-w-[58px] select-none"
+                  style={{ textDecoration: "none", WebkitTapHighlightColor: "transparent" }}
                 >
-                  {icon(!!active)}
-
-                  {badge && (
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: 2,
-                        right: 4,
-                        background: "#ef4444",
-                        color: "white",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        borderRadius: 10,
-                        minWidth: 16,
-                        height: 16,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "0 4px",
-                        border: "2px solid var(--color-badge-border)",
-                        fontFamily:
-                          "-apple-system, BlinkMacSystemFont, sans-serif",
-                        transition: "border-color 0.3s ease",
-                      }}
-                    >
-                      {badge}
-                    </span>
-                  )}
-                </span>
-
-                {/* Label */}
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: active ? 600 : 400,
-                    letterSpacing: "0.01em",
-                    color: active
-                      ? "var(--color-nav-active)"
-                      : "var(--color-nav-inactive)",
-                    fontFamily:
-                      "-apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-sans)",
-                    transition: "color 0.2s ease",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {label}
-                </span>
-
-                {/* Active dot */}
-                {active && (
+                  {/* pill */}
                   <span
+                    className="flex items-center justify-center transition-all duration-200"
                     style={{
-                      width: 4,
+                      width: 46,
+                      height: 30,
+                      borderRadius: 15,
+                      background: active
+                        ? isDark
+                          ? "rgba(96,165,250,0.18)"
+                          : "rgba(37,99,235,0.1)"
+                        : "transparent",
+                      color: active
+                        ? isDark ? "#60a5fa" : "#2563eb"
+                        : isDark ? "rgba(148,163,184,0.7)" : "rgba(100,116,139,0.8)",
+                      transform: active ? "scale(1)" : "scale(0.96)",
+                    }}
+                  >
+                    <Icon active={active} />
+                  </span>
+
+                  {/* label */}
+                  <span
+                    className="transition-all duration-200"
+                    style={{
+                      fontSize: 10,
+                      fontWeight: active ? 700 : 400,
+                      letterSpacing: active ? "-0.01em" : "0",
+                      color: active
+                        ? isDark ? "#60a5fa" : "#2563eb"
+                        : isDark ? "rgba(100,116,139,0.8)" : "rgba(100,116,139,0.9)",
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {label}
+                  </span>
+
+                  {/* active dot */}
+                  <span
+                    className="transition-all duration-300"
+                    style={{
+                      width: active ? 4 : 0,
                       height: 4,
                       borderRadius: "50%",
-                      background: "var(--color-nav-active)",
-                      marginTop: 2,
+                      background: isDark ? "#60a5fa" : "#2563eb",
+                      opacity: active ? 1 : 0,
+                      marginTop: 1,
+                      boxShadow: active
+                        ? isDark
+                          ? "0 0 6px rgba(96,165,250,0.8)"
+                          : "0 0 6px rgba(37,99,235,0.5)"
+                        : "none",
                     }}
                   />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
       </footer>
     </>
   );
