@@ -3,18 +3,14 @@
 import { google } from "googleapis";
 import axios from "axios";
 
-export async function POST(req: Request) {
-  console.log("----- GOOGLE POST API START -----");
-
+export async function GET(req: Request) {
   try {
-    const body = await req.json();
-    let { payload } = body;
+    const { searchParams } = new URL(req.url);
 
-    console.log("Incoming payload:", payload);
+    const location = searchParams.get("location");
+    const pageToken = searchParams.get("pageToken") || undefined;
 
     const token = req.headers.get("authorization");
-
-    console.log("Authorization header:", token);
 
     if (!token) {
       return Response.json(
@@ -23,20 +19,21 @@ export async function POST(req: Request) {
       );
     }
 
-    /* ---------------- USER PROFILE ---------------- */
+    if (!location) {
+      return Response.json(
+        { success: false, error: "Location is required" },
+        { status: 400 },
+      );
+    }
 
-    console.log("Fetching user profile...");
+    /* ---------------- USER PROFILE ---------------- */
 
     const profile = await axios.get(
       `${process.env.NEXT_PUBLIC_API_URL}/users/profile/view`,
-      {
-        headers: { Authorization: token },
-      },
+      { headers: { Authorization: token } },
     );
 
     const user = profile.data.user;
-
-    console.log("User:", user);
 
     if (!user.googleAccessToken) {
       return Response.json(
@@ -57,9 +54,7 @@ export async function POST(req: Request) {
       refresh_token: user.googleRefreshToken,
     });
 
-    console.log("OAuth client ready");
-
-    /* ---------------- GET ACCOUNT ---------------- */
+    /* ---------------- ACCOUNT ---------------- */
 
     const accountService = google.mybusinessaccountmanagement({
       version: "v1",
@@ -70,8 +65,6 @@ export async function POST(req: Request) {
 
     const accountId = accountsRes.data.accounts?.[0]?.name;
 
-    console.log("Account ID:", accountId);
-
     if (!accountId) {
       return Response.json(
         { success: false, error: "No Google Business account found" },
@@ -81,54 +74,32 @@ export async function POST(req: Request) {
 
     /* ---------------- LOCATION ---------------- */
 
-    const locationId = user.googleLocationId;
+    const locationId = location.split("/").pop();
 
     if (!locationId) {
       return Response.json(
-        { success: false, error: "No Google location connected" },
+        { success: false, error: "Invalid location" },
         { status: 400 },
       );
     }
 
-    console.log("Location ID:", locationId);
+    /* ---------------- GOOGLE API ---------------- */
 
-    /* ---------------- FIX BASE64 IMAGES ---------------- */
+    const url = new URL(
+      `https://mybusiness.googleapis.com/v4/${accountId}/locations/${locationId}/localPosts`,
+    );
 
-    if (payload?.media) {
-      payload.media = payload.media.filter(
-        (m: any) => !m.sourceUrl.startsWith("data:"),
-      );
+    url.searchParams.append("pageSize", "10");
 
-      console.log("Filtered media:", payload.media);
+    if (pageToken) {
+      url.searchParams.append("pageToken", pageToken);
     }
 
-    /* ---------------- ADD REQUIRED FIELD ---------------- */
-
-    payload.topicType = payload.topicType || "STANDARD";
-
-    /* ---------------- GOOGLE POST API ---------------- */
-
-    const url = `https://mybusiness.googleapis.com/v4/${accountId}/locations/${locationId}/localPosts`;
-
-    console.log("Google Post API URL:", url);
-
-    /* get oauth headers */
-    const authHeaders = await oauth2Client.getRequestHeaders();
-
-    console.log("Google Auth Header:", authHeaders);
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: authHeaders.get("Authorization") as string,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+    const res = await fetch(url.toString(), {
+      headers: await oauth2Client.getRequestHeaders(),
     });
 
     const data = await res.json();
-
-    console.log("Google response:", data);
 
     if (!res.ok) {
       return Response.json(
@@ -140,17 +111,32 @@ export async function POST(req: Request) {
       );
     }
 
+    /* ---------------- FIX MEDIA ---------------- */
+
+    let posts = (data.localPosts || []).map((post: any) => {
+      if (post.media && post.media.length > 0) {
+        post.media = post.media.map((m: any) => ({
+          ...m,
+          sourceUrl: m.googleUrl || null,
+        }));
+      }
+
+      return post;
+    });
+
     return Response.json({
       success: true,
-      post: data,
+      posts,
+      nextPageToken: data.nextPageToken || null,
+      total: posts.length,
     });
   } catch (error: any) {
-    console.error("GOOGLE POST ERROR:", error);
+    console.error("GOOGLE POSTS FETCH ERROR:", error);
 
     return Response.json(
       {
         success: false,
-        error: error.message || "Post failed",
+        error: error.message || "Failed to fetch posts",
       },
       { status: 500 },
     );
