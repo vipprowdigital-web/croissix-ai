@@ -12,6 +12,9 @@ import {
   WifiOff, Loader2, Building2, ChevronRight,
 } from "lucide-react";
 
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+
 /* ══════════════════════════════════════════════════════════
    TYPES
 ══════════════════════════════════════════════════════════ */
@@ -428,6 +431,10 @@ export default function GoogleReviewsPage() {
 
   const hasMore = page < totalPages;
 
+    const googleStats = useSelector((state: RootState) => state.google.stats);
+  const totalReviewsFromAnalytics = googleStats?.totalReviews ?? totalCount;
+
+
   /* ── fetch one page ── */
   const fetchPage = useCallback(async (pageNum:number, append=false) => {
     if(!user?.googleLocationId) return;
@@ -541,10 +548,10 @@ export default function GoogleReviewsPage() {
                   Google Reviews
                 </h1>
                 {/* live total badge */}
-                {totalCount>0&&(
+                 {totalReviewsFromAnalytics>0 && (
                   <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full
                     ${isDark?"bg-white/[0.08] text-slate-400":"bg-slate-100 text-slate-500"}`}>
-                    {totalCount}
+                    {totalReviewsFromAnalytics}
                   </span>
                 )}
               </div>
@@ -615,7 +622,7 @@ export default function GoogleReviewsPage() {
             {/* stats — show totalCount in Avg Rating sub-label */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <StatCard label="Avg Rating"    value={avg}
-                sub={`${totalCount} total reviews`}
+               sub={`${totalReviewsFromAnalytics} total reviews`}
                 icon={<Star size={14}/>} color="#FBBF24" isDark={isDark}/>
               <StatCard label="Response Rate"
                 value={`${Math.round((replied/loaded)*100)}%`}
@@ -638,7 +645,7 @@ export default function GoogleReviewsPage() {
                     Rating Breakdown
                   </span>
                   <span className={`ml-2 text-[10px] ${isDark?"text-slate-600":"text-slate-400"}`}>
-                    ({loaded} of {totalCount} loaded)
+                   ({loaded} of {totalReviewsFromAnalytics} loaded)
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -767,7 +774,7 @@ export default function GoogleReviewsPage() {
                 <div className="flex items-center gap-3 py-2">
                   <div className={`flex-1 h-px ${isDark?"bg-white/[0.06]":"bg-slate-200"}`}/>
                   <p className={`text-[12px] font-medium text-center ${isDark?"text-slate-600":"text-slate-400"}`}>
-                    All {totalCount} reviews loaded
+                   All {totalReviewsFromAnalytics} reviews loaded
                   </p>
                   <div className={`flex-1 h-px ${isDark?"bg-white/[0.06]":"bg-slate-200"}`}/>
                 </div>
