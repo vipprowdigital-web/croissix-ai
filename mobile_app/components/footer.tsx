@@ -75,7 +75,7 @@ const ProfileIcon = ({ active }: { active: boolean }) => (
 /* ── nav config ─────────────────────────────────────────── */
 const NAV = [
   { href: "/",              label: "Home",     Icon: HomeIcon     },
-  { href: "/analysis",      label: "Analysis", Icon: AnalysisIcon },
+  { href: "/analysis/google",      label: "Analysis", Icon: AnalysisIcon },
   { href: "/post",          label: "Post",     Icon: PostIcon      },
   { href: "/reviews/google",label: "Reviews",  Icon: ReviewsIcon  },
   { href: "/profile",       label: "Profile",  Icon: ProfileIcon  },
