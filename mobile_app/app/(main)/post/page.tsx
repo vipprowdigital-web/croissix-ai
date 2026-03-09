@@ -791,38 +791,39 @@ export default function GooglePostsPage() {
                   className={isDark ? "text-slate-600" : "text-slate-500"}
                 />
                 <span
-                  className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-500"}`}
+                  className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-600"}`}
                 >
                   {user.googleLocationName}
                 </span>
               </div>
             )}
           </div>
-        </div>
-        <div>
-          <div className="flex items-center justify-end gap-2 pb-4">
-            <button
-              onClick={() => refetch()}
-              disabled={isLoading}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 disabled:opacity-50
+
+          <div>
+            <div className="flex items-center justify-end gap-2 pb-4">
+              <button
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 disabled:opacity-50
                 ${isDark ? "bg-white/[0.07] text-slate-400 hover:bg-white/[0.12]" : "bg-white text-slate-500 border border-slate-200"}`}
-            >
-              <RefreshCw
-                size={15}
-                className={isLoading ? "animate-spin" : ""}
-              />
-            </button>
-            <button
-              onClick={() => router.push("/post/create")}
-              className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-[13px] font-bold text-white
+              >
+                <RefreshCw
+                  size={15}
+                  className={isLoading ? "animate-spin" : ""}
+                />
+              </button>
+              <button
+                onClick={() => router.push("/post/create")}
+                className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-[13px] font-bold text-white
                 transition-all active:scale-95"
-              style={{
-                background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
-                boxShadow: "0 3px 12px rgba(37,99,235,0.38)",
-              }}
-            >
-              <Plus size={15} /> New Post
-            </button>
+                style={{
+                  background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
+                  boxShadow: "0 3px 12px rgba(37,99,235,0.38)",
+                }}
+              >
+                <Plus size={15} /> Add
+              </button>
+            </div>
           </div>
         </div>
 
