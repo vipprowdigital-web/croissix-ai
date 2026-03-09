@@ -542,7 +542,7 @@ export default function GoogleAnalysisPage() {
   const axisLblColor  = isDark ? "#475569" : "#94a3b8";
   const s             = data?.summary;
   const isInitial     = userLoading || (isLoading && !data);
-  const locationName  = user?.googleLocationName ?? "Your Business";
+  const locationName  = user?.googleLocationName ?? "Please connect your business.";
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDark ? "bg-[#0d1421]" : "bg-[#eef2fb]"}`}
@@ -555,15 +555,14 @@ export default function GoogleAnalysisPage() {
             <div>
               <div className="flex items-center gap-2 mb-0.5">
                 <GoogleLogo size={16}/>
-                <h1 className={`text-[18px] font-black ${isDark ? "text-white" : "text-slate-900"}`}
-                  style={{ fontFamily: "-apple-system,'SF Pro Display',sans-serif", letterSpacing: "-0.03em" }}>
+                <h1 className={`text-[18px] font-black ${isDark ? "text-white" : "text-slate-900"}`}>
                   Analytics
                 </h1>
                 {isFetching && !isLoading && <Spin size={13}/>}
               </div>
               <div className="flex items-center gap-1.5">
-                <Building2 size={11} className={isDark ? "text-slate-600" : "text-slate-400"}/>
-                <span className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-400"}`}>{locationName}</span>
+                <Building2 size={11} className={isDark ? "text-slate-600" : "text-slate-900"}/>
+                <span className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-900"}`}>{locationName}</span>
               </div>
             </div>
 
