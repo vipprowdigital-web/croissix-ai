@@ -134,17 +134,21 @@ async function fetchPosts(
   return json;
 }
 
-async function deletePost(postName: string): Promise<void> {
+async function deletePost(postName: string) {
   const res = await fetch("/api/google/posts/delete", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
+      Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
     },
     body: JSON.stringify({ postName }),
   });
+
   const json = await res.json();
-  if (!json.success) throw new Error(json.error ?? "Delete failed");
+
+  if (!json.success) {
+    throw new Error(json.error || "Delete failed");
+  }
 }
 
 /* ══════════════════════════════════════════════════════════

@@ -120,7 +120,7 @@ export default function Footer() {
               const active = href === "/" ? pathname === "/" : pathname?.startsWith(href);
 
               return (
-                <Link
+                <a
                   key={href}
                   href={href}
                   className="flex flex-col items-center gap-[3px] min-w-[58px] select-none"
@@ -181,7 +181,7 @@ export default function Footer() {
                         : "none",
                     }}
                   />
-                </Link>
+                </a>
               );
             })}
           </nav>
