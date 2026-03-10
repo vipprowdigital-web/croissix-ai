@@ -1,3 +1,5 @@
+// mobile_app\app\(main)\page.tsx
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
