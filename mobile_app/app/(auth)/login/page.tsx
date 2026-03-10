@@ -8,6 +8,7 @@ import Link from "next/link";
 import { KeyRound, Mail, Eye, EyeOff, Sun, Moon } from "lucide-react";
 import { useLogin } from "@/features/auth/hook/useAuth";
 import { useRouter } from "next/navigation";
+import GuestGuard from "@/components/auth/GuestGuard";
 
 /* ─── Google G ───────────────────────────────────────────── */
 function GoogleG() {
@@ -213,42 +214,43 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      className={`
+    <GuestGuard>
+      <div
+        className={`
       min-h-screen flex
       transition-colors duration-300
       justify-center
       items-center
       ${isDark ? "bg-[#0d1421]" : "bg-[#eef2fb]"}
     `}
-    >
-      {/* ── content ── */}
-      <div className="flex-1 flex flex-col px-5">
-        {/* heading */}
-        <div className="mb-2 text-center">
-          <h1
-            className={`
+      >
+        {/* ── content ── */}
+        <div className="flex-1 flex flex-col px-5">
+          {/* heading */}
+          <div className="mb-2 text-center">
+            <h1
+              className={`
             text-xl font-black leading-tight mb-1
             ${isDark ? "text-white" : "text-slate-900"}
           `}
-            style={{
-              letterSpacing: "-0.04em",
-              fontFamily:
-                "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-            }}
-          >
-            Welcome back 👋
-          </h1>
-          <p
-            className={`text-sm ${isDark ? "text-slate-500" : "text-slate-600"}`}
-          >
-            Sign in to continue
-          </p>
-        </div>
+              style={{
+                letterSpacing: "-0.04em",
+                fontFamily:
+                  "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+              }}
+            >
+              Welcome back 👋
+            </h1>
+            <p
+              className={`text-sm ${isDark ? "text-slate-500" : "text-slate-600"}`}
+            >
+              Sign in to continue
+            </p>
+          </div>
 
-        {/* ── form card ── */}
-        <div
-          className={`
+          {/* ── form card ── */}
+          <div
+            className={`
           rounded-[22px] p-5 flex flex-col gap-4
           ${
             isDark
@@ -256,34 +258,34 @@ export default function LoginPage() {
               : "bg-white border border-black/[0.05] shadow-[0_8px_32px_rgba(37,99,235,0.08)]"
           }
         `}
-        >
-          {/* email */}
-          <InputField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={setEmail}
-            placeholder="you@example.com"
-            isDark={isDark}
-            autoComplete="email"
-            leftIcon={<Mail size={15} strokeWidth={1.8} />}
-          />
+          >
+            {/* email */}
+            <InputField
+              label="Email"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              placeholder="you@example.com"
+              isDark={isDark}
+              autoComplete="email"
+              leftIcon={<Mail size={15} strokeWidth={1.8} />}
+            />
 
-          {/* password */}
-          <InputField
-            label="Password"
-            type={showPass ? "text" : "password"}
-            value={password}
-            onChange={setPassword}
-            placeholder="••••••••"
-            isDark={isDark}
-            autoComplete="current-password"
-            leftIcon={<KeyRound size={15} strokeWidth={1.8} />}
-            rightElement={
-              <button
-                type="button"
-                onClick={() => setShowPass((v) => !v)}
-                className={`
+            {/* password */}
+            <InputField
+              label="Password"
+              type={showPass ? "text" : "password"}
+              value={password}
+              onChange={setPassword}
+              placeholder="••••••••"
+              isDark={isDark}
+              autoComplete="current-password"
+              leftIcon={<KeyRound size={15} strokeWidth={1.8} />}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPass((v) => !v)}
+                  className={`
                   w-8 h-8 flex items-center justify-center rounded-lg
                   transition-all duration-150 active:scale-90
                   ${
@@ -292,39 +294,39 @@ export default function LoginPage() {
                       : "text-slate-600 hover:text-slate-600"
                   }
                 `}
-                aria-label={showPass ? "Hide password" : "Show password"}
+                  aria-label={showPass ? "Hide password" : "Show password"}
+                >
+                  {showPass ? (
+                    <EyeOff size={15} strokeWidth={1.8} />
+                  ) : (
+                    <Eye size={15} strokeWidth={1.8} />
+                  )}
+                </button>
+              }
+            />
+
+            {/* forgot */}
+            <div className="flex justify-end -mt-2">
+              <Link
+                href="/forgot-password"
+                className="text-[12px] font-semibold text-blue-500 hover:text-blue-400 transition-colors"
               >
-                {showPass ? (
-                  <EyeOff size={15} strokeWidth={1.8} />
-                ) : (
-                  <Eye size={15} strokeWidth={1.8} />
-                )}
-              </button>
-            }
-          />
+                Forgot password?
+              </Link>
+            </div>
 
-          {/* forgot */}
-          <div className="flex justify-end -mt-2">
-            <Link
-              href="/forgot-password"
-              className="text-[12px] font-semibold text-blue-500 hover:text-blue-400 transition-colors"
-            >
-              Forgot password?
-            </Link>
-          </div>
+            {/* error */}
+            {error && (
+              <p className="text-[12px] font-medium text-red-400 -mt-1">
+                {error}
+              </p>
+            )}
 
-          {/* error */}
-          {error && (
-            <p className="text-[12px] font-medium text-red-400 -mt-1">
-              {error}
-            </p>
-          )}
-
-          {/* submit */}
-          <button
-            onClick={handleSubmit}
-            disabled={loginMutation.isPending}
-            className={`
+            {/* submit */}
+            <button
+              onClick={handleSubmit}
+              disabled={loginMutation.isPending}
+              className={`
               w-full h-[48px] rounded-[13px]
               flex items-center justify-center gap-2
               text-[14px] font-bold text-white
@@ -332,34 +334,34 @@ export default function LoginPage() {
               active:scale-[0.97] disabled:opacity-60
               ${loading ? "cursor-wait" : "cursor-pointer"}
             `}
-            style={{
-              letterSpacing: "-0.01em",
-              background: "linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%)",
-              boxShadow: "0 4px 18px rgba(37,99,235,0.4)",
-            }}
-          >
-            {loginMutation.isPending ? <Spinner /> : "Sign In"}
-          </button>
-        </div>
+              style={{
+                letterSpacing: "-0.01em",
+                background: "linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%)",
+                boxShadow: "0 4px 18px rgba(37,99,235,0.4)",
+              }}
+            >
+              {loginMutation.isPending ? <Spinner /> : "Sign In"}
+            </button>
+          </div>
 
-        {/* divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div
-            className={`flex-1 h-px ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
-          />
-          <span
-            className={`text-[11px] font-semibold ${isDark ? "text-slate-600" : "text-slate-600"}`}
-          >
-            or
-          </span>
-          <div
-            className={`flex-1 h-px ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
-          />
-        </div>
+          {/* divider */}
+          <div className="flex items-center gap-3 my-5">
+            <div
+              className={`flex-1 h-px ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
+            />
+            <span
+              className={`text-[11px] font-semibold ${isDark ? "text-slate-600" : "text-slate-600"}`}
+            >
+              or
+            </span>
+            <div
+              className={`flex-1 h-px ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
+            />
+          </div>
 
-        {/* Google */}
-        <button
-          className={`
+          {/* Google */}
+          <button
+            className={`
             w-full h-[48px] rounded-[13px]
             flex items-center justify-center gap-2.5
             text-[14px] font-semibold border
@@ -370,50 +372,51 @@ export default function LoginPage() {
                 : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
             }
           `}
-          style={{
-            letterSpacing: "-0.01em",
-            boxShadow: isDark
-              ? "0 2px 12px rgba(0,0,0,0.3)"
-              : "0 2px 8px rgba(0,0,0,0.06)",
-          }}
-        >
-          <GoogleG />
-          Continue with Google
-        </button>
+            style={{
+              letterSpacing: "-0.01em",
+              boxShadow: isDark
+                ? "0 2px 12px rgba(0,0,0,0.3)"
+                : "0 2px 8px rgba(0,0,0,0.06)",
+            }}
+          >
+            <GoogleG />
+            Continue with Google
+          </button>
 
-        {/* sign up */}
-        <p
-          className={`text-center text-[13px] mt-6 ${isDark ? "text-slate-500" : "text-slate-600"}`}
-        >
-          Don't have an account?{" "}
-          <Link
-            href="/register"
-            className="font-semibold text-blue-500 hover:text-blue-400 transition-colors"
+          {/* sign up */}
+          <p
+            className={`text-center text-[13px] mt-6 ${isDark ? "text-slate-500" : "text-slate-600"}`}
           >
-            Sign up
-          </Link>
-        </p>
+            Don't have an account?{" "}
+            <Link
+              href="/register"
+              className="font-semibold text-blue-500 hover:text-blue-400 transition-colors"
+            >
+              Sign up
+            </Link>
+          </p>
 
-        {/* terms */}
-        <p
-          className={`text-center text-[11px] mt-4 leading-relaxed ${isDark ? "text-slate-700" : "text-slate-500"}`}
-        >
-          By signing in you agree to our{" "}
-          <Link
-            href="/terms"
-            className={`underline ${isDark ? "text-slate-500" : "text-slate-600"}`}
+          {/* terms */}
+          <p
+            className={`text-center text-[11px] mt-4 leading-relaxed ${isDark ? "text-slate-700" : "text-slate-500"}`}
           >
-            Terms
-          </Link>
-          {" & "}
-          <Link
-            href="/privacy"
-            className={`underline ${isDark ? "text-slate-500" : "text-slate-600"}`}
-          >
-            Privacy Policy
-          </Link>
-        </p>
+            By signing in you agree to our{" "}
+            <Link
+              href="/terms"
+              className={`underline ${isDark ? "text-slate-500" : "text-slate-600"}`}
+            >
+              Terms
+            </Link>
+            {" & "}
+            <Link
+              href="/privacy"
+              className={`underline ${isDark ? "text-slate-500" : "text-slate-600"}`}
+            >
+              Privacy Policy
+            </Link>
+          </p>
+        </div>
       </div>
-    </div>
+    </GuestGuard>
   );
 }
