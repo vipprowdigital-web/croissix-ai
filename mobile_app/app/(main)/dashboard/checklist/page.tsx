@@ -589,7 +589,7 @@ function ScanOverlay({ dark, onDone }: { dark: boolean; onDone: () => void }) {
 
         <div className="text-center w-full">
           <p className={`text-[21px] font-black mb-1 ${dark ? "text-white" : "text-slate-900"}`}
-            style={{ fontFamily: "-apple-system,'SF Pro Display',sans-serif", letterSpacing: "-0.04em" }}>
+            style={{letterSpacing: "-0.04em" }}>
             AI Audit Running
           </p>
           <p className="text-[12px] font-medium" style={{ color: "#60a5fa", minHeight: 18 }}>
@@ -627,69 +627,178 @@ function ScanOverlay({ dark, onDone }: { dark: boolean; onDone: () => void }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   SCORE RING HERO
+   SCORE RING HERO — Blue theme, no glow, compact precision UI
 ════════════════════════════════════════════════════════════════════ */
 function ScoreRing({ score, dark, animate }: { score: number; dark: boolean; animate: boolean }) {
-  const info = scoreLabel(score);
-  const MAX = 1000;
-  const R = 54, C = 2 * Math.PI * R;
-  const dash = C * (score / MAX);
-  const totalItems = CATEGORIES.flatMap(c=>c.items).length;
+  const MAX  = 1000;
+  const R    = 44;
+  const C    = 2 * Math.PI * R;
+  const pct  = score / MAX;
+  const dash = C * pct;
+
+  // Blue-only tier system — no color changes, just blue intensity + label
+  const tier =
+    score >= 900 ? { label: "Elite",      sub: "Top 2% of all businesses",       rank: 5 } :
+    score >= 750 ? { label: "Advanced",   sub: "Strong — keep optimising",        rank: 4 } :
+    score >= 550 ? { label: "Growing",    sub: "Good foundation, gaps remain",    rank: 3 } :
+    score >= 350 ? { label: "Basic",      sub: "Several key items need fixing",   rank: 2 } :
+                   { label: "Incomplete", sub: "Critical optimisations needed",   rank: 1 };
+
+  // Score changes shade of blue only — no rainbow colors
+  const ringColor   = "#3b82f6";
+  const trackColor  = dark ? "rgba(59,130,246,0.08)" : "rgba(59,130,246,0.1)";
+  const tickMajor   = dark ? "rgba(59,130,246,0.2)"  : "rgba(59,130,246,0.18)";
+  const tickMinor   = dark ? "rgba(59,130,246,0.08)" : "rgba(59,130,246,0.09)";
+
+  // 40 tick marks (8 major every 45°, 32 minor)
+  const ticks = Array.from({ length: 40 }, (_, i) => {
+    const angle  = (i / 40) * 2 * Math.PI - Math.PI / 2;
+    const isMaj  = i % 5 === 0;
+    const r1     = R - (isMaj ? 5 : 3.5);
+    const r2     = R - 1;
+    return {
+      x1: 60 + r1 * Math.cos(angle), y1: 60 + r1 * Math.sin(angle),
+      x2: 60 + r2 * Math.cos(angle), y2: 60 + r2 * Math.sin(angle),
+      isMaj,
+    };
+  });
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative w-44 h-44">
-        {/* outer glow */}
-        <div className="absolute inset-0 rounded-full transition-all duration-1000"
-          style={{ boxShadow: `0 0 60px ${info.glow}, 0 0 120px ${info.glow}60` }}/>
-        {/* bg ring texture */}
-        <div className="absolute inset-3 rounded-full opacity-[0.03]"
-          style={{ backgroundImage: "radial-gradient(circle at 1px 1px,#fff 1px,transparent 0)", backgroundSize:"8px 8px" }}/>
+    <div className="flex items-center gap-5">
 
-        <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+      {/* ── LEFT: ring ── */}
+      <div className="relative shrink-0" style={{ width: 120, height: 120 }}>
+        <svg viewBox="0 0 120 120" width={120} height={120} className="-rotate-90">
           {/* track */}
-          <circle cx="60" cy="60" r={R} fill="none" stroke={dark?"rgba(255,255,255,0.05)":"rgba(59,130,246,0.08)"} strokeWidth="7"/>
+          <circle cx="60" cy="60" r={R} fill="none" stroke={trackColor} strokeWidth="6"/>
+
           {/* tick marks */}
-          {[...Array(20)].map((_,i) => {
-            const a = (i / 20) * 2 * Math.PI - Math.PI/2;
-            const x1 = 60 + (R-1) * Math.cos(a), y1 = 60 + (R-1) * Math.sin(a);
-            const x2 = 60 + (R+3) * Math.cos(a), y2 = 60 + (R+3) * Math.sin(a);
-            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={dark?"rgba(255,255,255,0.08)":"rgba(59,130,246,0.1)"} strokeWidth="0.8"/>;
+          {ticks.map((t, i) => (
+            <line key={i}
+              x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+              stroke={t.isMaj ? tickMajor : tickMinor}
+              strokeWidth={t.isMaj ? 1.2 : 0.7}
+              strokeLinecap="round"/>
+          ))}
+
+          {/* segment dots at 250/500/750 thresholds */}
+          {[250, 500, 750].map((thresh, i) => {
+            const a = (thresh / MAX) * 2 * Math.PI - Math.PI / 2;
+            const cx = 60 + R * Math.cos(a);
+            const cy = 60 + R * Math.sin(a);
+            return (
+              <circle key={i} cx={cx} cy={cy} r={2.5}
+                fill={score >= thresh
+                  ? ringColor
+                  : dark ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.15)"}/>
+            );
           })}
-          {/* glow arc under */}
-          <circle cx="60" cy="60" r={R} fill="none" stroke={info.ring} strokeWidth="12"
-            strokeLinecap="round" strokeDasharray={`${dash} ${C}`} opacity="0.12"/>
-          {/* main arc */}
-          <circle cx="60" cy="60" r={R} fill="none" stroke={info.ring} strokeWidth="7"
-            strokeLinecap="round" strokeDasharray={`${dash} ${C}`}
-            style={{ transition: animate ? "stroke-dasharray 1.4s cubic-bezier(0.34,1.56,0.64,1)" : "none",
-              filter: `drop-shadow(0 0 8px ${info.ring})` }}/>
+
+          {/* progress arc */}
+          <circle cx="60" cy="60" r={R} fill="none"
+            stroke={ringColor} strokeWidth="6" strokeLinecap="round"
+            strokeDasharray={`${dash} ${C}`}
+            style={{
+              transition: animate
+                ? "stroke-dasharray 1.4s cubic-bezier(0.34,1.56,0.64,1)"
+                : "none",
+            }}/>
+
         </svg>
 
-        {/* center */}
+        {/* center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[38px] font-black leading-none"
-            style={{ fontFamily:"-apple-system,'SF Pro Display',sans-serif", letterSpacing:"-0.06em", color: info.color }}>
+          <span className={`text-[30px] font-black leading-none text-blue-500`}
+            style={{ letterSpacing: "-0.06em" }}>
             {score}
           </span>
-          <span className={`text-[10px] font-bold mt-0.5 ${dark?"text-white/30":"text-blue-300"}`}>/ 1000</span>
+          <span className={`text-[9px] font-bold mt-0.5 ${dark ? "text-blue-500/50" : "text-blue-400"}`}>
+            / 1000
+          </span>
         </div>
       </div>
 
-      {/* label */}
-      <div className="text-center mt-3 mb-1">
-        <div className="flex items-center justify-center gap-1.5">
-          <span className="text-[20px] font-black" style={{ color: info.color}}>
-            {info.tier}
-          </span>
-          {score >= 750 && <Award size={15} style={{ color: info.color }}/>}
+      {/* ── RIGHT: tier info + mini stats ── */}
+      <div className="flex flex-col gap-2.5 flex-1 min-w-0">
+
+        {/* tier badge + label */}
+        <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[18px] font-black leading-none text-blue-500"
+              style={{letterSpacing: "-0.04em" }}>
+              {tier.label}
+            </span>
+            {/* rank pips */}
+            <div className="flex gap-0.5 items-center">
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} className="rounded-sm transition-all"
+                  style={{
+                    width: 5, height: i < tier.rank ? 10 + i * 2 : 8,
+                    background: i < tier.rank
+                      ? `rgba(59,130,246,${0.4 + i * 0.12})`
+                      : dark ? "rgba(255,255,255,0.07)" : "rgba(59,130,246,0.1)",
+                  }}/>
+              ))}
+            </div>
+          </div>
+          <p className={`text-[11px] font-medium leading-tight ${dark ? "text-slate-500" : "text-slate-400"}`}>
+            {tier.sub}
+          </p>
         </div>
-        <p className={`text-[11px] font-medium mt-0.5 text-slate-500`}>{info.sub}</p>
+
+        {/* progress fraction */}
+        <div className={`flex items-center justify-between px-3 py-2 rounded-xl border
+          ${dark ? "bg-blue-500/[0.06] border-blue-500/[0.12]" : "bg-blue-50/80 border-blue-200/60"}`}>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[15px] font-black text-blue-500">
+              {Math.round(pct * 100)}%
+            </span>
+            <span className={`text-[8.5px] font-semibold ${dark ? "text-slate-600" : "text-slate-400"}`}>Score</span>
+          </div>
+          <div className={`w-px h-7 ${dark ? "bg-blue-500/10" : "bg-blue-200/60"}`}/>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[15px] font-black text-blue-500">
+              {MAX - score}
+            </span>
+            <span className={`text-[8.5px] font-semibold ${dark ? "text-slate-600" : "text-slate-400"}`}>To max</span>
+          </div>
+          <div className={`w-px h-7 ${dark ? "bg-blue-500/10" : "bg-blue-200/60"}`}/>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[15px] font-black text-blue-500">
+              #{tier.rank < 3 ? tier.rank : "—"}
+            </span>
+            <span className={`text-[8.5px] font-semibold ${dark ? "text-slate-600" : "text-slate-400"}`}>Rank tier</span>
+          </div>
+        </div>
+
+        {/* tier ladder — horizontal 5-step */}
+        <div className="flex gap-1">
+          {["Incomplete","Basic","Growing","Advanced","Elite"].map((t,i) => {
+            const active = i + 1 === tier.rank;
+            const passed = i + 1 < tier.rank;
+            return (
+              <div key={i} className="flex-1 flex flex-col gap-1 items-center">
+                <div className={`h-1 w-full rounded-full transition-all`}
+                  style={{
+                    background: passed
+                      ? "rgba(59,130,246,0.5)"
+                      : active
+                      ? "#3b82f6"
+                      : dark ? "rgba(255,255,255,0.05)" : "rgba(59,130,246,0.1)",
+                  }}/>
+                {active && (
+                  <span className="text-[7.5px] font-black text-blue-500" style={{ letterSpacing: "-0.01em" }}>
+                    {t}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
-
 /* ════════════════════════════════════════════════════════════════════
    CATEGORY PROGRESS BAR (compact row)
 ════════════════════════════════════════════════════════════════════ */
@@ -1250,7 +1359,7 @@ export default function ChecklistPage() {
                   <div className={`rounded-2xl p-3 grid grid-cols-3 gap-1 border
                     ${dark?"bg-blue-950/30 border-blue-900/30":"bg-blue-50/60 border-blue-100"}`}>
                     {[
-                      { n: counts.complete, label: "Done",    color: "#4ade80" },
+                      { n: counts.complete, label: "Done",    color: "#59AC77" },
                       { n: counts.partial,  label: "Partial", color: "#fbbf24" },
                       { n: counts.missing,  label: "Missing", color: "#f87171" },
                     ].map((r,i) => (
