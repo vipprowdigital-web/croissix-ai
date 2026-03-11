@@ -1,7 +1,7 @@
 // backend\src\middleware\authMiddleware.js
 
 import jwt from "jsonwebtoken";
-import User from "../models/user.model";
+import User from "../models/user.model.js";
 
 export const ensureAuth = async (req, res, next) => {
   try {
