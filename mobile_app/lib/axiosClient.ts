@@ -1,131 +1,78 @@
 // mobile_app\lib\axiosClient.ts
 
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
+import axios from "axios";
 import { getToken, getRefreshToken } from "./token";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export const API = axios.create({
-  baseURL: API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-/* ─────────────────────────────────────────
-   REFRESH TOKEN STATE
-───────────────────────────────────────── */
-
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
-
-function subscribeTokenRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb);
-}
-
-function onRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
-}
-
-function logout() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("lastExternalReferrer");
-  localStorage.removeItem("lastExternalReferrerTime");
-  localStorage.removeItem("topicsLastReferenceTime");
-
-  if (window.location.pathname !== "/login") {
-    window.location.href = "/login";
-  }
-}
-
-/* ─────────────────────────────────────────
+/* ─────────────────────────────
    REQUEST INTERCEPTOR
-───────────────────────────────────────── */
+───────────────────────────── */
 
-API.interceptors.request.use(
-  (config) => {
-    const token = getToken();
+API.interceptors.request.use((config) => {
+  const token = getToken();
 
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
+  return config;
+});
 
-/* ─────────────────────────────────────────
+/* ─────────────────────────────
    RESPONSE INTERCEPTOR
-───────────────────────────────────────── */
+───────────────────────────── */
 
 API.interceptors.response.use(
   (response) => response,
 
-  async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & {
-      _retry?: boolean;
-    };
+  async (error) => {
+    const originalRequest = error.config;
 
-    if (!error.response) {
-      return Promise.reject(error);
-    }
-
-    const status = error.response.status;
-
-    /* ───────── HANDLE TOKEN EXPIRE ───────── */
-
-    if (status === 401 && !originalRequest._retry) {
-      const refreshToken = getRefreshToken();
-
-      if (!refreshToken) {
-        logout();
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        return new Promise((resolve) => {
-          subscribeTokenRefresh((token: string) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-
-            resolve(API(originalRequest));
-          });
-        });
-      }
-
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        });
+        const refreshToken = getRefreshToken();
 
-        const newAccessToken = response.data.accessToken;
+        const res = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+          { refreshToken }
+        );
 
+        const newAccessToken = res.data.accessToken;
+
+        // store new token
         localStorage.setItem("accessToken", newAccessToken);
 
-        API.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+        // update axios defaults
+        API.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${newAccessToken}`;
 
-        onRefreshed(newAccessToken);
-        isRefreshing = false;
+        // update original request header
+        originalRequest.headers[
+          "Authorization"
+        ] = `Bearer ${newAccessToken}`;
 
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        }
-
+        // retry request
         return API(originalRequest);
+
       } catch (refreshError) {
-        isRefreshing = false;
-        logout();
+        localStorage.clear();
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
 
     return Promise.reject(error);
-  },
+  }
 );

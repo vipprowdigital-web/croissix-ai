@@ -37,7 +37,12 @@ export const ensureAuth = async (req, res, next) => {
     }
 
     // Attach user to request
-    req.user = user;
+    // normalize user object
+    req.user = {
+      id: user._id.toString(),
+      email: user.email,
+      provider: user.provider,
+    };
 
     next();
   } catch (error) {

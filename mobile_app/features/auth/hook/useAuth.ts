@@ -20,7 +20,7 @@ export const useLogin = () => {
     mutationFn: loginUser,
 
     onSuccess: (data) => {
-      if (!data?.token) return;
+      if (!data?.accessToken) return;
 
       // clear previous session
       localStorage.removeItem("accessToken");
@@ -30,12 +30,10 @@ export const useLogin = () => {
       localStorage.removeItem("topicsLastReferenceTime");
 
       // store tokens
+      localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
 
-      // store fresh token
-      localStorage.setItem("accessToken", data.token);
-
-      // store user in redux
+      // store user
       if (data.user) {
         dispatch(setUser(data.user));
       }

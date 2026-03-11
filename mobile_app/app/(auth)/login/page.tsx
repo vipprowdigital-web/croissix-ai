@@ -204,7 +204,9 @@ export default function LoginPage() {
       },
       {
         onSuccess: () => {
-          router.push("/");
+          setTimeout(() => {
+            router.replace("/");
+          }, 50);
         },
         onError: () => {
           setError("Invalid email or password");

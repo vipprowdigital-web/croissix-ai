@@ -8,8 +8,27 @@ import {
 // Get Logged-in User's to these Profile
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password").lean();
-    res.status(200).json({
+    const userId = req.user?.id;
+
+    if (!userId) {
+      console.log('user id : ', userId);
+      
+      console.log("Unauthorized. Please login again.");
+      
+      return res.status(401).json({
+        message: "Unauthorized. Please login again.",
+      });
+    }
+
+    const user = await User.findById(userId).select("-password").lean();
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
       message: "Profile fetch successfully",
       user: {
         id: user._id,
@@ -27,11 +46,11 @@ export const getProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error feching profile: ", error.message);
+    console.error("Error fetching profile:", error.message);
 
-    return res
-      .status(500)
-      .json({ message: "Error feching profile.", error: error.message });
+    return res.status(500).json({
+      message: "Error fetching profile.",
+    });
   }
 };
 
