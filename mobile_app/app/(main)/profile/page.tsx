@@ -490,7 +490,6 @@ function GoogleProfileRow({
   const [pressed, setPressed] = useState(false);
   const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
   const user = useSelector((state: RootState) => state.user.data);
 
   const connectGoogle = () => {
@@ -897,7 +896,7 @@ export default function ProfilePage() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { mutate: logout } = useLogout();
-
+  const router = useRouter();
   const user = useSelector((state: RootState) => state.user.data);
 
   const handleLogout = () => {
@@ -958,7 +957,7 @@ export default function ProfilePage() {
             </div>
             <button
               style={{
-                position: "absolute",
+                position: "relative",
                 bottom: 0,
                 right: 0,
                 width: 29,
@@ -1118,9 +1117,10 @@ export default function ProfilePage() {
             <Row
               icon={Icon.security}
               iconBg="#2563eb"
-              label="Security"
-              value="2-step off"
+              label="My Plan"
+              value="View"
               t={t}
+              onClick={() => router.push("/subscription")}
             />
           </Section>
 

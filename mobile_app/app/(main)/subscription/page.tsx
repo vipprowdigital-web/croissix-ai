@@ -1,9 +1,10 @@
 // mobile_app\app\(main)\subscription\page.tsx
-
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 import {
   Check,
   Zap,
@@ -11,12 +12,8 @@ import {
   Building2,
   ChevronRight,
   ArrowLeft,
-  Lock,
-  CreditCard,
   Shield,
-  Star,
   MessageSquare,
-  FileText,
   CheckCircle2,
   XCircle,
   RefreshCw,
@@ -25,65 +22,55 @@ import {
   TrendingUp,
   BarChart2,
   Sparkles,
-  X,
-  Moon,
-  Sun,
-  Wifi,
-  Phone,
-  Globe,
-  Navigation,
-  Eye,
-  Award,
-  Infinity,
-  ChevronDown,
+  Star,
+  Lock,
+  AlertCircle,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════
    TYPES
 ═══════════════════════════════════════════ */
-type Screen = "plans" | "checkout" | "success" | "failed";
+type Screen = "plans" | "processing" | "success" | "failed";
 type PlanId = "starter" | "pro" | "agency";
 type Cycle = "monthly" | "yearly";
 
 interface Plan {
   id: PlanId;
   name: string;
-  tagline: string;
-  monthlyPrice: number;
-  yearlyPrice: number;
+  monthlyPrice: number; // in paise
+  yearlyPrice: number; // in paise (per month, billed yearly)
   color: string;
-  accentDark: string;
   gradient: string;
-  glowColor: string;
   badge?: string;
   icon: React.ReactNode;
   features: { text: string; highlight?: boolean }[];
   locationsLabel: string;
   postsLabel: string;
+  razorpayMonthlyPlanId: string; // your Razorpay plan IDs
+  razorpayYearlyPlanId: string;
 }
 
 /* ═══════════════════════════════════════════
-   PLAN DATA
+   PLAN DATA  — swap in your Razorpay plan IDs
 ═══════════════════════════════════════════ */
 const PLANS: Plan[] = [
   {
     id: "starter",
     name: "Starter",
-    tagline: "Perfect for single-location businesses",
-    monthlyPrice: 999,
-    yearlyPrice: 799,
+    monthlyPrice: 99900,
+    yearlyPrice: 79900,
     color: "#3b82f6",
-    accentDark: "#60a5fa",
-    gradient: "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)",
-    glowColor: "rgba(59,130,246,0.35)",
+    gradient: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
     icon: <Zap size={16} />,
     locationsLabel: "1 location",
     postsLabel: "5 posts/mo",
+    razorpayMonthlyPlanId: "plan_starter_monthly",
+    razorpayYearlyPlanId: "plan_starter_yearly",
     features: [
       { text: "1 Google Business location" },
-      { text: "30-day analytics history" },
+      { text: "30-day analytics" },
       { text: "Review monitoring" },
-      { text: "5 posts per month" },
+      { text: "5 posts / month" },
       { text: "Basic AI insights" },
       { text: "Email support" },
     ],
@@ -91,21 +78,20 @@ const PLANS: Plan[] = [
   {
     id: "pro",
     name: "Pro",
-    tagline: "For growing multi-location brands",
-    monthlyPrice: 2499,
-    yearlyPrice: 1999,
-    color: "#3b82f6",
-    accentDark: "#93c5fd",
-    gradient: "linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)",
-    glowColor: "rgba(37,99,235,0.45)",
+    monthlyPrice: 249900,
+    yearlyPrice: 199900,
+    color: "#2563eb",
+    gradient: "linear-gradient(135deg,#1e40af,#2563eb,#3b82f6)",
     badge: "Most Popular",
     icon: <Crown size={16} />,
     locationsLabel: "3 locations",
     postsLabel: "Unlimited posts",
+    razorpayMonthlyPlanId: "plan_pro_monthly",
+    razorpayYearlyPlanId: "plan_pro_yearly",
     features: [
       { text: "3 Google Business locations" },
-      { text: "90-day analytics history" },
-      { text: "AI-powered review replies", highlight: true },
+      { text: "90-day analytics" },
+      { text: "AI review replies", highlight: true },
       { text: "Unlimited posts" },
       { text: "Competitor analysis", highlight: true },
       { text: "CSV & PDF export" },
@@ -115,17 +101,16 @@ const PLANS: Plan[] = [
   {
     id: "agency",
     name: "Agency",
-    tagline: "Unlimited scale for agencies",
-    monthlyPrice: 5999,
-    yearlyPrice: 4799,
+    monthlyPrice: 599900,
+    yearlyPrice: 479900,
     color: "#1d4ed8",
-    accentDark: "#bfdbfe",
-    gradient: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%)",
-    glowColor: "rgba(29,78,216,0.5)",
+    gradient: "linear-gradient(135deg,#0f172a,#1e3a8a,#1d4ed8)",
     badge: "Best Value",
     icon: <Building2 size={16} />,
     locationsLabel: "Unlimited locations",
     postsLabel: "Unlimited posts",
+    razorpayMonthlyPlanId: "plan_agency_monthly",
+    razorpayYearlyPlanId: "plan_agency_yearly",
     features: [
       { text: "Unlimited locations", highlight: true },
       { text: "Unlimited history" },
@@ -133,7 +118,7 @@ const PLANS: Plan[] = [
       { text: "AI post generator" },
       { text: "Multi-user access", highlight: true },
       { text: "API access" },
-      { text: "Dedicated account manager", highlight: true },
+      { text: "Dedicated manager", highlight: true },
     ],
   },
 ];
@@ -141,153 +126,148 @@ const PLANS: Plan[] = [
 /* ═══════════════════════════════════════════
    HELPERS
 ═══════════════════════════════════════════ */
-const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
-const gst = (n: number) => Math.round(n * 0.18);
+const fmtRupees = (paise: number) =>
+  `₹${(paise / 100).toLocaleString("en-IN")}`;
 
 /* ═══════════════════════════════════════════
-   VARIANTS
+   RAZORPAY SUBSCRIPTION HOOK
 ═══════════════════════════════════════════ */
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
-};
-const item = {
-  hidden: { opacity: 0, y: 16, scale: 0.97 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.36, ease: [0.34, 1.2, 0.64, 1] },
-  },
-};
-const slideIn = (dir: "left" | "right") => ({
-  hidden: { opacity: 0, x: dir === "left" ? -28 : 28 },
-  show: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-  },
-  exit: {
-    opacity: 0,
-    x: dir === "left" ? 28 : -28,
-    transition: { duration: 0.22 },
-  },
-});
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
-/* ═══════════════════════════════════════════
-   THEME TOGGLE
-═══════════════════════════════════════════ */
-function ThemeToggle({
-  dark,
-  onToggle,
-}: {
-  dark: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <motion.button
-      onClick={onToggle}
-      whileTap={{ scale: 0.88 }}
-      className="w-9 h-9 rounded-2xl flex items-center justify-center transition-colors"
-      style={{
-        background: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-      }}
-    >
-      <AnimatePresence mode="wait">
-        {dark ? (
-          <motion.div
-            key="sun"
-            initial={{ rotate: -90, opacity: 0 }}
-            animate={{ rotate: 0, opacity: 1 }}
-            exit={{ rotate: 90, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Sun size={15} style={{ color: "#93c5fd" }} />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="moon"
-            initial={{ rotate: 90, opacity: 0 }}
-            animate={{ rotate: 0, opacity: 1 }}
-            exit={{ rotate: -90, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Moon size={15} style={{ color: "#3b82f6" }} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.button>
-  );
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (document.getElementById("razorpay-script")) return resolve(true);
+    const script = document.createElement("script");
+    script.id = "razorpay-script";
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
+interface UseRazorpayOpts {
+  planRazorpayId: string;
+  planName: string;
+  amountPaise: number;
+  onSuccess: (subscriptionId: string, paymentId: string) => void;
+  onFail: (reason: string) => void;
+  onDismiss: () => void;
+}
+
+function useRazorpay() {
+  // Call this to open the Razorpay checkout
+  async function openCheckout(opts: UseRazorpayOpts) {
+    const loaded = await loadRazorpayScript();
+    if (!loaded) {
+      opts.onFail("Failed to load payment SDK");
+      return;
+    }
+
+    // 1. Create a subscription on your backend
+    let subscriptionId: string;
+    try {
+      const res = await fetch("/api/razorpay/create-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({ planId: opts.planRazorpayId }),
+      });
+      const json = await res.json();
+      if (!json.subscriptionId)
+        throw new Error(json.error ?? "Could not create subscription");
+      subscriptionId = json.subscriptionId;
+    } catch (e: any) {
+      opts.onFail(e.message);
+      return;
+    }
+
+    // 2. Open Razorpay modal
+    const rzp = new window.Razorpay({
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      subscription_id: subscriptionId,
+      name: "Your App Name",
+      description: `${opts.planName} Plan Subscription`,
+      image: "/logo.png",
+      theme: { color: "#2563eb" },
+      handler(response: any) {
+        opts.onSuccess(subscriptionId, response.razorpay_payment_id);
+      },
+      modal: {
+        ondismiss() {
+          opts.onDismiss();
+        },
+      },
+    });
+    rzp.open();
+
+    rzp.on("payment.failed", (resp: any) => {
+      opts.onFail(resp.error?.description ?? "Payment failed");
+    });
+  }
+
+  return { openCheckout };
 }
 
 /* ═══════════════════════════════════════════
-   STEP INDICATOR
+   STEP DOTS
 ═══════════════════════════════════════════ */
 function StepDots({ step, dark }: { step: number; dark: boolean }) {
-  const labels = ["Plans", "Checkout", "Done"];
   return (
-    <div className="flex items-center gap-0">
-      {labels.map((label, i) => {
-        const active = i === step;
-        const done = i < step;
-        return (
-          <div key={i} className="flex items-center">
-            <div className="flex flex-col items-center gap-1">
-              <motion.div
-                animate={{
-                  width: active ? 24 : 8,
-                  background: done
-                    ? "#3b82f6"
-                    : active
-                      ? "#3b82f6"
-                      : dark
-                        ? "rgba(255,255,255,0.12)"
-                        : "rgba(0,0,0,0.12)",
-                }}
-                transition={{ duration: 0.3, ease: [0.34, 1.2, 0.64, 1] }}
-                style={{ height: 8, borderRadius: 99 }}
-              />
-            </div>
-            {i < labels.length - 1 && (
-              <div
-                style={{
-                  width: 16,
-                  height: 2,
-                  borderRadius: 99,
-                  margin: "0 4px",
-                  marginBottom: 0,
-                  background: done
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      {[0, 1, 2].map((i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <motion.div
+            animate={{
+              width: i === step ? 20 : 8,
+              background:
+                i < step
+                  ? "#3b82f6"
+                  : i === step
                     ? "#3b82f6"
                     : dark
-                      ? "rgba(255,255,255,0.08)"
-                      : "rgba(0,0,0,0.08)",
-                }}
-              />
-            )}
-          </div>
-        );
-      })}
+                      ? "rgba(255,255,255,0.1)"
+                      : "rgba(0,0,0,0.1)",
+            }}
+            transition={{ duration: 0.28, ease: [0.34, 1.2, 0.64, 1] }}
+            style={{ height: 8, borderRadius: 99 }}
+          />
+          {i < 2 && (
+            <div
+              style={{
+                width: 12,
+                height: 2,
+                borderRadius: 99,
+                background:
+                  i < step
+                    ? "#3b82f6"
+                    : dark
+                      ? "rgba(255,255,255,0.07)"
+                      : "rgba(0,0,0,0.07)",
+              }}
+            />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════
-   ████  PLANS SCREEN  ████
+   PLANS SCREEN
 ═══════════════════════════════════════════ */
 function PlansScreen({
   dark,
   onSelect,
 }: {
   dark: boolean;
-  onSelect: (plan: PlanId, cycle: Cycle) => void;
+  onSelect: (plan: Plan, cycle: Cycle) => void;
 }) {
   const [cycle, setCycle] = useState<Cycle>("yearly");
   const [active, setActive] = useState<PlanId>("pro");
@@ -297,21 +277,26 @@ function PlansScreen({
 
   return (
     <motion.div
-      variants={stagger}
-      initial="hidden"
-      animate="show"
-      className="flex flex-col gap-4 pb-36"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        paddingBottom: 120,
+      }}
     >
       {/* HERO */}
-      <motion.div variants={fadeUp} className="pt-1 pb-2">
+      <div style={{ paddingTop: 4 }}>
         <h1
           style={{
-            fontFamily: "'SF Pro Display', -apple-system, sans-serif",
-            fontSize: 26,
+            fontSize: 24,
             fontWeight: 900,
             letterSpacing: "-0.04em",
-            lineHeight: 1.1,
+            lineHeight: 1.15,
             color: dark ? "#fff" : "#0f172a",
+            margin: 0,
           }}
         >
           Unlock the full
@@ -322,55 +307,50 @@ function PlansScreen({
           style={{
             fontSize: 13,
             marginTop: 6,
-            color: dark ? "rgba(148,163,184,1)" : "rgba(100,116,139,1)",
+            color: dark ? "#64748b" : "#64748b",
             fontWeight: 500,
+            margin: "6px 0 0",
           }}
         >
-          Grow smarter with AI-powered Google Business insights
+          AI-powered Google Business insights
         </p>
-      </motion.div>
+      </div>
 
       {/* BILLING TOGGLE */}
-      <motion.div
-        variants={fadeUp}
-        className="flex items-center self-center gap-3 px-4 py-2 rounded-2xl"
-        style={{
-          background: dark ? "rgba(255,255,255,0.05)" : "rgba(59,130,246,0.06)",
-          border: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(59,130,246,0.12)"}`,
-        }}
-      >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <button
           onClick={() => setCycle("monthly")}
           style={{
             fontSize: 12,
             fontWeight: 700,
-            padding: "4px 10px",
+            padding: "5px 12px",
             borderRadius: 10,
             border: "none",
             cursor: "pointer",
-            transition: "all 0.2s",
             background:
               cycle === "monthly"
                 ? dark
-                  ? "rgba(59,130,246,0.25)"
-                  : "rgba(59,130,246,0.15)"
+                  ? "rgba(59,130,246,0.2)"
+                  : "rgba(59,130,246,0.1)"
                 : "transparent",
             color:
-              cycle === "monthly" ? "#3b82f6" : dark ? "#64748b" : "#94a3b8",
+              cycle === "monthly" ? "#3b82f6" : dark ? "#475569" : "#94a3b8",
           }}
         >
           Monthly
         </button>
+
         <motion.div
           onClick={() =>
             setCycle((c) => (c === "monthly" ? "yearly" : "monthly"))
           }
           style={{
-            width: 40,
-            height: 22,
+            width: 38,
+            height: 20,
             borderRadius: 99,
             cursor: "pointer",
             position: "relative",
+            flexShrink: 0,
             background:
               cycle === "yearly"
                 ? "#3b82f6"
@@ -380,176 +360,142 @@ function PlansScreen({
           }}
         >
           <motion.div
-            animate={{ x: cycle === "yearly" ? 20 : 2 }}
-            transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            animate={{ x: cycle === "yearly" ? 19 : 2 }}
+            transition={{ type: "spring", stiffness: 360, damping: 30 }}
             style={{
               position: "absolute",
-              top: 3,
+              top: 2,
               width: 16,
               height: 16,
               borderRadius: "50%",
               background: "#fff",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
             }}
           />
         </motion.div>
-        <div className="flex items-center gap-1.5">
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <button
             onClick={() => setCycle("yearly")}
             style={{
               fontSize: 12,
               fontWeight: 700,
-              padding: "4px 10px",
+              padding: "5px 12px",
               borderRadius: 10,
               border: "none",
               cursor: "pointer",
-              transition: "all 0.2s",
               background:
                 cycle === "yearly"
                   ? dark
-                    ? "rgba(59,130,246,0.25)"
-                    : "rgba(59,130,246,0.15)"
+                    ? "rgba(59,130,246,0.2)"
+                    : "rgba(59,130,246,0.1)"
                   : "transparent",
               color:
-                cycle === "yearly" ? "#3b82f6" : dark ? "#64748b" : "#94a3b8",
+                cycle === "yearly" ? "#3b82f6" : dark ? "#475569" : "#94a3b8",
             }}
           >
             Yearly
           </button>
-          <motion.span
-            animate={cycle === "yearly" ? { scale: [1, 1.08, 1] } : {}}
-            transition={{ duration: 0.35 }}
+          <span
             style={{
               fontSize: 9,
               fontWeight: 900,
-              padding: "2px 7px",
+              padding: "2px 6px",
               borderRadius: 99,
               background: "#22c55e",
               color: "#fff",
             }}
           >
             −20%
-          </motion.span>
+          </span>
         </div>
-      </motion.div>
+      </div>
 
       {/* PLAN CARDS */}
-      <motion.div variants={stagger} className="flex flex-col gap-3">
-        {PLANS.map((plan) => {
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {PLANS.map((plan, idx) => {
           const isActive = active === plan.id;
           const planPrice =
             cycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
-          const origPrice = plan.monthlyPrice;
 
           return (
             <motion.div
               key={plan.id}
-              variants={item}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.06, duration: 0.3 }}
               onClick={() => setActive(plan.id)}
-              whileTap={{ scale: 0.985 }}
+              whileTap={{ scale: 0.99 }}
               style={{
-                borderRadius: 24,
+                borderRadius: 20,
                 cursor: "pointer",
                 overflow: "hidden",
                 position: "relative",
-                border: isActive
-                  ? `2px solid ${plan.color}`
-                  : `2px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
+                border: `2px solid ${isActive ? plan.color : dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)"}`,
                 background: isActive
                   ? dark
-                    ? `rgba(37,99,235,0.1)`
-                    : `rgba(219,234,254,0.5)`
+                    ? "rgba(37,99,235,0.08)"
+                    : "rgba(219,234,254,0.4)"
                   : dark
                     ? "#0f1a2e"
                     : "#fff",
                 boxShadow: isActive
-                  ? `0 0 0 4px ${plan.glowColor}, 0 16px 48px ${plan.glowColor}`
+                  ? `0 0 0 3px rgba(59,130,246,0.15), 0 8px 32px rgba(37,99,235,0.15)`
                   : dark
                     ? "none"
-                    : "0 1px 4px rgba(0,0,0,0.05)",
-                transition: "all 0.25s ease",
+                    : "0 1px 4px rgba(0,0,0,0.04)",
+                transition:
+                  "border-color 0.2s, background 0.2s, box-shadow 0.2s",
               }}
             >
-              {/* animated glow BG */}
-              {isActive && (
-                <motion.div
-                  style={{
-                    position: "absolute",
-                    top: -40,
-                    right: -40,
-                    width: 120,
-                    height: 120,
-                    borderRadius: "50%",
-                    background: `radial-gradient(circle, ${plan.glowColor}, transparent 70%)`,
-                    pointerEvents: "none",
-                  }}
-                  animate={{ scale: [1, 1.3, 1] }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-              )}
-
-              <div style={{ padding: "16px 16px 0 16px" }}>
-                {/* header row */}
+              <div style={{ padding: "14px 14px 0" }}>
                 <div
                   style={{
                     display: "flex",
-                    alignItems: "flex-start",
+                    alignItems: "center",
                     justifyContent: "space-between",
-                    marginBottom: 12,
                   }}
                 >
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 10 }}
                   >
-                    {/* radio dot */}
-                    <motion.div
-                      animate={{
-                        borderColor: isActive
-                          ? plan.color
-                          : dark
-                            ? "#334155"
-                            : "#cbd5e1",
-                        background: isActive ? plan.color : "transparent",
-                      }}
+                    {/* radio */}
+                    <div
                       style={{
-                        width: 20,
-                        height: 20,
+                        width: 18,
+                        height: 18,
                         borderRadius: "50%",
-                        border: "2px solid",
+                        border: `2px solid ${isActive ? plan.color : dark ? "#334155" : "#cbd5e1"}`,
+                        background: isActive ? plan.color : "transparent",
+                        flexShrink: 0,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        flexShrink: 0,
+                        transition: "all 0.18s",
                       }}
                     >
                       {isActive && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 420 }}
+                        <div
                           style={{
-                            width: 8,
-                            height: 8,
+                            width: 7,
+                            height: 7,
                             borderRadius: "50%",
                             background: "#fff",
                           }}
                         />
                       )}
-                    </motion.div>
+                    </div>
 
                     {/* icon */}
                     <div
                       style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 12,
+                        width: 32,
+                        height: 32,
+                        borderRadius: 10,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        flexShrink: 0,
                         background: isActive
                           ? plan.gradient
                           : dark
@@ -567,13 +513,13 @@ function PlansScreen({
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 8,
+                          gap: 7,
                         }}
                       >
                         <span
                           style={{
-                            fontSize: 15,
-                            fontWeight: 900,
+                            fontSize: 14,
+                            fontWeight: 800,
                             letterSpacing: "-0.02em",
                             color: dark ? "#fff" : "#0f172a",
                           }}
@@ -581,28 +527,26 @@ function PlansScreen({
                           {plan.name}
                         </span>
                         {plan.badge && (
-                          <motion.span
-                            animate={{ scale: [1, 1.04, 1] }}
-                            transition={{ duration: 2, repeat: Infinity }}
+                          <span
                             style={{
-                              fontSize: 9,
+                              fontSize: 8.5,
                               fontWeight: 900,
-                              padding: "2px 8px",
+                              padding: "2px 7px",
                               borderRadius: 99,
                               background: plan.gradient,
                               color: "#fff",
                             }}
                           >
                             {plan.badge}
-                          </motion.span>
+                          </span>
                         )}
                       </div>
                       <p
                         style={{
-                          fontSize: 10.5,
+                          fontSize: 10,
                           color: dark ? "#475569" : "#94a3b8",
-                          marginTop: 1,
                           fontWeight: 500,
+                          margin: "1px 0 0",
                         }}
                       >
                         {plan.locationsLabel} · {plan.postsLabel}
@@ -612,53 +556,36 @@ function PlansScreen({
 
                   {/* price */}
                   <div style={{ textAlign: "right" }}>
-                    <div
+                    <span
                       style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 1,
+                        fontSize: 20,
+                        fontWeight: 900,
+                        letterSpacing: "-0.04em",
+                        color: dark ? "#fff" : "#0f172a",
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: dark ? "#64748b" : "#94a3b8",
-                          marginBottom: 2,
-                        }}
-                      >
-                        ₹
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 22,
-                          fontWeight: 900,
-                          letterSpacing: "-0.04em",
-                          color: dark ? "#fff" : "#0f172a",
-                        }}
-                      >
-                        {planPrice.toLocaleString("en-IN")}
-                      </span>
-                    </div>
+                      {fmtRupees(planPrice)}
+                    </span>
                     <p
                       style={{
-                        fontSize: 9.5,
+                        fontSize: 9,
                         color: dark ? "#475569" : "#94a3b8",
                         fontWeight: 600,
+                        margin: "1px 0 0",
                       }}
                     >
-                      {cycle === "yearly" ? "mo · billed yearly" : "/ month"}
+                      {cycle === "yearly" ? "mo · yearly" : "/ mo"}
                     </p>
                     {cycle === "yearly" && (
                       <p
                         style={{
-                          fontSize: 9,
-                          color: dark ? "#334155" : "#cbd5e1",
+                          fontSize: 8.5,
+                          color: dark ? "#2d3f58" : "#cbd5e1",
                           textDecoration: "line-through",
-                          fontWeight: 500,
+                          margin: 0,
                         }}
                       >
-                        ₹{origPrice.toLocaleString("en-IN")}
+                        {fmtRupees(plan.monthlyPrice)}
                       </p>
                     )}
                   </div>
@@ -666,46 +593,42 @@ function PlansScreen({
               </div>
 
               {/* expanded features */}
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {isActive && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <div
                       style={{
-                        padding: "0 16px 16px",
-                        borderTop: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(59,130,246,0.1)"}`,
-                        marginTop: 0,
-                        paddingTop: 12,
+                        padding: "10px 14px 14px",
+                        borderTop: `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(59,130,246,0.08)"}`,
+                        marginTop: 12,
                       }}
                     >
                       <div
                         style={{
                           display: "grid",
                           gridTemplateColumns: "1fr 1fr",
-                          gap: "7px 8px",
+                          gap: "6px 10px",
                         }}
                       >
                         {plan.features.map((f, i) => (
-                          <motion.div
+                          <div
                             key={i}
-                            initial={{ opacity: 0, x: -8 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.035 }}
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 7,
+                              gap: 6,
                             }}
                           >
                             <div
                               style={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: 8,
+                                width: 14,
+                                height: 14,
+                                borderRadius: 7,
                                 flexShrink: 0,
                                 display: "flex",
                                 alignItems: "center",
@@ -713,19 +636,20 @@ function PlansScreen({
                                 background: f.highlight
                                   ? plan.gradient
                                   : dark
-                                    ? "rgba(59,130,246,0.15)"
+                                    ? "rgba(59,130,246,0.18)"
                                     : "rgba(59,130,246,0.1)",
                               }}
                             >
                               <Check
-                                size={9}
+                                size={8}
                                 color={f.highlight ? "#fff" : "#3b82f6"}
                                 strokeWidth={3}
                               />
                             </div>
                             <span
                               style={{
-                                fontSize: 11,
+                                fontSize: 10.5,
+                                lineHeight: 1.3,
                                 color: dark
                                   ? f.highlight
                                     ? "#bfdbfe"
@@ -734,12 +658,11 @@ function PlansScreen({
                                     ? "#1d4ed8"
                                     : "#64748b",
                                 fontWeight: f.highlight ? 700 : 500,
-                                lineHeight: 1.3,
                               }}
                             >
                               {f.text}
                             </span>
-                          </motion.div>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -749,32 +672,33 @@ function PlansScreen({
             </motion.div>
           );
         })}
-      </motion.div>
+      </div>
 
-      {/* TRUST STRIP */}
+      {/* TRUST */}
       <motion.div
-        variants={fadeUp}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
         style={{
-          borderRadius: 18,
-          padding: "12px 14px",
+          borderRadius: 16,
+          padding: "11px 14px",
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          background: dark ? "rgba(37,99,235,0.08)" : "rgba(219,234,254,0.6)",
-          border: `1px solid ${dark ? "rgba(59,130,246,0.15)" : "rgba(147,197,253,0.5)"}`,
+          gap: 8,
+          background: dark ? "rgba(37,99,235,0.07)" : "rgba(219,234,254,0.5)",
+          border: `1px solid ${dark ? "rgba(59,130,246,0.12)" : "rgba(147,197,253,0.4)"}`,
         }}
       >
-        <Shield size={14} style={{ color: "#3b82f6", flexShrink: 0 }} />
+        <Shield size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
         <p
           style={{
-            fontSize: 11.5,
+            fontSize: 11,
             color: dark ? "#93c5fd" : "#1d4ed8",
             fontWeight: 600,
-            lineHeight: 1.4,
+            margin: 0,
           }}
         >
-          <strong>7-day free trial</strong> · Cancel anytime · No setup fees ·
-          GST inclusive
+          <strong>7-day free trial</strong> · Cancel anytime · No setup fees
         </p>
       </motion.div>
 
@@ -782,38 +706,37 @@ function PlansScreen({
       <div
         style={{
           position: "fixed",
-          bottom: 0,
+          bottom: 45,
           left: 0,
           right: 0,
-          padding: "12px 16px 28px",
+          padding: "10px 16px 24px",
           background: dark
-            ? "linear-gradient(to top, #080f1e 55%, transparent)"
-            : "linear-gradient(to top, #f0f5ff 55%, transparent)",
+            ? "linear-gradient(to top,#080f1e 60%,transparent)"
+            : "linear-gradient(to top,#eef4ff 60%,transparent)",
         }}
       >
-        <div style={{ maxWidth: 480, margin: "0 auto" }}>
+        <div style={{ maxWidth: 440, margin: "0 auto" }}>
           <motion.button
-            onClick={() => onSelect(active, cycle)}
-            whileTap={{ scale: 0.97 }}
-            whileHover={{ scale: 1.01 }}
+            onClick={() => onSelect(activePlan, cycle)}
+            whileTap={{ scale: 0.975 }}
             style={{
               width: "100%",
-              padding: "16px 20px",
-              borderRadius: 20,
+              padding: "15px 20px",
+              borderRadius: 18,
               border: "none",
               background: activePlan.gradient,
               color: "#fff",
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: 900,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              boxShadow: `0 12px 40px ${activePlan.glowColor}`,
+              boxShadow: "0 8px 28px rgba(37,99,235,0.32)",
+              letterSpacing: "-0.01em",
               position: "relative",
               overflow: "hidden",
-              letterSpacing: "-0.01em",
             }}
           >
             <motion.div
@@ -821,31 +744,28 @@ function PlansScreen({
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)",
-                opacity: 0.8,
+                  "linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)",
               }}
               animate={{ x: ["-100%", "100%"] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
             />
             <span style={{ position: "relative" }}>
-              Start {activePlan.name} · {fmt(price)}/mo
+              Start {activePlan.name} · {fmtRupees(price)}/mo
             </span>
-            <ChevronRight size={16} style={{ position: "relative" }} />
+            <ChevronRight size={15} style={{ position: "relative" }} />
           </motion.button>
           <p
             style={{
               textAlign: "center",
               fontSize: 10,
-              marginTop: 7,
-              color: dark ? "#334155" : "#94a3b8",
+              marginTop: 6,
+              color: dark ? "#2d3f58" : "#94a3b8",
               fontWeight: 500,
             }}
           >
             Billed{" "}
-            {cycle === "yearly"
-              ? `₹${(price * 12).toLocaleString("en-IN")} yearly`
-              : "monthly"}{" "}
-            · Start free for 7 days
+            {cycle === "yearly" ? `${fmtRupees(price * 12)} yearly` : "monthly"}{" "}
+            · Free for first 7 days
           </p>
         </div>
       </div>
@@ -854,828 +774,140 @@ function PlansScreen({
 }
 
 /* ═══════════════════════════════════════════
-   ████  CHECKOUT SCREEN  ████
+   PROCESSING SCREEN  (while Razorpay is open)
 ═══════════════════════════════════════════ */
-function CheckoutScreen({
+function ProcessingScreen({
   dark,
-  planId,
-  cycle,
-  onSuccess,
-  onFail,
+  planName,
 }: {
   dark: boolean;
-  planId: PlanId;
-  cycle: Cycle;
-  onSuccess: () => void;
-  onFail: () => void;
+  planName: string;
 }) {
-  const plan = PLANS.find((p) => p.id === planId)!;
-  const basePrice = cycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
-  const totalBase = cycle === "yearly" ? basePrice * 12 : basePrice;
-  const tax = gst(totalBase);
-  const total = totalBase + tax;
-
-  const [method, setMethod] = useState<"upi" | "card" | "netbanking">("upi");
-  const [upiId, setUpiId] = useState("");
-  const [cardNum, setCardNum] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [coupon, setCoupon] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
-  const [showCoupon, setShowCoupon] = useState(false);
-  const discount = couponApplied ? Math.round(totalBase * 0.1) : 0;
-  const finalTotal = total - discount;
-
-  function fmtCard(v: string) {
-    return v
-      .replace(/\D/g, "")
-      .slice(0, 16)
-      .replace(/(.{4})/g, "$1 ")
-      .trim();
-  }
-  function fmtExp(v: string) {
-    const d = v.replace(/\D/g, "").slice(0, 4);
-    return d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d;
-  }
-
-  async function pay() {
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 2400));
-    setLoading(false);
-    const fail =
-      upiId.toLowerCase().includes("fail") || cardNum.startsWith("4111");
-    fail ? onFail() : onSuccess();
-  }
-
-  const inp = {
-    width: "100%",
-    padding: "13px 14px",
-    borderRadius: 16,
-    fontSize: 13,
-    fontWeight: 600,
-    border: `1.5px solid ${dark ? "rgba(255,255,255,0.08)" : "rgba(203,213,225,0.8)"}`,
-    background: dark ? "rgba(255,255,255,0.05)" : "#fff",
-    color: dark ? "#e2e8f0" : "#1e293b",
-    outline: "none",
-    boxSizing: "border-box" as const,
-    fontFamily: "-apple-system, sans-serif",
-  };
-
   return (
     <motion.div
-      variants={stagger}
-      initial="hidden"
-      animate="show"
-      className="flex flex-col gap-4 pb-40"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "60vh",
+        gap: 16,
+        textAlign: "center",
+      }}
     >
-      {/* ORDER SUMMARY CARD */}
       <motion.div
-        variants={fadeUp}
-        style={{
-          borderRadius: 24,
-          overflow: "hidden",
-          border: `1.5px solid ${dark ? "rgba(59,130,246,0.2)" : "rgba(147,197,253,0.5)"}`,
-          background: dark
-            ? "linear-gradient(135deg, rgba(30,58,138,0.25), rgba(29,78,216,0.1))"
-            : "linear-gradient(135deg, rgba(219,234,254,0.8), rgba(239,246,255,0.9))",
-        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
       >
-        <div style={{ padding: 16 }}>
-          {/* plan row */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: plan.gradient,
-                flexShrink: 0,
-              }}
-            >
-              <span style={{ color: "#fff" }}>{plan.icon}</span>
-            </div>
-            <div style={{ flex: 1 }}>
-              <p
-                style={{
-                  fontSize: 15,
-                  fontWeight: 900,
-                  letterSpacing: "-0.03em",
-                  color: dark ? "#fff" : "#0f172a",
-                }}
-              >
-                {plan.name} Plan
-              </p>
-              <p
-                style={{
-                  fontSize: 11,
-                  color: dark ? "#4b6cb7" : "#60a5fa",
-                  fontWeight: 600,
-                  marginTop: 1,
-                }}
-              >
-                Billed {cycle === "yearly" ? "annually" : "monthly"}
-              </p>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <p
-                style={{
-                  fontSize: 20,
-                  fontWeight: 900,
-                  letterSpacing: "-0.04em",
-                  color: dark ? "#fff" : "#0f172a",
-                }}
-              >
-                {fmt(basePrice)}
-              </p>
-              <p
-                style={{
-                  fontSize: 10,
-                  color: dark ? "#475569" : "#94a3b8",
-                  fontWeight: 600,
-                }}
-              >
-                /month
-              </p>
-            </div>
-          </div>
-
-          {/* line items */}
-          <div
-            style={{
-              borderTop: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(147,197,253,0.3)"}`,
-              paddingTop: 12,
-            }}
-          >
-            {[
-              {
-                label:
-                  cycle === "yearly" ? "Annual subtotal" : "Monthly subtotal",
-                val: fmt(totalBase),
-              },
-              { label: "GST (18%)", val: fmt(tax) },
-              couponApplied
-                ? {
-                    label: "Coupon LAUNCH10 🎉",
-                    val: `−${fmt(discount)}`,
-                    green: true,
-                  }
-                : null,
-            ]
-              .filter(Boolean)
-              .map((row: any, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 7,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: dark ? "#64748b" : "#64748b",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {row.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: row.green
-                        ? "#22c55e"
-                        : dark
-                          ? "#94a3b8"
-                          : "#475569",
-                    }}
-                  >
-                    {row.val}
-                  </span>
-                </div>
-              ))}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                borderTop: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(147,197,253,0.3)"}`,
-                paddingTop: 10,
-                marginTop: 4,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 900,
-                  color: dark ? "#fff" : "#0f172a",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                Total due today
-              </span>
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 900,
-                  color: "#3b82f6",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {fmt(finalTotal)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* trial banner */}
-        <div
-          style={{
-            padding: "10px 16px",
-            background: dark ? "rgba(34,197,94,0.08)" : "rgba(220,252,231,0.7)",
-            borderTop: `1px solid ${dark ? "rgba(34,197,94,0.12)" : "rgba(134,239,172,0.4)"}`,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <Sparkles size={12} style={{ color: "#22c55e", flexShrink: 0 }} />
-          <p
-            style={{
-              fontSize: 11.5,
-              color: dark ? "#4ade80" : "#15803d",
-              fontWeight: 600,
-            }}
-          >
-            7-day free trial · You won't be charged until{" "}
-            {new Date(Date.now() + 7 * 86400000).toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-            })}
-          </p>
-        </div>
+        <RefreshCw size={28} style={{ color: "#3b82f6" }} />
       </motion.div>
-
-      {/* COUPON */}
-      <motion.div variants={fadeUp}>
-        <button
-          onClick={() => setShowCoupon((v) => !v)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            fontWeight: 700,
-            color: "#3b82f6",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          <Award size={13} />
-          {showCoupon ? "Hide" : "Have a coupon code?"}
-          <motion.div animate={{ rotate: showCoupon ? 180 : 0 }}>
-            <ChevronDown size={12} />
-          </motion.div>
-        </button>
-        <AnimatePresence>
-          {showCoupon && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.24 }}
-              style={{
-                display: "flex",
-                gap: 8,
-                marginTop: 10,
-                overflow: "hidden",
-              }}
-            >
-              <input
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value.toUpperCase())}
-                placeholder="LAUNCH10"
-                style={{ ...inp, flex: 1 }}
-              />
-              <motion.button
-                whileTap={{ scale: 0.93 }}
-                onClick={() => {
-                  if (coupon === "LAUNCH10") setCouponApplied(true);
-                }}
-                style={{
-                  padding: "13px 16px",
-                  borderRadius: 16,
-                  background: couponApplied ? "#22c55e" : plan.gradient,
-                  color: "#fff",
-                  border: "none",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  boxShadow: `0 4px 16px ${plan.glowColor}`,
-                }}
-              >
-                {couponApplied ? <Check size={14} /> : "Apply"}
-              </motion.button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* PAYMENT METHOD */}
-      <motion.div
-        variants={fadeUp}
-        style={{
-          borderRadius: 24,
-          padding: 16,
-          background: dark ? "#0f1a2e" : "#fff",
-          border: `1.5px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.6)"}`,
-          boxShadow: dark ? "none" : "0 2px 12px rgba(0,0,0,0.04)",
-        }}
-      >
+      <div>
         <p
           style={{
-            fontSize: 11,
-            fontWeight: 900,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            color: dark ? "#334155" : "#94a3b8",
-            marginBottom: 12,
+            fontSize: 15,
+            fontWeight: 800,
+            color: dark ? "#fff" : "#0f172a",
+            margin: "0 0 4px",
           }}
         >
-          Payment Method
+          Opening Razorpay…
         </p>
-
-        {/* tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          {(["upi", "card", "netbanking"] as const).map((m) => (
-            <motion.button
-              key={m}
-              onClick={() => setMethod(m)}
-              whileTap={{ scale: 0.93 }}
-              style={{
-                flex: 1,
-                padding: "9px 4px",
-                borderRadius: 14,
-                border: "1.5px solid",
-                borderColor:
-                  method === m
-                    ? "#3b82f6"
-                    : dark
-                      ? "rgba(255,255,255,0.06)"
-                      : "rgba(203,213,225,0.6)",
-                background:
-                  method === m
-                    ? dark
-                      ? "rgba(37,99,235,0.18)"
-                      : "rgba(219,234,254,0.6)"
-                    : dark
-                      ? "transparent"
-                      : "transparent",
-                color: method === m ? "#3b82f6" : dark ? "#475569" : "#94a3b8",
-                fontSize: 11.5,
-                fontWeight: 800,
-                cursor: "pointer",
-                transition: "all 0.18s",
-              }}
-            >
-              {m === "upi" ? "UPI" : m === "card" ? "Card" : "Net Banking"}
-            </motion.button>
-          ))}
-        </div>
-
-        <AnimatePresence mode="wait">
-          {/* UPI */}
-          {method === "upi" && (
-            <motion.div
-              key="upi"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              style={{ display: "flex", flexDirection: "column", gap: 12 }}
-            >
-              <div style={{ position: "relative" }}>
-                <input
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  placeholder="username@upi"
-                  style={inp}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    right: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    fontSize: 9.5,
-                    fontWeight: 800,
-                    padding: "3px 8px",
-                    borderRadius: 8,
-                    background: dark
-                      ? "rgba(59,130,246,0.15)"
-                      : "rgba(219,234,254,0.8)",
-                    color: "#3b82f6",
-                  }}
-                >
-                  UPI
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 8,
-                }}
-              >
-                {["GPay", "PhonePe", "Paytm", "BHIM"].map((app) => (
-                  <motion.button
-                    key={app}
-                    onClick={() => setUpiId(`user@${app.toLowerCase()}`)}
-                    whileTap={{ scale: 0.93 }}
-                    style={{
-                      padding: "10px 8px",
-                      borderRadius: 14,
-                      border: "1.5px solid",
-                      borderColor: upiId.includes(app.toLowerCase())
-                        ? "#3b82f6"
-                        : dark
-                          ? "rgba(255,255,255,0.06)"
-                          : "rgba(203,213,225,0.5)",
-                      background: upiId.includes(app.toLowerCase())
-                        ? dark
-                          ? "rgba(37,99,235,0.18)"
-                          : "rgba(219,234,254,0.5)"
-                        : "transparent",
-                      color: upiId.includes(app.toLowerCase())
-                        ? "#3b82f6"
-                        : dark
-                          ? "#64748b"
-                          : "#94a3b8",
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      transition: "all 0.18s",
-                    }}
-                  >
-                    {app}
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* CARD */}
-          {method === "card" && (
-            <motion.div
-              key="card"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              style={{ display: "flex", flexDirection: "column", gap: 10 }}
-            >
-              <div style={{ position: "relative" }}>
-                <input
-                  value={cardNum}
-                  onChange={(e) => setCardNum(fmtCard(e.target.value))}
-                  placeholder="1234 5678 9012 3456"
-                  maxLength={19}
-                  style={inp}
-                />
-                <CreditCard
-                  size={14}
-                  style={{
-                    position: "absolute",
-                    right: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: dark ? "#334155" : "#cbd5e1",
-                  }}
-                />
-              </div>
-              <input
-                value={cardName}
-                onChange={(e) => setCardName(e.target.value)}
-                placeholder="Name on card"
-                style={inp}
-              />
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 10,
-                }}
-              >
-                <input
-                  value={expiry}
-                  onChange={(e) => setExpiry(fmtExp(e.target.value))}
-                  placeholder="MM / YY"
-                  maxLength={5}
-                  style={inp}
-                />
-                <input
-                  value={cvv}
-                  onChange={(e) =>
-                    setCvv(e.target.value.replace(/\D/g, "").slice(0, 3))
-                  }
-                  placeholder="CVV"
-                  maxLength={3}
-                  type="password"
-                  style={inp}
-                />
-              </div>
-            </motion.div>
-          )}
-
-          {/* NET BANKING */}
-          {method === "netbanking" && (
-            <motion.div
-              key="nb"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 8,
-              }}
-            >
-              {["SBI", "HDFC", "ICICI", "Axis", "Kotak", "Yes Bank"].map(
-                (bank) => (
-                  <motion.button
-                    key={bank}
-                    whileTap={{ scale: 0.93 }}
-                    style={{
-                      padding: "13px 10px",
-                      borderRadius: 14,
-                      border: `1.5px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.5)"}`,
-                      background: dark ? "rgba(255,255,255,0.02)" : "#f8fafc",
-                      color: dark ? "#94a3b8" : "#64748b",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {bank}
-                  </motion.button>
-                ),
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* SECURITY BADGES */}
-      <motion.div
-        variants={fadeUp}
-        style={{ display: "flex", justifyContent: "center", gap: 20 }}
-      >
-        {[
-          { icon: <Lock size={11} />, label: "256-bit SSL" },
-          { icon: <Shield size={11} />, label: "PCI DSS" },
-          { icon: <CheckCircle2 size={11} />, label: "Razorpay" },
-        ].map((b, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              color: dark ? "#334155" : "#94a3b8",
-            }}
-          >
-            {b.icon}
-            <span style={{ fontSize: 10, fontWeight: 700 }}>{b.label}</span>
-          </div>
-        ))}
-      </motion.div>
-
-      {/* STICKY PAY BUTTON */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: "12px 16px 28px",
-          background: dark
-            ? "linear-gradient(to top, #080f1e 55%, transparent)"
-            : "linear-gradient(to top, #f0f5ff 55%, transparent)",
-        }}
-      >
-        <div style={{ maxWidth: 480, margin: "0 auto" }}>
-          <motion.button
-            onClick={pay}
-            disabled={loading}
-            whileTap={!loading ? { scale: 0.97 } : {}}
-            style={{
-              width: "100%",
-              padding: "16px 20px",
-              borderRadius: 20,
-              border: "none",
-              background:
-                "linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%)",
-              color: "#fff",
-              fontSize: 15,
-              fontWeight: 900,
-              cursor: loading ? "wait" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              boxShadow: "0 12px 40px rgba(37,99,235,0.4)",
-              position: "relative",
-              overflow: "hidden",
-              opacity: loading ? 0.85 : 1,
-              transition: "opacity 0.2s",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            <motion.div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)",
-              }}
-              animate={{ x: ["-100%", "100%"] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            />
-            <AnimatePresence mode="wait">
-              {loading ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    position: "relative",
-                  }}
-                >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 0.8,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                  >
-                    <RefreshCw size={15} />
-                  </motion.div>
-                  Processing…
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="pay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    position: "relative",
-                  }}
-                >
-                  <Lock size={14} />
-                  Pay {fmt(finalTotal)} Securely
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.button>
-        </div>
+        <p
+          style={{
+            fontSize: 12,
+            color: dark ? "#64748b" : "#94a3b8",
+            fontWeight: 500,
+            margin: 0,
+          }}
+        >
+          Setting up your {planName} subscription
+        </p>
       </div>
     </motion.div>
   );
 }
 
 /* ═══════════════════════════════════════════
-   ████  SUCCESS SCREEN  ████
+   SUCCESS SCREEN
 ═══════════════════════════════════════════ */
 function SuccessScreen({
   dark,
-  planId,
+  plan,
   cycle,
+  subscriptionId,
   onDone,
 }: {
   dark: boolean;
-  planId: PlanId;
+  plan: Plan;
   cycle: Cycle;
+  subscriptionId: string;
   onDone: () => void;
 }) {
-  const plan = PLANS.find((p) => p.id === planId)!;
   const price = cycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
 
   const unlocked = [
+    { icon: <BarChart2 size={13} />, label: "Analytics", color: "#3b82f6" },
     {
-      icon: <BarChart2 size={14} />,
-      label: "Analytics",
-      sublabel: "Live & historical",
-      color: "#3b82f6",
-    },
-    {
-      icon: <MessageSquare size={14} />,
+      icon: <MessageSquare size={13} />,
       label: "AI Insights",
-      sublabel: "Powered by GPT-4",
-      color: "#8b5cf6",
+      color: "#2563eb",
     },
-    {
-      icon: <Star size={14} />,
-      label: "Reviews",
-      sublabel: "Monitor & reply",
-      color: "#f59e0b",
-    },
-    {
-      icon: <TrendingUp size={14} />,
-      label: "Competitor",
-      sublabel: "Track rankings",
-      color: "#22c55e",
-    },
+    { icon: <Star size={13} />, label: "Reviews", color: "#f59e0b" },
+    { icon: <TrendingUp size={13} />, label: "Competitor", color: "#22c55e" },
   ];
 
   return (
     <motion.div
-      variants={stagger}
-      initial="hidden"
-      animate="show"
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         textAlign: "center",
-        paddingBottom: 140,
+        paddingBottom: 120,
       }}
     >
-      {/* SUCCESS ICON */}
-      <motion.div
-        variants={{
-          hidden: { opacity: 0, scale: 0.5 },
-          show: {
-            opacity: 1,
-            scale: 1,
-            transition: { duration: 0.6, ease: [0.34, 1.5, 0.64, 1] },
-          },
-        }}
-        style={{ position: "relative", margin: "24px 0 28px" }}
-      >
-        {/* rings */}
-        {[72, 92, 114].map((size, i) => (
+      {/* CHECK CIRCLE */}
+      <motion.div style={{ position: "relative", margin: "28px 0 24px" }}>
+        {[64, 82, 100].map((size, i) => (
           <motion.div
             key={i}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{
-              delay: 0.3 + i * 0.1,
-              duration: 0.5,
+              delay: 0.15 + i * 0.08,
+              duration: 0.4,
               ease: [0.34, 1.3, 0.64, 1],
             }}
             style={{
               position: "absolute",
               borderRadius: "50%",
-              border: `1.5px solid`,
-              borderColor: `rgba(59,130,246,${0.35 - i * 0.1})`,
+              border: `1.5px solid rgba(59,130,246,${0.3 - i * 0.08})`,
               width: size,
               height: size,
-              top: (114 - size) / 2,
-              left: (114 - size) / 2,
+              top: (100 - size) / 2,
+              left: (100 - size) / 2,
             }}
           />
         ))}
-
-        {/* main circle */}
         <motion.div
-          initial={{ scale: 0, rotate: -20 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ duration: 0.55, ease: [0.34, 1.4, 0.64, 1] }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.45, ease: [0.34, 1.4, 0.64, 1] }}
           style={{
-            width: 90,
-            height: 90,
+            width: 80,
+            height: 80,
             borderRadius: "50%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
-            boxShadow:
-              "0 0 0 0 rgba(59,130,246,0.4), 0 16px 60px rgba(37,99,235,0.5)",
+            background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
+            boxShadow: "0 12px 40px rgba(37,99,235,0.4)",
             position: "relative",
           }}
         >
@@ -1683,85 +915,84 @@ function SuccessScreen({
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{
-              delay: 0.35,
-              duration: 0.4,
+              delay: 0.3,
+              duration: 0.35,
               ease: [0.34, 1.5, 0.64, 1],
             }}
           >
-            <CheckCircle2 size={42} color="#fff" strokeWidth={1.8} />
+            <CheckCircle2 size={36} color="#fff" strokeWidth={1.8} />
           </motion.div>
         </motion.div>
-
-        {/* particle burst */}
-        {[...Array(8)].map((_, i) => (
+        {/* particles */}
+        {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
-            initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+            initial={{ x: 0, y: 0, opacity: 1 }}
             animate={{
-              x: Math.cos((i / 8) * Math.PI * 2) * 65,
-              y: Math.sin((i / 8) * Math.PI * 2) * 65,
-              scale: 0,
+              x: Math.cos((i / 6) * Math.PI * 2) * 52,
+              y: Math.sin((i / 6) * Math.PI * 2) * 52,
               opacity: 0,
+              scale: 0,
             }}
-            transition={{ delay: 0.3, duration: 0.65, ease: "easeOut" }}
+            transition={{ delay: 0.25, duration: 0.55, ease: "easeOut" }}
             style={{
               position: "absolute",
               top: "50%",
               left: "50%",
-              width: i % 2 === 0 ? 6 : 4,
-              height: i % 2 === 0 ? 6 : 4,
+              width: 5,
+              height: 5,
               borderRadius: "50%",
-              marginTop: -3,
-              marginLeft: -3,
-              background:
-                i % 3 === 0 ? "#60a5fa" : i % 3 === 1 ? "#3b82f6" : "#93c5fd",
+              marginTop: -2.5,
+              marginLeft: -2.5,
+              background: "#3b82f6",
             }}
           />
         ))}
       </motion.div>
 
-      {/* TITLE */}
       <motion.h1
-        variants={fadeUp}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
         style={{
-          fontSize: 28,
+          fontSize: 24,
           fontWeight: 900,
           letterSpacing: "-0.04em",
-          lineHeight: 1.1,
           color: dark ? "#fff" : "#0f172a",
-          fontFamily: "'SF Pro Display',-apple-system,sans-serif",
-          marginBottom: 8,
+          margin: "0 0 6px",
         }}
       >
         You're all set! 🎉
       </motion.h1>
-
       <motion.p
-        variants={fadeUp}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.15 }}
         style={{
-          fontSize: 14,
+          fontSize: 13,
           color: dark ? "#64748b" : "#64748b",
           fontWeight: 500,
-          marginBottom: 6,
+          margin: "0 0 6px",
         }}
       >
-        {plan.name} plan activated successfully
+        {plan.name} plan activated
       </motion.p>
-
       <motion.div
-        variants={fadeUp}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
         style={{
           display: "flex",
           alignItems: "center",
           gap: 8,
-          marginBottom: 28,
+          marginBottom: 24,
         }}
       >
         <span
           style={{
-            padding: "4px 12px",
+            padding: "3px 10px",
             borderRadius: 99,
-            fontSize: 11.5,
+            fontSize: 11,
             fontWeight: 900,
             background: plan.gradient,
             color: "#fff",
@@ -1771,66 +1002,111 @@ function SuccessScreen({
         </span>
         <span
           style={{
-            fontSize: 12,
+            fontSize: 11.5,
             fontWeight: 600,
             color: dark ? "#475569" : "#94a3b8",
           }}
         >
-          {fmt(price)}/mo ·{" "}
-          {cycle === "yearly" ? "Yearly billing" : "Monthly billing"}
+          {fmtRupees(price)}/mo · {cycle === "yearly" ? "Yearly" : "Monthly"}
         </span>
       </motion.div>
 
-      {/* UNLOCKED GRID */}
+      {/* SUBSCRIPTION ID */}
+      {subscriptionId && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+          style={{
+            width: "100%",
+            borderRadius: 14,
+            padding: "10px 14px",
+            marginBottom: 12,
+            background: dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
+            border: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 10,
+              color: dark ? "#334155" : "#94a3b8",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              margin: "0 0 3px",
+            }}
+          >
+            Subscription ID
+          </p>
+          <p
+            style={{
+              fontSize: 11,
+              fontFamily: "monospace",
+              color: dark ? "#60a5fa" : "#2563eb",
+              fontWeight: 700,
+              margin: 0,
+              wordBreak: "break-all",
+            }}
+          >
+            {subscriptionId}
+          </p>
+        </motion.div>
+      )}
+
+      {/* UNLOCKED */}
       <motion.div
-        variants={stagger}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
         style={{
           width: "100%",
-          borderRadius: 24,
-          padding: 16,
+          borderRadius: 20,
+          padding: 14,
           background: dark ? "#0f1a2e" : "#fff",
-          border: `1.5px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.6)"}`,
-          boxShadow: dark ? "none" : "0 2px 16px rgba(0,0,0,0.05)",
-          marginBottom: 14,
+          border: `1.5px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.5)"}`,
+          boxShadow: dark ? "none" : "0 2px 12px rgba(0,0,0,0.04)",
+          marginBottom: 12,
           textAlign: "left",
         }}
       >
         <p
           style={{
-            fontSize: 10.5,
+            fontSize: 10,
             fontWeight: 900,
             textTransform: "uppercase",
             letterSpacing: "0.1em",
             color: dark ? "#334155" : "#94a3b8",
-            marginBottom: 12,
+            margin: "0 0 10px",
           }}
         >
-          Now active on your account
+          Now active
         </p>
         <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
         >
           {unlocked.map((u, i) => (
             <motion.div
               key={i}
-              variants={item}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.25 + i * 0.05 }}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
-                padding: "10px 12px",
-                borderRadius: 16,
+                gap: 8,
+                padding: "9px 10px",
+                borderRadius: 12,
                 background: dark
-                  ? `rgba(59,130,246,0.06)`
-                  : `rgba(239,246,255,0.8)`,
-                border: `1px solid ${dark ? "rgba(59,130,246,0.1)" : "rgba(147,197,253,0.3)"}`,
+                  ? "rgba(59,130,246,0.05)"
+                  : "rgba(239,246,255,0.8)",
+                border: `1px solid ${dark ? "rgba(59,130,246,0.08)" : "rgba(147,197,253,0.25)"}`,
               }}
             >
               <div
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 10,
+                  width: 26,
+                  height: 26,
+                  borderRadius: 9,
                   flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
@@ -1841,62 +1117,55 @@ function SuccessScreen({
               >
                 {u.icon}
               </div>
-              <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: dark ? "#e2e8f0" : "#1e293b",
-                  }}
-                >
-                  {u.label}
-                </p>
-                <p
-                  style={{
-                    fontSize: 10,
-                    color: dark ? "#475569" : "#94a3b8",
-                    fontWeight: 500,
-                  }}
-                >
-                  {u.sublabel}
-                </p>
-              </div>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: dark ? "#e2e8f0" : "#1e293b",
+                }}
+              >
+                {u.label}
+              </span>
             </motion.div>
           ))}
         </div>
       </motion.div>
 
-      {/* TRIAL INFO */}
+      {/* TRIAL */}
       <motion.div
-        variants={fadeUp}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
         style={{
           width: "100%",
-          borderRadius: 20,
-          padding: "12px 14px",
-          marginBottom: 8,
+          borderRadius: 16,
+          padding: "11px 14px",
+          marginBottom: 4,
           display: "flex",
           alignItems: "center",
-          gap: 12,
-          background: dark ? "rgba(34,197,94,0.07)" : "rgba(220,252,231,0.7)",
-          border: `1.5px solid ${dark ? "rgba(34,197,94,0.15)" : "rgba(134,239,172,0.5)"}`,
+          gap: 10,
+          background: dark ? "rgba(34,197,94,0.07)" : "rgba(220,252,231,0.6)",
+          border: `1.5px solid ${dark ? "rgba(34,197,94,0.14)" : "rgba(134,239,172,0.4)"}`,
         }}
       >
-        <Clock size={16} style={{ color: "#22c55e", flexShrink: 0 }} />
+        <Clock size={14} style={{ color: "#22c55e", flexShrink: 0 }} />
         <div style={{ textAlign: "left" }}>
           <p
             style={{
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: 800,
               color: dark ? "#4ade80" : "#15803d",
+              margin: 0,
             }}
           >
             Trial ends in 7 days
           </p>
           <p
             style={{
-              fontSize: 11,
+              fontSize: 10.5,
               color: dark ? "#16a34a" : "#16a34a",
               fontWeight: 500,
+              margin: "2px 0 0",
             }}
           >
             First charge on{" "}
@@ -1916,31 +1185,29 @@ function SuccessScreen({
           bottom: 0,
           left: 0,
           right: 0,
-          padding: "12px 16px 28px",
+          padding: "10px 16px 24px",
           background: dark
-            ? "linear-gradient(to top, #080f1e 55%, transparent)"
-            : "linear-gradient(to top, #f0f5ff 55%, transparent)",
+            ? "linear-gradient(to top,#080f1e 60%,transparent)"
+            : "linear-gradient(to top,#eef4ff 60%,transparent)",
         }}
       >
-        <div style={{ maxWidth: 480, margin: "0 auto" }}>
+        <div style={{ maxWidth: 440, margin: "0 auto" }}>
           <motion.button
             onClick={onDone}
-            whileTap={{ scale: 0.97 }}
-            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.975 }}
             style={{
               width: "100%",
-              padding: "16px 20px",
-              borderRadius: 20,
+              padding: "15px 20px",
+              borderRadius: 18,
               border: "none",
               background: plan.gradient,
               color: "#fff",
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: 900,
               cursor: "pointer",
-              boxShadow: `0 12px 40px ${plan.glowColor}`,
+              boxShadow: "0 8px 28px rgba(37,99,235,0.32)",
               position: "relative",
               overflow: "hidden",
-              letterSpacing: "-0.01em",
             }}
           >
             <motion.div
@@ -1948,7 +1215,7 @@ function SuccessScreen({
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)",
+                  "linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)",
               }}
               animate={{ x: ["-100%", "100%"] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
@@ -1962,226 +1229,132 @@ function SuccessScreen({
 }
 
 /* ═══════════════════════════════════════════
-   ████  FAILED SCREEN  ████
+   FAILED SCREEN
 ═══════════════════════════════════════════ */
 function FailedScreen({
   dark,
-  planId,
+  reason,
   onRetry,
   onChangePlan,
 }: {
   dark: boolean;
-  planId: PlanId;
+  reason: string;
   onRetry: () => void;
   onChangePlan: () => void;
 }) {
-  const plan = PLANS.find((p) => p.id === planId)!;
-
-  const reasons = [
-    {
-      icon: <CreditCard size={13} />,
-      t: "Insufficient funds",
-      d: "Check your account balance and try again",
-    },
-    {
-      icon: <Lock size={13} />,
-      t: "Card blocked / declined",
-      d: "Your bank may have blocked this transaction",
-    },
-    {
-      icon: <Wifi size={13} />,
-      t: "Connection dropped",
-      d: "Poor network during payment processing",
-    },
-  ];
-
   return (
     <motion.div
-      variants={stagger}
-      initial="hidden"
-      animate="show"
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.35 }}
       style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         textAlign: "center",
-        paddingBottom: 160,
+        paddingBottom: 140,
       }}
     >
-      {/* FAIL ICON */}
-      <motion.div style={{ position: "relative", margin: "24px 0 28px" }}>
-        {[72, 96].map((size, i) => (
-          <motion.div
-            key={i}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{
-              delay: 0.15 + i * 0.1,
-              duration: 0.5,
-              ease: [0.34, 1.3, 0.64, 1],
-            }}
-            style={{
-              position: "absolute",
-              borderRadius: "50%",
-              border: "1.5px solid",
-              borderColor: `rgba(239,68,68,${0.3 - i * 0.12})`,
-              width: size,
-              height: size,
-              top: (96 - size) / 2,
-              left: (96 - size) / 2,
-            }}
-          />
+      {/* X CIRCLE */}
+      <motion.div style={{ position: "relative", margin: "28px 0 22px" }}>
+        {[64, 84].map((size, i) => (
+          <motion.div key={i} />
         ))}
         <motion.div
           initial={{ scale: 0 }}
-          animate={{ scale: 1, x: [0, -5, 5, -3, 3, 0] }}
+          animate={{ scale: 1, x: [0, -4, 4, -2, 2, 0] }}
           transition={{
-            scale: { duration: 0.45, ease: [0.34, 1.4, 0.64, 1] },
-            x: { delay: 0.5, duration: 0.5 },
+            scale: { duration: 0.42, ease: [0.34, 1.4, 0.64, 1] },
+            x: { delay: 0.45, duration: 0.4 },
           }}
           style={{
-            width: 80,
-            height: 80,
+            width: 72,
+            height: 72,
             borderRadius: "50%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            position: "relative",
-            background: dark ? "rgba(239,68,68,0.12)" : "rgba(254,226,226,0.8)",
-            border: "2px solid rgba(239,68,68,0.3)",
-            boxShadow:
-              "0 0 0 0 rgba(239,68,68,0.3), 0 12px 40px rgba(239,68,68,0.25)",
+            background: dark ? "rgba(239,68,68,0.1)" : "rgba(254,226,226,0.8)",
+            border: "2px solid rgba(239,68,68,0.25)",
           }}
         >
-          <XCircle size={40} style={{ color: "#ef4444" }} strokeWidth={1.8} />
+          <XCircle size={34} style={{ color: "#ef4444" }} strokeWidth={1.8} />
         </motion.div>
       </motion.div>
 
-      <motion.h1
-        variants={fadeUp}
+      <h1
         style={{
-          fontSize: 28,
+          fontSize: 24,
           fontWeight: 900,
           letterSpacing: "-0.04em",
           color: dark ? "#fff" : "#0f172a",
-          fontFamily: "'SF Pro Display',-apple-system,sans-serif",
-          marginBottom: 8,
+          margin: "0 0 6px",
         }}
       >
         Payment Failed
-      </motion.h1>
-      <motion.p
-        variants={fadeUp}
+      </h1>
+      <p
         style={{
-          fontSize: 14,
+          fontSize: 13,
           color: dark ? "#64748b" : "#64748b",
           fontWeight: 500,
-          marginBottom: 28,
-          maxWidth: 280,
+          margin: "0 0 24px",
+          maxWidth: 260,
         }}
       >
-        Your transaction couldn't be completed. No charges were made.
-      </motion.p>
+        No charges were made to your account.
+      </p>
 
-      {/* REASONS */}
-      <motion.div
-        variants={stagger}
-        style={{
-          width: "100%",
-          borderRadius: 24,
-          padding: 16,
-          background: dark ? "#0f1a2e" : "#fff",
-          border: `1.5px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.6)"}`,
-          boxShadow: dark ? "none" : "0 2px 16px rgba(0,0,0,0.05)",
-          marginBottom: 14,
-          textAlign: "left",
-        }}
-      >
-        <p
+      {/* ERROR REASON */}
+      {reason && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
           style={{
-            fontSize: 10.5,
-            fontWeight: 900,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            color: dark ? "#334155" : "#94a3b8",
-            marginBottom: 12,
+            width: "100%",
+            borderRadius: 16,
+            padding: "11px 14px",
+            marginBottom: 14,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            background: dark ? "rgba(239,68,68,0.07)" : "rgba(254,226,226,0.5)",
+            border: `1.5px solid ${dark ? "rgba(239,68,68,0.15)" : "rgba(252,165,165,0.4)"}`,
           }}
         >
-          Possible reasons
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {reasons.map((r, i) => (
-            <motion.div
-              key={i}
-              variants={item}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 12,
-                padding: "10px 12px",
-                borderRadius: 16,
-                background: dark
-                  ? "rgba(239,68,68,0.05)"
-                  : "rgba(254,226,226,0.3)",
-                border: `1px solid ${dark ? "rgba(239,68,68,0.1)" : "rgba(252,165,165,0.4)"}`,
-              }}
-            >
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 9,
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: dark
-                    ? "rgba(239,68,68,0.12)"
-                    : "rgba(254,226,226,0.8)",
-                  color: "#ef4444",
-                }}
-              >
-                {r.icon}
-              </div>
-              <div>
-                <p
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    color: dark ? "#fca5a5" : "#991b1b",
-                    marginBottom: 2,
-                  }}
-                >
-                  {r.t}
-                </p>
-                <p
-                  style={{
-                    fontSize: 11,
-                    color: dark ? "#64748b" : "#94a3b8",
-                    fontWeight: 500,
-                  }}
-                >
-                  {r.d}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
+          <AlertCircle
+            size={14}
+            style={{ color: "#ef4444", marginTop: 1, flexShrink: 0 }}
+          />
+          <p
+            style={{
+              fontSize: 12,
+              color: dark ? "#fca5a5" : "#991b1b",
+              fontWeight: 600,
+              margin: 0,
+              textAlign: "left",
+            }}
+          >
+            {reason}
+          </p>
+        </motion.div>
+      )}
 
-      {/* SUPPORT */}
+      {/* HELP */}
       <motion.div
-        variants={fadeUp}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.15 }}
         style={{
           width: "100%",
-          borderRadius: 18,
+          borderRadius: 16,
           padding: "11px 14px",
           marginBottom: 8,
           display: "flex",
           alignItems: "center",
           gap: 10,
-          background: dark ? "rgba(37,99,235,0.07)" : "rgba(219,234,254,0.6)",
-          border: `1px solid ${dark ? "rgba(59,130,246,0.12)" : "rgba(147,197,253,0.4)"}`,
+          background: dark ? "rgba(37,99,235,0.07)" : "rgba(219,234,254,0.5)",
+          border: `1px solid ${dark ? "rgba(59,130,246,0.1)" : "rgba(147,197,253,0.35)"}`,
         }}
       >
         <Bell size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
@@ -2190,54 +1363,52 @@ function FailedScreen({
             fontSize: 11.5,
             color: dark ? "#93c5fd" : "#1d4ed8",
             fontWeight: 600,
+            margin: 0,
             textAlign: "left",
           }}
         >
-          Need help? Reach us at <strong>support@yourapp.com</strong>
+          Need help? Email <strong>support@yourapp.com</strong>
         </p>
       </motion.div>
 
       {/* CTAs */}
       <div
         style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: "12px 16px 28px",
+          position: "relative",
+          padding: "10px 16px 24px",
+          marginTop: "20px",
+          width: "100%",
           background: dark
-            ? "linear-gradient(to top, #080f1e 55%, transparent)"
-            : "linear-gradient(to top, #f0f5ff 55%, transparent)",
+            ? "linear-gradient(to top,#080f1e 60%,transparent)"
+            : "linear-gradient(to top,#eef4ff 60%,transparent)",
         }}
       >
         <div
           style={{
-            maxWidth: 480,
             margin: "0 auto",
             display: "flex",
             flexDirection: "column",
-            gap: 10,
+            gap: 8,
           }}
         >
           <motion.button
             onClick={onRetry}
-            whileTap={{ scale: 0.97 }}
-            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.975 }}
             style={{
               width: "100%",
               padding: "15px 20px",
-              borderRadius: 20,
+              borderRadius: 18,
               border: "none",
               background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
               color: "#fff",
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: 900,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              boxShadow: "0 8px 32px rgba(37,99,235,0.38)",
+              boxShadow: "0 8px 28px rgba(37,99,235,0.32)",
               position: "relative",
               overflow: "hidden",
             }}
@@ -2247,30 +1418,30 @@ function FailedScreen({
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)",
+                  "linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)",
               }}
               animate={{ x: ["-100%", "100%"] }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             />
-            <RefreshCw size={15} style={{ position: "relative" }} />
+            <RefreshCw size={14} style={{ position: "relative" }} />
             <span style={{ position: "relative" }}>Try Again</span>
           </motion.button>
           <motion.button
             onClick={onChangePlan}
-            whileTap={{ scale: 0.96 }}
+            whileTap={{ scale: 0.975 }}
             style={{
               width: "100%",
-              padding: "14px 20px",
-              borderRadius: 20,
-              fontSize: 14,
+              padding: "13px 20px",
+              borderRadius: 18,
+              fontSize: 13,
               fontWeight: 700,
               cursor: "pointer",
               background: "transparent",
-              border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(203,213,225,0.8)"}`,
-              color: dark ? "#94a3b8" : "#64748b",
+              border: `1.5px solid ${dark ? "rgba(255,255,255,0.09)" : "rgba(203,213,225,0.7)"}`,
+              color: dark ? "#64748b" : "#64748b",
             }}
           >
-            Choose a Different Plan
+            Change Plan
           </motion.button>
         </div>
       </div>
@@ -2279,19 +1450,60 @@ function FailedScreen({
 }
 
 /* ═══════════════════════════════════════════
-   ████  ROOT  ████
+   ROOT PAGE
 ═══════════════════════════════════════════ */
-export default function SubscriptionFlow() {
-  const [dark, setDark] = useState(true);
-  const [screen, setScreen] = useState<Screen>("plans");
-  const [planId, setPlanId] = useState<PlanId>("pro");
-  const [cycle, setCycle] = useState<Cycle>("yearly");
+export default function SubscriptionPage() {
+  const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const dark = mounted && resolvedTheme === "dark";
 
-  const stepIndex = screen === "plans" ? 0 : screen === "checkout" ? 1 : 2;
+  const [screen, setScreen] = useState<Screen>("plans");
+  const [selectedPlan, setSelectedPlan] = useState<Plan>(PLANS[1]);
+  const [selectedCycle, setSelectedCycle] = useState<Cycle>("yearly");
+  const [subscriptionId, setSubscriptionId] = useState("");
+  const [failReason, setFailReason] = useState("");
+
+  const { openCheckout } = useRazorpay();
+
+  const stepIndex =
+    screen === "plans"
+      ? 0
+      : screen === "checkout" || screen === "processing"
+        ? 1
+        : 2;
+
+  function handleSelectPlan(plan: Plan, cycle: Cycle) {
+    setSelectedPlan(plan);
+    setSelectedCycle(cycle);
+    setScreen("processing");
+
+    openCheckout({
+      planRazorpayId:
+        cycle === "yearly"
+          ? plan.razorpayYearlyPlanId
+          : plan.razorpayMonthlyPlanId,
+      planName: plan.name,
+      amountPaise: cycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice,
+      onSuccess(subId, paymentId) {
+        setSubscriptionId(subId);
+        setScreen("success");
+      },
+      onFail(reason) {
+        setFailReason(reason);
+        setScreen("failed");
+      },
+      onDismiss() {
+        // user closed modal — go back to plans
+        setScreen("plans");
+      },
+    });
+  }
 
   const bg = dark
-    ? "linear-gradient(160deg, #050d1a 0%, #080f1e 40%, #050d1a 100%)"
-    : "linear-gradient(160deg, #eef4ff 0%, #f0f5ff 40%, #e8f0fe 100%)";
+    ? "linear-gradient(150deg,#050d1a 0%,#080f1e 100%)"
+    : "linear-gradient(150deg,#eef4ff 0%,#f0f5ff 100%)";
 
   return (
     <div
@@ -2299,60 +1511,25 @@ export default function SubscriptionFlow() {
         minHeight: "100vh",
         background: bg,
         fontFamily: "-apple-system,'SF Pro Text',sans-serif",
-        transition: "background 0.4s ease",
+        transition: "background 0.35s",
       }}
     >
-      {/* ambient glow */}
+      {/* subtle ambient orb — just one, lightweight */}
       <div
         style={{
           position: "fixed",
-          inset: 0,
+          top: -80,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 420,
+          height: 420,
+          borderRadius: "50%",
           pointerEvents: "none",
-          overflow: "hidden",
           zIndex: 0,
+          background:
+            "radial-gradient(circle,rgba(37,99,235,0.12) 0%,transparent 70%)",
         }}
-      >
-        <motion.div
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: dark ? [0.06, 0.1, 0.06] : [0.04, 0.07, 0.04],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            position: "absolute",
-            top: -100,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 600,
-            height: 600,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(37,99,235,0.6) 0%, transparent 70%)",
-          }}
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: dark ? [0.03, 0.06, 0.03] : [0.02, 0.04, 0.02],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 3,
-          }}
-          style={{
-            position: "absolute",
-            bottom: -150,
-            right: -100,
-            width: 500,
-            height: 500,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(96,165,250,0.5) 0%, transparent 70%)",
-          }}
-        />
-      </div>
+      />
 
       <div
         style={{
@@ -2365,9 +1542,9 @@ export default function SubscriptionFlow() {
       >
         {/* TOP BAR */}
         <motion.div
-          initial={{ opacity: 0, y: -16 }}
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.3 }}
           style={{
             display: "flex",
             alignItems: "center",
@@ -2376,38 +1553,51 @@ export default function SubscriptionFlow() {
             paddingBottom: 4,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {(screen === "checkout" || screen === "failed") && (
-              <motion.button
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                onClick={() =>
-                  screen === "checkout"
-                    ? setScreen("plans")
-                    : setScreen("checkout")
-                }
-                whileTap={{ scale: 0.88 }}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 14,
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: dark
-                    ? "rgba(255,255,255,0.07)"
-                    : "rgba(0,0,0,0.06)",
-                  color: dark ? "#94a3b8" : "#64748b",
-                }}
-              >
-                <ArrowLeft size={15} />
-              </motion.button>
-            )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <AnimatePresence>
+              {screen === "failed" && (
+                <motion.button
+                  key="back"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  onClick={() => setScreen("plans")}
+                  whileTap={{ scale: 0.88 }}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 12,
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: dark
+                      ? "rgba(255,255,255,0.07)"
+                      : "rgba(0,0,0,0.06)",
+                    color: dark ? "#94a3b8" : "#64748b",
+                  }}
+                >
+                  <ArrowLeft size={14} />
+                </motion.button>
+              )}
+            </AnimatePresence>
             <StepDots step={stepIndex} dark={dark} />
           </div>
-          <ThemeToggle dark={dark} onToggle={() => setDark((d) => !d)} />
+          {/* security badge */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              color: dark ? "#334155" : "#94a3b8",
+            }}
+          >
+            <Lock size={11} />
+            <span style={{ fontSize: 10, fontWeight: 700 }}>
+              Secured by Razorpay
+            </span>
+          </div>
         </motion.div>
 
         {/* SCREENS */}
@@ -2415,66 +1605,57 @@ export default function SubscriptionFlow() {
           {screen === "plans" && (
             <motion.div
               key="plans"
-              initial={{ opacity: 0, x: -24 }}
+              initial={{ opacity: 0, x: -18 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={{ duration: 0.28 }}
             >
-              <PlansScreen
-                dark={dark}
-                onSelect={(p, c) => {
-                  setPlanId(p);
-                  setCycle(c);
-                  setScreen("checkout");
-                }}
-              />
+              <PlansScreen dark={dark} onSelect={handleSelectPlan} />
             </motion.div>
           )}
-          {screen === "checkout" && (
+
+          {screen === "processing" && (
             <motion.div
-              key="checkout"
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 24 }}
-              transition={{ duration: 0.3 }}
+              key="processing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
             >
-              <CheckoutScreen
-                dark={dark}
-                planId={planId}
-                cycle={cycle}
-                onSuccess={() => setScreen("success")}
-                onFail={() => setScreen("failed")}
-              />
+              <ProcessingScreen dark={dark} planName={selectedPlan.name} />
             </motion.div>
           )}
+
           {screen === "success" && (
             <motion.div
               key="success"
-              initial={{ opacity: 0, scale: 0.94 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.94 }}
-              transition={{ duration: 0.36 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.32 }}
             >
               <SuccessScreen
                 dark={dark}
-                planId={planId}
-                cycle={cycle}
-                onDone={() => setScreen("plans")}
+                plan={selectedPlan}
+                cycle={selectedCycle}
+                subscriptionId={subscriptionId}
+                onDone={() => router.push("/")}
               />
             </motion.div>
           )}
+
           {screen === "failed" && (
             <motion.div
               key="failed"
-              initial={{ opacity: 0, scale: 0.94 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.94 }}
-              transition={{ duration: 0.36 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.32 }}
             >
               <FailedScreen
                 dark={dark}
-                planId={planId}
-                onRetry={() => setScreen("checkout")}
+                reason={failReason}
+                onRetry={() => handleSelectPlan(selectedPlan, selectedCycle)}
                 onChangePlan={() => setScreen("plans")}
               />
             </motion.div>
