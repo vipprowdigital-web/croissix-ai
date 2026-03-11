@@ -8,6 +8,7 @@ export const register = async (req, res) => {
   try {
     console.log("📥 Register payload:", req.body);
     const { name, email, phone, password } = req.body;
+    email = email.trim().toLowerCase();
 
     if (!name || !email || !phone || !password) {
       return res.status(400).json({
@@ -99,7 +100,11 @@ export const login = async (req, res) => {
 
     // Generate JWT Token
     const token = jwt.sign(
-      { id: user._id, email: user.email },
+      {
+        id: user._id,
+        email: user.email,
+        provider: user.provider,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );

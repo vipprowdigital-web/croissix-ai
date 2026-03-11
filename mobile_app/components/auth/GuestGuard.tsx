@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getToken } from "@/lib/token";
 
 export default function GuestGuard({
   children,
@@ -11,20 +12,20 @@ export default function GuestGuard({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
 
     if (token) {
       router.replace("/dashboard");
       return;
     }
 
-    setReady(true);
+    setChecking(false);
   }, [router]);
 
-  if (!ready) return null;
+  if (checking) return null;
 
   return <>{children}</>;
 }
