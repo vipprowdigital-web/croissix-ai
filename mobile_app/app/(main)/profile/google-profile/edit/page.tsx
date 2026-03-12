@@ -160,16 +160,16 @@ function stripCatPrefix(name: string) {
 function toTimeStr(t: any): string {
   if (!t) return "00:00";
   if (typeof t === "string") return t;
-  const h = String(t.hours  ?? 0).padStart(2, "0");
+  const h = String(t.hours ?? 0).padStart(2, "0");
   const m = String(t.minutes ?? 0).padStart(2, "0");
   return `${h}:${m}`;
 }
 
 function normalizePeriods(periods: any[]): TimePeriod[] {
   return (periods ?? []).map((p: any) => ({
-    openDay:   p.openDay  ?? "MONDAY",
-    closeDay:  p.closeDay ?? p.openDay ?? "MONDAY",
-    openTime:  toTimeStr(p.openTime),
+    openDay: p.openDay ?? "MONDAY",
+    closeDay: p.closeDay ?? p.openDay ?? "MONDAY",
+    openTime: toTimeStr(p.openTime),
     closeTime: toTimeStr(p.closeTime),
   }));
 }
@@ -205,31 +205,31 @@ function ClockPicker({
     const h24 = parseInt(hh ?? "9", 10);
     return {
       hour: h24 % 12 || 12,
-      min:  parseInt(mm ?? "0", 10),
+      min: parseInt(mm ?? "0", 10),
       ampm: (h24 >= 12 ? "PM" : "AM") as "AM" | "PM",
     };
   };
 
   const init = parse(value);
-  const [hour,    setHour]    = useState(init.hour);
-  const [min,     setMin]     = useState(init.min);
-  const [ampm,    setAmpm]    = useState<"AM"|"PM">(init.ampm);
-  const [picking, setPicking] = useState<"hour"|"min">("hour");
+  const [hour, setHour] = useState(init.hour);
+  const [min, setMin] = useState(init.min);
+  const [ampm, setAmpm] = useState<"AM" | "PM">(init.ampm);
+  const [picking, setPicking] = useState<"hour" | "min">("hour");
 
-  const emit = (h: number, m: number, ap: "AM"|"PM") => {
+  const emit = (h: number, m: number, ap: "AM" | "PM") => {
     let h24 = h % 12;
     if (ap === "PM") h24 += 12;
-    onChange(`${String(h24).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
+    onChange(`${String(h24).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
   };
 
   /* ── Clock face geometry ── */
-  const RADIUS  = 90;
-  const CX      = 110;
-  const CY      = 110;
-  const SIZE    = 220;
+  const RADIUS = 90;
+  const CX = 110;
+  const CY = 110;
+  const SIZE = 220;
 
-  const hourNums   = [12,1,2,3,4,5,6,7,8,9,10,11];
-  const minMarks   = Array.from({ length: 12 }, (_, i) => i * 5);
+  const hourNums = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const minMarks = Array.from({ length: 12 }, (_, i) => i * 5);
 
   const angleOf = (idx: number, total: number) =>
     (idx / total) * 2 * Math.PI - Math.PI / 2;
@@ -240,15 +240,14 @@ function ClockPicker({
   });
 
   /* hand angle */
-  const handAngle = picking === "hour"
-    ? ((hour % 12) / 12) * 360
-    : (min / 60) * 360;
+  const handAngle =
+    picking === "hour" ? ((hour % 12) / 12) * 360 : (min / 60) * 360;
 
   /* click on face → pick value */
   const handleFaceClick = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
     const x = e.clientX - rect.left - CX;
-    const y = e.clientY - rect.top  - CY;
+    const y = e.clientY - rect.top - CY;
     let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
     if (angle < 0) angle += 360;
 
@@ -264,15 +263,17 @@ function ClockPicker({
     }
   };
 
-  const bg      = dark ? "#0d1829" : "#fff";
-  const face    = dark ? "#111e35" : "#f0f5ff";
-  const track   = dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)";
-  const numCol  = dark ? "#94a3b8" : "#64748b";
-  const selCol  = dark ? "#e2e8f0" : "#1e293b";
-  const accent  = "#3b82f6";
+  const bg = dark ? "#0d1829" : "#fff";
+  const face = dark ? "#111e35" : "#f0f5ff";
+  const track = dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)";
+  const numCol = dark ? "#94a3b8" : "#64748b";
+  const selCol = dark ? "#e2e8f0" : "#1e293b";
+  const accent = "#3b82f6";
 
-  const handX = CX + (RADIUS - 18) * Math.cos((handAngle - 90) * Math.PI / 180);
-  const handY = CY + (RADIUS - 18) * Math.sin((handAngle - 90) * Math.PI / 180);
+  const handX =
+    CX + (RADIUS - 18) * Math.cos(((handAngle - 90) * Math.PI) / 180);
+  const handY =
+    CY + (RADIUS - 18) * Math.sin(((handAngle - 90) * Math.PI) / 180);
 
   return (
     <motion.div
@@ -280,12 +281,19 @@ function ClockPicker({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       style={{
-        position: "fixed", inset: 0, zIndex: 500,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)",
+        position: "fixed",
+        inset: 0,
+        zIndex: 500,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.55)",
+        backdropFilter: "blur(6px)",
         padding: 20,
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <motion.div
         initial={{ scale: 0.88, opacity: 0, y: 16 }}
@@ -293,24 +301,37 @@ function ClockPicker({
         exit={{ scale: 0.88, opacity: 0, y: 16 }}
         transition={{ type: "spring", stiffness: 420, damping: 32 }}
         style={{
-          background: bg, borderRadius: 28, overflow: "hidden",
+          background: bg,
+          borderRadius: 28,
+          overflow: "hidden",
           boxShadow: dark
             ? "0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)"
             : "0 32px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(203,213,225,0.5)",
-          width: "100%", maxWidth: 320,
+          width: "100%",
+          maxWidth: 320,
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header display ── */}
-        <div style={{
-          background: dark
-            ? "linear-gradient(135deg,#0f1e38,#152848)"
-            : "linear-gradient(135deg,#1d4ed8,#3b82f6)",
-          padding: "18px 22px 16px",
-        }}>
+        <div
+          style={{
+            background: dark
+              ? "linear-gradient(135deg,#0f1e38,#152848)"
+              : "linear-gradient(135deg,#1d4ed8,#3b82f6)",
+            padding: "18px 22px 16px",
+          }}
+        >
           {label && (
-            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
-              textTransform: "uppercase", color: "rgba(255,255,255,0.5)", margin: "0 0 8px" }}>
+            <p
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.5)",
+                margin: "0 0 8px",
+              }}
+            >
               {label}
             </p>
           )}
@@ -319,37 +340,71 @@ function ClockPicker({
             <motion.button
               onClick={() => setPicking("hour")}
               style={{
-                fontSize: 44, fontWeight: 900, letterSpacing: "-0.04em",
+                fontSize: 44,
+                fontWeight: 900,
+                letterSpacing: "-0.04em",
                 color: picking === "hour" ? "#fff" : "rgba(255,255,255,0.45)",
-                background: "none", border: "none", cursor: "pointer", padding: 0,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
                 lineHeight: 1,
               }}
             >
               {String(hour).padStart(2, "0")}
             </motion.button>
-            <span style={{ fontSize: 36, fontWeight: 900, color: "rgba(255,255,255,0.5)", lineHeight: 1 }}>:</span>
+            <span
+              style={{
+                fontSize: 36,
+                fontWeight: 900,
+                color: "rgba(255,255,255,0.5)",
+                lineHeight: 1,
+              }}
+            >
+              :
+            </span>
             {/* Minute */}
             <motion.button
               onClick={() => setPicking("min")}
               style={{
-                fontSize: 44, fontWeight: 900, letterSpacing: "-0.04em",
+                fontSize: 44,
+                fontWeight: 900,
+                letterSpacing: "-0.04em",
                 color: picking === "min" ? "#fff" : "rgba(255,255,255,0.45)",
-                background: "none", border: "none", cursor: "pointer", padding: 0,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
                 lineHeight: 1,
               }}
             >
               {String(min).padStart(2, "0")}
             </motion.button>
             {/* AM/PM */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 3, marginLeft: 6 }}>
-              {(["AM","PM"] as const).map((ap) => (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 3,
+                marginLeft: 6,
+              }}
+            >
+              {(["AM", "PM"] as const).map((ap) => (
                 <button
                   key={ap}
-                  onClick={() => { setAmpm(ap); emit(hour, min, ap); }}
+                  onClick={() => {
+                    setAmpm(ap);
+                    emit(hour, min, ap);
+                  }}
                   style={{
-                    fontSize: 13, fontWeight: 800, padding: "2px 7px", borderRadius: 7,
-                    border: "none", cursor: "pointer",
-                    background: ampm === ap ? "rgba(255,255,255,0.22)" : "transparent",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    padding: "2px 7px",
+                    borderRadius: 7,
+                    border: "none",
+                    cursor: "pointer",
+                    background:
+                      ampm === ap ? "rgba(255,255,255,0.22)" : "transparent",
                     color: ampm === ap ? "#fff" : "rgba(255,255,255,0.38)",
                   }}
                 >
@@ -360,15 +415,21 @@ function ClockPicker({
           </div>
           {/* Hour / Min tab */}
           <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-            {(["hour","min"] as const).map((m) => (
+            {(["hour", "min"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setPicking(m)}
                 style={{
-                  fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
-                  textTransform: "uppercase", padding: "4px 11px", borderRadius: 8,
-                  border: "none", cursor: "pointer",
-                  background: picking === m ? "rgba(255,255,255,0.18)" : "transparent",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  padding: "4px 11px",
+                  borderRadius: 8,
+                  border: "none",
+                  cursor: "pointer",
+                  background:
+                    picking === m ? "rgba(255,255,255,0.18)" : "transparent",
                   color: picking === m ? "#fff" : "rgba(255,255,255,0.4)",
                 }}
               >
@@ -379,21 +440,45 @@ function ClockPicker({
         </div>
 
         {/* ── Clock face ── */}
-        <div style={{ padding: "18px 22px 14px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div
+          style={{
+            padding: "18px 22px 14px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
           <svg
-            width={SIZE} height={SIZE}
-            style={{ cursor: "pointer", borderRadius: "50%", overflow: "visible" }}
+            width={SIZE}
+            height={SIZE}
+            style={{
+              cursor: "pointer",
+              borderRadius: "50%",
+              overflow: "visible",
+            }}
             onClick={handleFaceClick}
           >
             {/* Face */}
             <circle cx={CX} cy={CY} r={RADIUS + 14} fill={face} />
             {/* Track ring */}
-            <circle cx={CX} cy={CY} r={RADIUS} fill="none" stroke={track} strokeWidth={2} />
+            <circle
+              cx={CX}
+              cy={CY}
+              r={RADIUS}
+              fill="none"
+              stroke={track}
+              strokeWidth={2}
+            />
 
             {/* Hand */}
             <line
-              x1={CX} y1={CY} x2={handX} y2={handY}
-              stroke={accent} strokeWidth={2.5} strokeLinecap="round"
+              x1={CX}
+              y1={CY}
+              x2={handX}
+              y2={handY}
+              stroke={accent}
+              strokeWidth={2.5}
+              strokeLinecap="round"
             />
             {/* Center dot */}
             <circle cx={CX} cy={CY} r={4} fill={accent} />
@@ -407,16 +492,28 @@ function ClockPicker({
                   const pos = posFor(idx, 12, RADIUS - 4);
                   const sel = n === hour;
                   return (
-                    <g key={n} onClick={(e) => {
-                      e.stopPropagation();
-                      setHour(n); emit(n, min, ampm); setPicking("min");
-                    }}>
-                      <circle cx={pos.x} cy={pos.y} r={14}
+                    <g
+                      key={n}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHour(n);
+                        emit(n, min, ampm);
+                        setPicking("min");
+                      }}
+                    >
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={14}
                         fill={sel ? accent : "transparent"}
                         style={{ cursor: "pointer" }}
                       />
-                      <text x={pos.x} y={pos.y + 4.5}
-                        textAnchor="middle" fontSize={12.5} fontWeight={sel ? 800 : 600}
+                      <text
+                        x={pos.x}
+                        y={pos.y + 4.5}
+                        textAnchor="middle"
+                        fontSize={12.5}
+                        fontWeight={sel ? 800 : 600}
                         fill={sel ? "#fff" : numCol}
                         style={{ userSelect: "none", pointerEvents: "none" }}
                       >
@@ -430,37 +527,61 @@ function ClockPicker({
                   const sel = n === min;
                   const showNum = n % 15 === 0;
                   return (
-                    <g key={n} onClick={(e) => {
-                      e.stopPropagation();
-                      setMin(n); emit(hour, n, ampm);
-                    }}>
-                      <circle cx={pos.x} cy={pos.y} r={sel ? 14 : 5}
+                    <g
+                      key={n}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMin(n);
+                        emit(hour, n, ampm);
+                      }}
+                    >
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={sel ? 14 : 5}
                         fill={sel ? accent : showNum ? track : track}
                         style={{ cursor: "pointer" }}
                       />
                       {showNum && (
-                        <text x={pos.x} y={pos.y + 4.5}
-                          textAnchor="middle" fontSize={11} fontWeight={sel ? 800 : 600}
+                        <text
+                          x={pos.x}
+                          y={pos.y + 4.5}
+                          textAnchor="middle"
+                          fontSize={11}
+                          fontWeight={sel ? 800 : 600}
                           fill={sel ? "#fff" : numCol}
                           style={{ userSelect: "none", pointerEvents: "none" }}
                         >
-                          {String(n).padStart(2,"0")}
+                          {String(n).padStart(2, "0")}
                         </text>
                       )}
                     </g>
                   );
-                })
-            }
+                })}
           </svg>
 
           {/* Actions */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, width: "100%", marginTop: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 8,
+              width: "100%",
+              marginTop: 12,
+            }}
+          >
             <button
               onClick={onClose}
               style={{
-                padding: "9px 18px", borderRadius: 12, border: "none", cursor: "pointer",
-                fontSize: 12.5, fontWeight: 700,
-                background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                padding: "9px 18px",
+                borderRadius: 12,
+                border: "none",
+                cursor: "pointer",
+                fontSize: 12.5,
+                fontWeight: 700,
+                background: dark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(0,0,0,0.05)",
                 color: dark ? "#64748b" : "#94a3b8",
               }}
             >
@@ -469,8 +590,12 @@ function ClockPicker({
             <button
               onClick={onClose}
               style={{
-                padding: "9px 22px", borderRadius: 12, border: "none", cursor: "pointer",
-                fontSize: 12.5, fontWeight: 800,
+                padding: "9px 22px",
+                borderRadius: 12,
+                border: "none",
+                cursor: "pointer",
+                fontSize: 12.5,
+                fontWeight: 800,
                 background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
                 color: "#fff",
                 boxShadow: "0 4px 14px rgba(37,99,235,0.3)",
@@ -506,16 +631,30 @@ function TimePicker({
       <motion.button
         whileTap={{ scale: 0.94 }}
         onClick={() => setOpen(true)}
-        style={{
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "7px 12px", borderRadius: 11, border: "none", cursor: "pointer",
-          background: dark ? "rgba(59,130,246,0.1)" : "rgba(219,234,254,0.6)",
-          border: `1.5px solid ${dark ? "rgba(59,130,246,0.18)" : "rgba(147,197,253,0.55)"}`,
-        } as React.CSSProperties}
+        style={
+          {
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "7px 12px",
+            borderRadius: 11,
+            border: "none",
+            cursor: "pointer",
+            background: dark ? "rgba(59,130,246,0.1)" : "rgba(219,234,254,0.6)",
+            border: `1.5px solid ${dark ? "rgba(59,130,246,0.18)" : "rgba(147,197,253,0.55)"}`,
+          } as React.CSSProperties
+        }
       >
         <Clock size={11} style={{ color: "#3b82f6", flexShrink: 0 }} />
-        <span style={{ fontSize: 13, fontWeight: 800, color: dark ? "#93c5fd" : "#1d4ed8",
-          letterSpacing: "-0.01em", fontFamily: "-apple-system,sans-serif" }}>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 800,
+            color: dark ? "#93c5fd" : "#1d4ed8",
+            letterSpacing: "-0.01em",
+            fontFamily: "-apple-system,sans-serif",
+          }}
+        >
           {to12(value)}
         </span>
       </motion.button>
@@ -524,7 +663,9 @@ function TimePicker({
         {open && (
           <ClockPicker
             value={value}
-            onChange={(v) => { onChange(v); }}
+            onChange={(v) => {
+              onChange(v);
+            }}
             onClose={() => setOpen(false)}
             dark={dark}
             label={label}
@@ -549,54 +690,83 @@ function HoursTab({
 }) {
   const buildMap = (periods: TimePeriod[]) => {
     const m: Record<string, TimePeriod | null> = {};
-    DAYS.forEach((d) => { m[d] = periods.find((p) => p.openDay === d) ?? null; });
+    DAYS.forEach((d) => {
+      m[d] = periods.find((p) => p.openDay === d) ?? null;
+    });
     return m;
   };
 
-  const [dayMap,    setDayMap]    = useState(() => buildMap(draft.regularHours.periods));
-  const [special,   setSpecial]   = useState(draft.specialHours.specialHourPeriods);
-  const [more,      setMore]      = useState(draft.moreHours);
+  const [dayMap, setDayMap] = useState(() =>
+    buildMap(draft.regularHours.periods),
+  );
+  const [special, setSpecial] = useState(draft.specialHours.specialHourPeriods);
+  const [more, setMore] = useState(draft.moreHours);
   const [morePanel, setMorePanel] = useState(false);
 
-  useEffect(() => { setDayMap(buildMap(draft.regularHours.periods)); }, [draft.regularHours]);
-  useEffect(() => { setSpecial(draft.specialHours.specialHourPeriods); }, [draft.specialHours]);
-  useEffect(() => { setMore(draft.moreHours); }, [draft.moreHours]);
+  useEffect(() => {
+    setDayMap(buildMap(draft.regularHours.periods));
+  }, [draft.regularHours]);
+  useEffect(() => {
+    setSpecial(draft.specialHours.specialHourPeriods);
+  }, [draft.specialHours]);
+  useEffect(() => {
+    setMore(draft.moreHours);
+  }, [draft.moreHours]);
 
   const commit = () => {
     const periods = Object.values(dayMap).filter(Boolean) as TimePeriod[];
     upd(
-      { regularHours: { periods }, specialHours: { specialHourPeriods: special }, moreHours: more },
+      {
+        regularHours: { periods },
+        specialHours: { specialHourPeriods: special },
+        moreHours: more,
+      },
       ["regularHours", "specialHours", "moreHours"],
     );
   };
 
   const s = tok(dark);
-  const moreBorder      = dark ? "rgba(255,255,255,0.06)"  : "rgba(203,213,225,0.4)";
-  const addDashedBorder = dark ? "rgba(59,130,246,0.25)"   : "rgba(147,197,253,0.5)";
-  const addTypeBorder   = dark ? "rgba(59,130,246,0.2)"    : "rgba(147,197,253,0.45)";
-  const spBorder        = dark ? "rgba(255,255,255,0.06)"  : "rgba(203,213,225,0.4)";
+  const moreBorder = dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)";
+  const addDashedBorder = dark
+    ? "rgba(59,130,246,0.25)"
+    : "rgba(147,197,253,0.5)";
+  const addTypeBorder = dark
+    ? "rgba(59,130,246,0.2)"
+    : "rgba(147,197,253,0.45)";
+  const spBorder = dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)";
 
   return (
     <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}>
-
       {/* ══ REGULAR HOURS ══ */}
       <Card title="Regular Hours" icon={<Clock size={13} />} dark={dark}>
         {DAYS.map((day, idx) => {
-          const p    = dayMap[day];
+          const p = dayMap[day];
           const open = p !== null;
           return (
-            <div key={day} style={{
-              padding: "11px 0",
-              borderBottom: idx < 6 ? s.div.borderTop : "none",
-            }}>
+            <div
+              key={day}
+              style={{
+                padding: "11px 0",
+                borderBottom: idx < 6 ? s.div.borderTop : "none",
+              }}
+            >
               {/* Row 1: day + toggle + closed label */}
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{
-                  width: 36, fontSize: 12.5, fontWeight: 700, flexShrink: 0,
-                  color: dark
-                    ? open ? "#e2e8f0" : "#334155"
-                    : open ? "#1e293b" : "#cbd5e1",
-                }}>
+                <span
+                  style={{
+                    width: 36,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    color: dark
+                      ? open
+                        ? "#e2e8f0"
+                        : "#334155"
+                      : open
+                        ? "#1e293b"
+                        : "#cbd5e1",
+                  }}
+                >
                   {DSHRT[day]}
                 </span>
                 <Tog
@@ -605,15 +775,25 @@ function HoursTab({
                     setDayMap((m) => ({
                       ...m,
                       [day]: v
-                        ? { openDay: day, closeDay: day, openTime: "09:00", closeTime: "18:00" }
+                        ? {
+                            openDay: day,
+                            closeDay: day,
+                            openTime: "09:00",
+                            closeTime: "18:00",
+                          }
                         : null,
                     }))
                   }
                   dark={dark}
                 />
                 {!open && (
-                  <span style={{ fontSize: 12, fontWeight: 600,
-                    color: dark ? "#334155" : "#cbd5e1" }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: dark ? "#334155" : "#cbd5e1",
+                    }}
+                  >
                     Closed
                   </span>
                 )}
@@ -629,18 +809,43 @@ function HoursTab({
                     transition={{ duration: 0.18 }}
                     style={{ overflow: "hidden" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9, paddingLeft: 46 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginTop: 9,
+                        paddingLeft: 46,
+                      }}
+                    >
                       <TimePicker
                         value={p!.openTime}
-                        onChange={(v) => setDayMap((m) => ({ ...m, [day]: { ...m[day]!, openTime: v } }))}
+                        onChange={(v) =>
+                          setDayMap((m) => ({
+                            ...m,
+                            [day]: { ...m[day]!, openTime: v },
+                          }))
+                        }
                         dark={dark}
                         label="Open"
                       />
-                      <span style={{ fontSize: 12, fontWeight: 700,
-                        color: dark ? "#1e3a5c" : "#cbd5e1" }}>→</span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: dark ? "#1e3a5c" : "#cbd5e1",
+                        }}
+                      >
+                        →
+                      </span>
                       <TimePicker
                         value={p!.closeTime}
-                        onChange={(v) => setDayMap((m) => ({ ...m, [day]: { ...m[day]!, closeTime: v } }))}
+                        onChange={(v) =>
+                          setDayMap((m) => ({
+                            ...m,
+                            [day]: { ...m[day]!, closeTime: v },
+                          }))
+                        }
                         dark={dark}
                         label="Close"
                       />
@@ -654,26 +859,64 @@ function HoursTab({
       </Card>
 
       {/* ══ MORE HOURS ══ */}
-      <Card title="More Hours" icon={<Clock size={13} />} dark={dark} badge={`${more.length} types`}>
+      <Card
+        title="More Hours"
+        icon={<Clock size={13} />}
+        dark={dark}
+        badge={`${more.length} types`}
+      >
         <p style={{ ...s.muted, marginBottom: 10 }}>
           Add separate hours for delivery, drive-through, etc.
         </p>
 
         {more.map((mh, i) => (
-          <div key={i} style={{ marginBottom: 10, padding: "12px 13px", borderRadius: 16,
-            border: `1.5px solid ${moreBorder}`,
-            background: dark ? "rgba(255,255,255,0.015)" : "rgba(248,250,252,0.8)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 800,
-                color: dark ? "#93c5fd" : "#1d4ed8" }}>
-                {MORE_HOURS_TYPES.find((t) => t.id === mh.hoursTypeId)?.l ?? mh.hoursTypeId}
+          <div
+            key={i}
+            style={{
+              marginBottom: 10,
+              padding: "12px 13px",
+              borderRadius: 16,
+              border: `1.5px solid ${moreBorder}`,
+              background: dark
+                ? "rgba(255,255,255,0.015)"
+                : "rgba(248,250,252,0.8)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: dark ? "#93c5fd" : "#1d4ed8",
+                }}
+              >
+                {MORE_HOURS_TYPES.find((t) => t.id === mh.hoursTypeId)?.l ??
+                  mh.hoursTypeId}
               </span>
               <motion.button
                 whileTap={{ scale: 0.92 }}
                 onClick={() => setMore((m) => m.filter((_, j) => j !== i))}
-                style={{ width: 26, height: 26, borderRadius: 8, border: "none", cursor: "pointer",
-                  background: dark ? "rgba(239,68,68,0.1)" : "rgba(254,226,226,0.6)",
-                  color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 8,
+                  border: "none",
+                  cursor: "pointer",
+                  background: dark
+                    ? "rgba(239,68,68,0.1)"
+                    : "rgba(254,226,226,0.6)",
+                  color: "#ef4444",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
                 <X size={11} />
               </motion.button>
@@ -683,9 +926,18 @@ function HoursTab({
               const p = mh.periods.find((pp) => pp.openDay === day);
               return (
                 <div key={day} style={{ marginBottom: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 26, fontSize: 11, fontWeight: 700, flexShrink: 0,
-                      color: dark ? "#475569" : "#94a3b8" }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span
+                      style={{
+                        width: 26,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        color: dark ? "#475569" : "#94a3b8",
+                      }}
+                    >
                       {DSHRT[day].slice(0, 2)}
                     </span>
                     <Tog
@@ -693,18 +945,40 @@ function HoursTab({
                       onChange={(open) =>
                         setMore((m) =>
                           m.map((x, j) =>
-                            j !== i ? x : {
-                              ...x,
-                              periods: open
-                                ? [...x.periods, { openDay: day, closeDay: day, openTime: "09:00", closeTime: "17:00" }]
-                                : x.periods.filter((pp) => pp.openDay !== day),
-                            },
+                            j !== i
+                              ? x
+                              : {
+                                  ...x,
+                                  periods: open
+                                    ? [
+                                        ...x.periods,
+                                        {
+                                          openDay: day,
+                                          closeDay: day,
+                                          openTime: "09:00",
+                                          closeTime: "17:00",
+                                        },
+                                      ]
+                                    : x.periods.filter(
+                                        (pp) => pp.openDay !== day,
+                                      ),
+                                },
                           ),
                         )
                       }
                       dark={dark}
                     />
-                    {!p && <span style={{ fontSize: 11, color: dark ? "#334155" : "#cbd5e1", fontWeight: 600 }}>Closed</span>}
+                    {!p && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: dark ? "#334155" : "#cbd5e1",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Closed
+                      </span>
+                    )}
                   </div>
                   <AnimatePresence>
                     {p && (
@@ -714,28 +988,62 @@ function HoursTab({
                         exit={{ opacity: 0, height: 0 }}
                         style={{ overflow: "hidden" }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 7, paddingLeft: 34 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 7,
+                            marginTop: 7,
+                            paddingLeft: 34,
+                          }}
+                        >
                           <TimePicker
                             value={p.openTime}
                             onChange={(v) =>
                               setMore((m) =>
                                 m.map((x, j) =>
-                                  j !== i ? x : { ...x,
-                                    periods: x.periods.map((pp) =>
-                                      pp.openDay === day ? { ...pp, openTime: v } : pp) }))
+                                  j !== i
+                                    ? x
+                                    : {
+                                        ...x,
+                                        periods: x.periods.map((pp) =>
+                                          pp.openDay === day
+                                            ? { ...pp, openTime: v }
+                                            : pp,
+                                        ),
+                                      },
+                                ),
+                              )
                             }
                             dark={dark}
                             label="Open"
                           />
-                          <span style={{ fontSize: 11, color: dark ? "#1e3a5c" : "#cbd5e1", fontWeight: 700 }}>→</span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: dark ? "#1e3a5c" : "#cbd5e1",
+                              fontWeight: 700,
+                            }}
+                          >
+                            →
+                          </span>
                           <TimePicker
                             value={p.closeTime}
                             onChange={(v) =>
                               setMore((m) =>
                                 m.map((x, j) =>
-                                  j !== i ? x : { ...x,
-                                    periods: x.periods.map((pp) =>
-                                      pp.openDay === day ? { ...pp, closeTime: v } : pp) }))
+                                  j !== i
+                                    ? x
+                                    : {
+                                        ...x,
+                                        periods: x.periods.map((pp) =>
+                                          pp.openDay === day
+                                            ? { ...pp, closeTime: v }
+                                            : pp,
+                                        ),
+                                      },
+                                ),
+                              )
                             }
                             dark={dark}
                             label="Close"
@@ -753,9 +1061,21 @@ function HoursTab({
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => setMorePanel((v) => !v)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 13px", width: "100%",
-            borderRadius: 12, border: `1.5px dashed ${addDashedBorder}`, background: "transparent",
-            cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#3b82f6", justifyContent: "center" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "9px 13px",
+            width: "100%",
+            borderRadius: 12,
+            border: `1.5px dashed ${addDashedBorder}`,
+            background: "transparent",
+            cursor: "pointer",
+            fontSize: 12,
+            fontWeight: 700,
+            color: "#3b82f6",
+            justifyContent: "center",
+          }}
         >
           <Plus size={12} /> Add hours type
         </motion.button>
@@ -766,17 +1086,33 @@ function HoursTab({
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 4 }}
-              style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 7 }}
+              style={{
+                marginTop: 10,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 7,
+              }}
             >
-              {MORE_HOURS_TYPES.filter((t) => !more.find((m) => m.hoursTypeId === t.id)).map((t) => (
+              {MORE_HOURS_TYPES.filter(
+                (t) => !more.find((m) => m.hoursTypeId === t.id),
+              ).map((t) => (
                 <motion.button
                   key={t.id}
                   whileTap={{ scale: 0.94 }}
-                  onClick={() => { setMore((m) => [...m, { hoursTypeId: t.id, periods: [] }]); setMorePanel(false); }}
-                  style={{ padding: "6px 12px", borderRadius: 10,
+                  onClick={() => {
+                    setMore((m) => [...m, { hoursTypeId: t.id, periods: [] }]);
+                    setMorePanel(false);
+                  }}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 10,
                     border: `1.5px solid ${addTypeBorder}`,
-                    background: "transparent", cursor: "pointer",
-                    fontSize: 11.5, fontWeight: 700, color: "#3b82f6" }}
+                    background: "transparent",
+                    cursor: "pointer",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: "#3b82f6",
+                  }}
                 >
                   {t.l}
                 </motion.button>
@@ -784,10 +1120,16 @@ function HoursTab({
               <motion.button
                 whileTap={{ scale: 0.94 }}
                 onClick={() => setMorePanel(false)}
-                style={{ padding: "6px 12px", borderRadius: 10, border: "none",
-                  background: "transparent", cursor: "pointer",
-                  fontSize: 11.5, fontWeight: 700,
-                  color: dark ? "#475569" : "#94a3b8" }}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: dark ? "#475569" : "#94a3b8",
+                }}
               >
                 Cancel
               </motion.button>
@@ -808,21 +1150,44 @@ function HoursTab({
         </p>
 
         {special.map((sp, i) => (
-          <div key={i} style={{
-            display: "flex", alignItems: "center", gap: 9, marginBottom: 8,
-            padding: "11px 13px", borderRadius: 14,
-            border: `1.5px solid ${spBorder}`,
-            background: dark ? "rgba(255,255,255,0.02)" : "#f8fafc",
-          }}>
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              marginBottom: 8,
+              padding: "11px 13px",
+              borderRadius: 14,
+              border: `1.5px solid ${spBorder}`,
+              background: dark ? "rgba(255,255,255,0.02)" : "#f8fafc",
+            }}
+          >
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 12, fontWeight: 800,
-                color: dark ? "#93c5fd" : "#1d4ed8", margin: "0 0 2px" }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: dark ? "#93c5fd" : "#1d4ed8",
+                  margin: "0 0 2px",
+                }}
+              >
                 {sp.startDate.day}/{sp.startDate.month}/{sp.startDate.year}
               </p>
-              <p style={{ fontSize: 11.5, fontWeight: 600, margin: 0,
-                color: sp.closed
-                  ? dark ? "#ef4444" : "#dc2626"
-                  : dark ? "#94a3b8" : "#64748b" }}>
+              <p
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  margin: 0,
+                  color: sp.closed
+                    ? dark
+                      ? "#ef4444"
+                      : "#dc2626"
+                    : dark
+                      ? "#94a3b8"
+                      : "#64748b",
+                }}
+              >
                 {sp.closed
                   ? "Closed all day"
                   : `${to12(sp.openTime ?? "")} → ${to12(sp.closeTime ?? "")}`}
@@ -831,10 +1196,21 @@ function HoursTab({
             <motion.button
               whileTap={{ scale: 0.92 }}
               onClick={() => setSpecial((s) => s.filter((_, j) => j !== i))}
-              style={{ width: 28, height: 28, borderRadius: 9, border: "none", cursor: "pointer",
-                background: dark ? "rgba(239,68,68,0.1)" : "rgba(254,226,226,0.6)",
-                color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0 }}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 9,
+                border: "none",
+                cursor: "pointer",
+                background: dark
+                  ? "rgba(239,68,68,0.1)"
+                  : "rgba(254,226,226,0.6)",
+                color: "#ef4444",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
             >
               <X size={11} />
             </motion.button>
@@ -847,20 +1223,39 @@ function HoursTab({
             setSpecial((s) => [
               ...s,
               {
-                startDate: { year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: new Date().getDate() },
-                endDate:   { year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: new Date().getDate() },
+                startDate: {
+                  year: new Date().getFullYear(),
+                  month: new Date().getMonth() + 1,
+                  day: new Date().getDate(),
+                },
+                endDate: {
+                  year: new Date().getFullYear(),
+                  month: new Date().getMonth() + 1,
+                  day: new Date().getDate(),
+                },
                 closed: true,
               },
             ])
           }
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 13px", width: "100%",
-            borderRadius: 12, border: `1.5px dashed ${addDashedBorder}`, background: "transparent",
-            cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#3b82f6", justifyContent: "center" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "9px 13px",
+            width: "100%",
+            borderRadius: 12,
+            border: `1.5px dashed ${addDashedBorder}`,
+            background: "transparent",
+            cursor: "pointer",
+            fontSize: 12,
+            fontWeight: 700,
+            color: "#3b82f6",
+            justifyContent: "center",
+          }}
         >
           <Plus size={12} /> Add special date
         </motion.button>
       </Card>
-
     </motion.div>
   );
 }
@@ -915,7 +1310,14 @@ function mapApiToDraft(d: any, prev: LocationDraft): LocationDraft {
       ? {
           businessType:
             d.serviceArea.businessType || "CUSTOMER_AND_BUSINESS_LOCATION",
-          places: d.serviceArea.places || { placeInfos: [] },
+          places: {
+            placeInfos: (d.serviceArea.places?.placeInfos ?? []).map(
+              (p: any) => ({
+                placeId: p.placeId ?? p.name ?? "",
+                name: p.displayName ?? p.name ?? p.placeId ?? "",
+              }),
+            ),
+          },
         }
       : prev.serviceArea,
     serviceItems: d.serviceItems || [],
@@ -2277,149 +2679,121 @@ function LocationTab({
         </p>
       </Card>
 
-      {/* ── Service Area ── */}
-      <Card title="Service Area" icon={<Globe size={13} />} dark={dark}>
-        <FW
-          label="Business Type"
-          required
-          dark={dark}
-          hint="CUSTOMER_LOCATION_ONLY hides your storefront address."
-        >
-          {(
-            [
-              {
-                v: "CUSTOMER_AND_BUSINESS_LOCATION",
-                l: "Physical storefront + service area",
-              },
-              {
-                v: "CUSTOMER_LOCATION_ONLY",
-                l: "Service-area only (no storefront)",
-              },
-            ] as const
-          ).map((opt) => (
-            <motion.button
-              key={opt.v}
-              whileTap={{ scale: 0.99 }}
-              onClick={() => setBizType(opt.v)}
+      <FW
+        label="Service Area Places"
+        dark={dark}
+        hint="Cities or regions you serve."
+      >
+        {areas.length === 0 && (
+          <div
+            style={{
+              padding: "11px 13px",
+              borderRadius: 12,
+              marginBottom: 8,
+              background: dark ? "rgba(255,255,255,0.02)" : "#f8fafc",
+              border: `1.5px dashed ${dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.5)"}`,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Globe
+              size={13}
+              style={{ color: dark ? "#334155" : "#94a3b8", flexShrink: 0 }}
+            />
+            <span
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                width: "100%",
-                padding: "9px 12px",
-                marginBottom: 7,
-                borderRadius: 12,
-                border: "2px solid",
-                cursor: "pointer",
-                textAlign: "left",
-                borderColor:
-                  bizType === opt.v
-                    ? "#3b82f6"
-                    : dark
-                      ? "rgba(255,255,255,0.06)"
-                      : "rgba(203,213,225,0.5)",
-                background:
-                  bizType === opt.v
-                    ? dark
-                      ? "rgba(37,99,235,0.08)"
-                      : "rgba(219,234,254,0.35)"
-                    : "transparent",
+                fontSize: 11.5,
+                color: dark ? "#334155" : "#94a3b8",
+                fontWeight: 500,
               }}
             >
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  border: `2px solid ${bizType === opt.v ? "#3b82f6" : dark ? "#334155" : "#cbd5e1"}`,
-                  background: bizType === opt.v ? "#3b82f6" : "transparent",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {bizType === opt.v && (
-                  <div
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      background: "#fff",
-                    }}
-                  />
-                )}
-              </div>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color:
-                    bizType === opt.v
-                      ? "#3b82f6"
-                      : dark
-                        ? "#94a3b8"
-                        : "#64748b",
-                }}
-              >
-                {opt.l}
-              </span>
-            </motion.button>
-          ))}
-        </FW>
-
-        <FW
-          label="Service Area Places"
-          dark={dark}
-          hint="Cities or regions you serve."
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            {areas.map((a, i) => (
-              <div
-                key={i}
-                style={{ display: "flex", gap: 7, alignItems: "center" }}
-              >
-                <div
-                  style={{
-                    flex: 1,
-                    padding: "9px 12px",
-                    borderRadius: 11,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    background: dark ? "rgba(255,255,255,0.04)" : "#f8fafc",
-                    border: `1.5px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.5)"}`,
-                    color: dark ? "#94a3b8" : "#64748b",
-                  }}
-                >
-                  {a.name}
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.92 }}
-                  onClick={() => setAreas((as) => as.filter((_, j) => j !== i))}
-                  style={{
-                    padding: "0 11px",
-                    height: 38,
-                    borderRadius: 11,
-                    border: "none",
-                    cursor: "pointer",
-                    background: dark
-                      ? "rgba(239,68,68,0.1)"
-                      : "rgba(254,226,226,0.6)",
-                    color: "#ef4444",
-                  }}
-                >
-                  <X size={13} />
-                </motion.button>
-              </div>
-            ))}
-            <AddI
-              placeholder="Add city or region…"
-              dark={dark}
-              onAdd={(v) => setAreas((as) => [...as, { placeId: "", name: v }])}
-            />
+              No service areas added yet
+            </span>
           </div>
-        </FW>
-      </Card>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 7,
+            marginBottom: areas.length ? 8 : 0,
+          }}
+        >
+          <AnimatePresence>
+            {areas.map((a, i) => {
+              /* show displayName → name → placeId, skip blanks */
+              const label = (a.name || a.placeId || "").trim();
+              if (!label) return null;
+              return (
+                <motion.div
+                  key={label + i}
+                  initial={{ scale: 0.85, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.85, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 9px 5px 12px",
+                    borderRadius: 99,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background: dark
+                      ? "rgba(59,130,246,0.08)"
+                      : "rgba(219,234,254,0.5)",
+                    border: `1.5px solid ${dark ? "rgba(59,130,246,0.18)" : "rgba(147,197,253,0.55)"}`,
+                    color: dark ? "#93c5fd" : "#1d4ed8",
+                  }}
+                >
+                  <MapPin size={10} style={{ flexShrink: 0, opacity: 0.7 }} />
+                  <span
+                    style={{
+                      maxWidth: 160,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {label}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setAreas((as) => as.filter((_, j) => j !== i))
+                    }
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      flexShrink: 0,
+                      background: dark
+                        ? "rgba(59,130,246,0.22)"
+                        : "rgba(147,197,253,0.45)",
+                      color: dark ? "#93c5fd" : "#1d4ed8",
+                    }}
+                  >
+                    <X size={8} strokeWidth={3} />
+                  </button>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+
+        <AddI
+          placeholder="Add city or region…"
+          dark={dark}
+          onAdd={(v) => setAreas((as) => [...as, { placeId: "", name: v }])}
+        />
+      </FW>
     </motion.div>
   );
 }
@@ -2566,19 +2940,32 @@ function AdvancedTab({
   dark: boolean;
   locationId: string;
 }) {
-  const [svcs,   setSvcs]  = useState(draft.serviceItems);
-  const [labels, setLbls]  = useState(draft.labels);
-  const [chain,  setChain] = useState(draft.relationshipData.parentChain ?? "");
-  const [lang,   setLang]  = useState(draft.languageCode);
+  const [svcs, setSvcs] = useState(draft.serviceItems);
+  const [labels, setLbls] = useState(draft.labels);
+  const [chain, setChain] = useState(draft.relationshipData.parentChain ?? "");
+  const [lang, setLang] = useState(draft.languageCode);
 
-  useEffect(() => { setSvcs(draft.serviceItems); },                      [draft.serviceItems]);
-  useEffect(() => { setLbls(draft.labels); },                            [draft.labels]);
-  useEffect(() => { setLang(draft.languageCode); },                      [draft.languageCode]);
-  useEffect(() => { setChain(draft.relationshipData.parentChain ?? ""); }, [draft.relationshipData]);
+  useEffect(() => {
+    setSvcs(draft.serviceItems);
+  }, [draft.serviceItems]);
+  useEffect(() => {
+    setLbls(draft.labels);
+  }, [draft.labels]);
+  useEffect(() => {
+    setLang(draft.languageCode);
+  }, [draft.languageCode]);
+  useEffect(() => {
+    setChain(draft.relationshipData.parentChain ?? "");
+  }, [draft.relationshipData]);
 
   const commit = () =>
     upd(
-      { serviceItems: svcs, labels, languageCode: lang, relationshipData: chain ? { parentChain: chain } : {} },
+      {
+        serviceItems: svcs,
+        labels,
+        languageCode: lang,
+        relationshipData: chain ? { parentChain: chain } : {},
+      },
       ["serviceItems", "labels", "languageCode", "relationshipData"],
     );
 
@@ -2590,10 +2977,14 @@ function AdvancedTab({
       svc.structuredServiceItem?.serviceTypeId ??
       svc.freeFormServiceItem?.label.displayName ??
       "";
-    return arr.findIndex((x) =>
-      (x.structuredServiceItem?.serviceTypeId ??
-       x.freeFormServiceItem?.label.displayName ?? "") === key
-    ) === idx;
+    return (
+      arr.findIndex(
+        (x) =>
+          (x.structuredServiceItem?.serviceTypeId ??
+            x.freeFormServiceItem?.label.displayName ??
+            "") === key,
+      ) === idx
+    );
   });
 
   /* ── Format serviceTypeId → readable label ──
@@ -2618,30 +3009,40 @@ function AdvancedTab({
 
   return (
     <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}>
-
       {/* ── Service Items ── */}
-      <Card title="Service Items" icon={<FileText size={13} />} dark={dark}
-        badge={`${dedupedSvcs.length} services`}>
+      <Card
+        title="Service Items"
+        icon={<FileText size={13} />}
+        dark={dark}
+        badge={`${dedupedSvcs.length} services`}
+      >
         <p style={{ ...s.muted, marginBottom: 10 }}>
           Services your business offers.
         </p>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 7,
+            marginBottom: 10,
+          }}
+        >
           <AnimatePresence>
             {dedupedSvcs.map((svc, i) => {
               const isStructured = !!svc.structuredServiceItem;
-              const rawId  = svc.structuredServiceItem?.serviceTypeId ?? "";
-              const label  = isStructured
+              const rawId = svc.structuredServiceItem?.serviceTypeId ?? "";
+              const label = isStructured
                 ? fmtServiceId(rawId)
                 : (svc.freeFormServiceItem?.label.displayName ?? "");
-              const desc   = svc.freeFormServiceItem?.label.description ?? "";
+              const desc = svc.freeFormServiceItem?.label.description ?? "";
 
               return (
                 <motion.div
                   key={rawId || label + i}
                   initial={{ scale: 0.85, opacity: 0 }}
-                  animate={{ scale: 1,    opacity: 1 }}
-                  exit={{    scale: 0.85, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.85, opacity: 0 }}
                   transition={{ duration: 0.15 }}
                   style={{
                     display: "inline-flex",
@@ -2649,44 +3050,85 @@ function AdvancedTab({
                     gap: 6,
                     padding: "5px 10px 5px 12px",
                     borderRadius: 99,
-                    border: `1.5px solid ${isStructured
-                      ? dark ? "rgba(59,130,246,0.22)" : "rgba(147,197,253,0.6)"
-                      : dark ? "rgba(255,255,255,0.08)"  : "rgba(203,213,225,0.6)"}`,
+                    border: `1.5px solid ${
+                      isStructured
+                        ? dark
+                          ? "rgba(59,130,246,0.22)"
+                          : "rgba(147,197,253,0.6)"
+                        : dark
+                          ? "rgba(255,255,255,0.08)"
+                          : "rgba(203,213,225,0.6)"
+                    }`,
                     background: isStructured
-                      ? dark ? "rgba(59,130,246,0.08)" : "rgba(219,234,254,0.5)"
-                      : dark ? "rgba(255,255,255,0.04)" : "#f8fafc",
+                      ? dark
+                        ? "rgba(59,130,246,0.08)"
+                        : "rgba(219,234,254,0.5)"
+                      : dark
+                        ? "rgba(255,255,255,0.04)"
+                        : "#f8fafc",
                   }}
                   title={isStructured ? rawId : desc}
                 >
                   {/* Dot — blue for structured, grey for free-form */}
-                  <span style={{
-                    width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-                    background: isStructured ? "#3b82f6" : dark ? "#475569" : "#94a3b8",
-                  }} />
-                  <span style={{
-                    fontSize: 12, fontWeight: 700,
-                    color: isStructured
-                      ? dark ? "#93c5fd" : "#1d4ed8"
-                      : dark ? "#cbd5e1" : "#334155",
-                    maxWidth: 160,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}>
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      flexShrink: 0,
+                      background: isStructured
+                        ? "#3b82f6"
+                        : dark
+                          ? "#475569"
+                          : "#94a3b8",
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: isStructured
+                        ? dark
+                          ? "#93c5fd"
+                          : "#1d4ed8"
+                        : dark
+                          ? "#cbd5e1"
+                          : "#334155",
+                      maxWidth: 160,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {label}
                   </span>
                   {/* Remove button */}
                   <button
-                    onClick={() => setSvcs((arr) => arr.filter((_, j) => {
-                      const k = arr[j].structuredServiceItem?.serviceTypeId ??
-                                arr[j].freeFormServiceItem?.label.displayName ?? "";
-                      return k !== (rawId || label);
-                    }))}
+                    onClick={() =>
+                      setSvcs((arr) =>
+                        arr.filter((_, j) => {
+                          const k =
+                            arr[j].structuredServiceItem?.serviceTypeId ??
+                            arr[j].freeFormServiceItem?.label.displayName ??
+                            "";
+                          return k !== (rawId || label);
+                        }),
+                      )
+                    }
                     style={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      width: 16, height: 16, borderRadius: "50%", border: "none",
-                      cursor: "pointer", padding: 0, flexShrink: 0,
-                      background: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      flexShrink: 0,
+                      background: dark
+                        ? "rgba(255,255,255,0.1)"
+                        : "rgba(0,0,0,0.07)",
                       color: dark ? "#94a3b8" : "#64748b",
                     }}
                   >
@@ -2709,59 +3151,123 @@ function AdvancedTab({
             if (!exists)
               setSvcs((arr) => [
                 ...arr,
-                { freeFormServiceItem: { category: "", label: { displayName: v } } },
+                {
+                  freeFormServiceItem: {
+                    category: "",
+                    label: { displayName: v },
+                  },
+                },
               ]);
           }}
         />
       </Card>
 
       {/* ── Internal Labels ── */}
-      <Card title="Internal Labels" icon={<Hash size={13} />} dark={dark} badge="labels">
-        <FW label="Labels" dark={dark} hint="Not shown to customers. For internal organization. Max 10.">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 4 }}>
+      <Card
+        title="Internal Labels"
+        icon={<Hash size={13} />}
+        dark={dark}
+        badge="labels"
+      >
+        <FW
+          label="Labels"
+          dark={dark}
+          hint="Not shown to customers. For internal organization. Max 10."
+        >
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 7,
+              marginBottom: 4,
+            }}
+          >
             <AnimatePresence>
               {labels.map((l, i) => (
-                <Chip key={l + i} label={l} dark={dark}
-                  onRemove={() => setLbls((ls) => ls.filter((_, j) => j !== i))} />
+                <Chip
+                  key={l + i}
+                  label={l}
+                  dark={dark}
+                  onRemove={() => setLbls((ls) => ls.filter((_, j) => j !== i))}
+                />
               ))}
             </AnimatePresence>
           </div>
-          <AddI placeholder="Add label…" dark={dark}
-            onAdd={(v) => setLbls((ls) => [...ls, v])} />
+          <AddI
+            placeholder="Add label…"
+            dark={dark}
+            onAdd={(v) => setLbls((ls) => [...ls, v])}
+          />
         </FW>
       </Card>
 
       {/* ── Chain Affiliation ── */}
-      <Card title="Chain Affiliation" icon={<Link2 size={13} />} dark={dark} badge="relationshipData">
+      <Card
+        title="Chain Affiliation"
+        icon={<Link2 size={13} />}
+        dark={dark}
+        badge="relationshipData"
+      >
         <FW label="Parent Chain" dark={dark} hint="chains/{chainId} format.">
-          <TI value={chain} onChange={setChain} dark={dark} placeholder="chains/{chainId}" />
+          <TI
+            value={chain}
+            onChange={setChain}
+            dark={dark}
+            placeholder="chains/{chainId}"
+          />
         </FW>
       </Card>
 
       {/* ── Language ── */}
       <Card title="Language" icon={<Globe size={13} />} dark={dark}>
-        <FW label="Language Code" required dark={dark} hint="BCP 47 tag (e.g. en, en-IN, hi).">
+        <FW
+          label="Language Code"
+          required
+          dark={dark}
+          hint="BCP 47 tag (e.g. en, en-IN, hi)."
+        >
           <TI value={lang} onChange={setLang} dark={dark} placeholder="en" />
         </FW>
       </Card>
 
       {/* ── Profile Metadata ── */}
-      <Card title="Profile Metadata" icon={<BarChart2 size={13} />} dark={dark} badge="Read-only">
+      <Card
+        title="Profile Metadata"
+        icon={<BarChart2 size={13} />}
+        dark={dark}
+        badge="Read-only"
+      >
         {[
           { l: "Location Resource Name", v: `locations/${locationId}` },
-          { l: "Maps URI",               v: `https://maps.google.com/?cid=${locationId}` },
-          { l: "New Review URI",         v: `https://search.google.com/local/writereview?placeid=...` },
+          { l: "Maps URI", v: `https://maps.google.com/?cid=${locationId}` },
+          {
+            l: "New Review URI",
+            v: `https://search.google.com/local/writereview?placeid=...`,
+          },
         ].map((row, i) => (
-          <div key={i} style={{ padding: "8px 0", borderBottom: i < 2 ? s.div.borderTop : "none" }}>
+          <div
+            key={i}
+            style={{
+              padding: "8px 0",
+              borderBottom: i < 2 ? s.div.borderTop : "none",
+            }}
+          >
             <p style={{ ...s.lbl, marginBottom: 2 }}>{row.l}</p>
-            <p style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 600, margin: 0,
-              color: dark ? "#60a5fa" : "#2563eb", wordBreak: "break-all" }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontFamily: "monospace",
+                fontWeight: 600,
+                margin: 0,
+                color: dark ? "#60a5fa" : "#2563eb",
+                wordBreak: "break-all",
+              }}
+            >
               {row.v}
             </p>
           </div>
         ))}
       </Card>
-
     </motion.div>
   );
 }
