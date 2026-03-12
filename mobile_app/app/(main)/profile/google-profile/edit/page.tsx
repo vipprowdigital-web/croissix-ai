@@ -2566,242 +2566,205 @@ function AdvancedTab({
   dark: boolean;
   locationId: string;
 }) {
-  const [svcs, setSvcs] = useState(draft.serviceItems);
-  const [labels, setLbls] = useState(draft.labels);
-  const [chain, setChain] = useState(draft.relationshipData.parentChain ?? "");
-  const [lang, setLang] = useState(draft.languageCode);
+  const [svcs,   setSvcs]  = useState(draft.serviceItems);
+  const [labels, setLbls]  = useState(draft.labels);
+  const [chain,  setChain] = useState(draft.relationshipData.parentChain ?? "");
+  const [lang,   setLang]  = useState(draft.languageCode);
 
-  useEffect(() => {
-    setSvcs(draft.serviceItems);
-  }, [draft.serviceItems]);
-  useEffect(() => {
-    setLbls(draft.labels);
-  }, [draft.labels]);
-  useEffect(() => {
-    setLang(draft.languageCode);
-  }, [draft.languageCode]);
-  useEffect(() => {
-    setChain(draft.relationshipData.parentChain ?? "");
-  }, [draft.relationshipData]);
+  useEffect(() => { setSvcs(draft.serviceItems); },                      [draft.serviceItems]);
+  useEffect(() => { setLbls(draft.labels); },                            [draft.labels]);
+  useEffect(() => { setLang(draft.languageCode); },                      [draft.languageCode]);
+  useEffect(() => { setChain(draft.relationshipData.parentChain ?? ""); }, [draft.relationshipData]);
 
   const commit = () =>
     upd(
-      {
-        serviceItems: svcs,
-        labels,
-        languageCode: lang,
-        relationshipData: chain ? { parentChain: chain } : {},
-      },
+      { serviceItems: svcs, labels, languageCode: lang, relationshipData: chain ? { parentChain: chain } : {} },
       ["serviceItems", "labels", "languageCode", "relationshipData"],
     );
+
   const s = tok(dark);
+
+  /* ── Deduplicate service items ── */
+  const dedupedSvcs = svcs.filter((svc, idx, arr) => {
+    const key =
+      svc.structuredServiceItem?.serviceTypeId ??
+      svc.freeFormServiceItem?.label.displayName ??
+      "";
+    return arr.findIndex((x) =>
+      (x.structuredServiceItem?.serviceTypeId ??
+       x.freeFormServiceItem?.label.displayName ?? "") === key
+    ) === idx;
+  });
+
+  /* ── Format serviceTypeId → readable label ──
+     "job_type_id:digital_marketing"  →  "Digital Marketing"
+     "gcid:advertising_agency"        →  "Advertising Agency"  */
+  function fmtServiceId(raw: string): string {
+    if (!raw) return raw;
+    // strip known prefixes
+    const clean = raw
+      .replace(/^job_type_id:/i, "")
+      .replace(/^gcid:/i, "")
+      .replace(/^service_type_id:/i, "");
+    // underscores → spaces, title-case each word
+    return clean
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  /* borders */
+  const svcBorder = dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)";
 
   return (
     <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}>
-      <Card
-        title="Service Items"
-        icon={<FileText size={13} />}
-        dark={dark}
-        badge="serviceItems"
-      >
+
+      {/* ── Service Items ── */}
+      <Card title="Service Items" icon={<FileText size={13} />} dark={dark}
+        badge={`${dedupedSvcs.length} services`}>
         <p style={{ ...s.muted, marginBottom: 10 }}>
-          Services your business offers. Free-form and structured types.
+          Services your business offers.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {svcs.map((svc, i) => {
-            const lbl =
-              svc.freeFormServiceItem?.label.displayName ??
-              svc.structuredServiceItem?.serviceTypeId ??
-              "";
-            const dsc = svc.freeFormServiceItem?.label.description ?? "";
-            return (
-              <div
-                key={i}
-                style={{
-                  borderRadius: 14,
-                  border: `1.5px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)"}`,
-                  padding: "10px 12px",
-                }}
-              >
-                <div
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
+          <AnimatePresence>
+            {dedupedSvcs.map((svc, i) => {
+              const isStructured = !!svc.structuredServiceItem;
+              const rawId  = svc.structuredServiceItem?.serviceTypeId ?? "";
+              const label  = isStructured
+                ? fmtServiceId(rawId)
+                : (svc.freeFormServiceItem?.label.displayName ?? "");
+              const desc   = svc.freeFormServiceItem?.label.description ?? "";
+
+              return (
+                <motion.div
+                  key={rawId || label + i}
+                  initial={{ scale: 0.85, opacity: 0 }}
+                  animate={{ scale: 1,    opacity: 1 }}
+                  exit={{    scale: 0.85, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                   style={{
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: dsc ? 4 : 0,
+                    gap: 6,
+                    padding: "5px 10px 5px 12px",
+                    borderRadius: 99,
+                    border: `1.5px solid ${isStructured
+                      ? dark ? "rgba(59,130,246,0.22)" : "rgba(147,197,253,0.6)"
+                      : dark ? "rgba(255,255,255,0.08)"  : "rgba(203,213,225,0.6)"}`,
+                    background: isStructured
+                      ? dark ? "rgba(59,130,246,0.08)" : "rgba(219,234,254,0.5)"
+                      : dark ? "rgba(255,255,255,0.04)" : "#f8fafc",
                   }}
+                  title={isStructured ? rawId : desc}
                 >
-                  <span
-                    style={{
-                      fontSize: 12.5,
-                      fontWeight: 800,
-                      color: dark ? "#e2e8f0" : "#1e293b",
-                    }}
-                  >
-                    {lbl}
+                  {/* Dot — blue for structured, grey for free-form */}
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                    background: isStructured ? "#3b82f6" : dark ? "#475569" : "#94a3b8",
+                  }} />
+                  <span style={{
+                    fontSize: 12, fontWeight: 700,
+                    color: isStructured
+                      ? dark ? "#93c5fd" : "#1d4ed8"
+                      : dark ? "#cbd5e1" : "#334155",
+                    maxWidth: 160,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {label}
                   </span>
-                  <motion.button
-                    whileTap={{ scale: 0.92 }}
-                    onClick={() => setSvcs((s) => s.filter((_, j) => j !== i))}
+                  {/* Remove button */}
+                  <button
+                    onClick={() => setSvcs((arr) => arr.filter((_, j) => {
+                      const k = arr[j].structuredServiceItem?.serviceTypeId ??
+                                arr[j].freeFormServiceItem?.label.displayName ?? "";
+                      return k !== (rawId || label);
+                    }))}
                     style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 7,
-                      border: "none",
-                      cursor: "pointer",
-                      background: dark
-                        ? "rgba(239,68,68,0.1)"
-                        : "rgba(254,226,226,0.6)",
-                      color: "#ef4444",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 16, height: 16, borderRadius: "50%", border: "none",
+                      cursor: "pointer", padding: 0, flexShrink: 0,
+                      background: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)",
+                      color: dark ? "#94a3b8" : "#64748b",
                     }}
                   >
-                    <X size={10} />
-                  </motion.button>
-                </div>
-                {dsc && <p style={{ ...s.muted, margin: 0 }}>{dsc}</p>}
-                {svc.structuredServiceItem && (
-                  <p
-                    style={{
-                      fontSize: 9,
-                      fontFamily: "monospace",
-                      color: dark ? "#334155" : "#94a3b8",
-                      margin: "2px 0 0",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {svc.structuredServiceItem.serviceTypeId}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+                    <X size={8} strokeWidth={3} />
+                  </button>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
+
         <AddI
-          placeholder="Add service…"
+          placeholder="Add free-form service…"
           dark={dark}
-          onAdd={(v) =>
-            setSvcs((s) => [
-              ...s,
-              {
-                freeFormServiceItem: {
-                  category: "",
-                  label: { displayName: v },
-                },
-              },
-            ])
-          }
+          onAdd={(v) => {
+            // prevent dupes on manual add
+            const exists = svcs.some(
+              (x) => (x.freeFormServiceItem?.label.displayName ?? "") === v,
+            );
+            if (!exists)
+              setSvcs((arr) => [
+                ...arr,
+                { freeFormServiceItem: { category: "", label: { displayName: v } } },
+              ]);
+          }}
         />
       </Card>
 
-      <Card
-        title="Internal Labels"
-        icon={<Hash size={13} />}
-        dark={dark}
-        badge="labels"
-      >
-        <FW
-          label="Labels"
-          dark={dark}
-          hint="Not shown to customers. For internal organization. Max 10."
-        >
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 7,
-              marginBottom: 4,
-            }}
-          >
+      {/* ── Internal Labels ── */}
+      <Card title="Internal Labels" icon={<Hash size={13} />} dark={dark} badge="labels">
+        <FW label="Labels" dark={dark} hint="Not shown to customers. For internal organization. Max 10.">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 4 }}>
             <AnimatePresence>
               {labels.map((l, i) => (
-                <Chip
-                  key={l + i}
-                  label={l}
-                  dark={dark}
-                  onRemove={() => setLbls((ls) => ls.filter((_, j) => j !== i))}
-                />
+                <Chip key={l + i} label={l} dark={dark}
+                  onRemove={() => setLbls((ls) => ls.filter((_, j) => j !== i))} />
               ))}
             </AnimatePresence>
           </div>
-          <AddI
-            placeholder="Add label…"
-            dark={dark}
-            onAdd={(v) => setLbls((ls) => [...ls, v])}
-          />
+          <AddI placeholder="Add label…" dark={dark}
+            onAdd={(v) => setLbls((ls) => [...ls, v])} />
         </FW>
       </Card>
 
-      <Card
-        title="Chain Affiliation"
-        icon={<Link2 size={13} />}
-        dark={dark}
-        badge="relationshipData"
-      >
+      {/* ── Chain Affiliation ── */}
+      <Card title="Chain Affiliation" icon={<Link2 size={13} />} dark={dark} badge="relationshipData">
         <FW label="Parent Chain" dark={dark} hint="chains/{chainId} format.">
-          <TI
-            value={chain}
-            onChange={setChain}
-            dark={dark}
-            placeholder="chains/{chainId}"
-          />
+          <TI value={chain} onChange={setChain} dark={dark} placeholder="chains/{chainId}" />
         </FW>
       </Card>
 
+      {/* ── Language ── */}
       <Card title="Language" icon={<Globe size={13} />} dark={dark}>
-        <FW
-          label="Language Code"
-          required
-          dark={dark}
-          hint="BCP 47 tag (e.g. en, en-IN, hi)."
-        >
+        <FW label="Language Code" required dark={dark} hint="BCP 47 tag (e.g. en, en-IN, hi).">
           <TI value={lang} onChange={setLang} dark={dark} placeholder="en" />
         </FW>
       </Card>
 
-      <Card
-        title="Profile Metadata"
-        icon={<BarChart2 size={13} />}
-        dark={dark}
-        badge="Read-only"
-      >
+      {/* ── Profile Metadata ── */}
+      <Card title="Profile Metadata" icon={<BarChart2 size={13} />} dark={dark} badge="Read-only">
         {[
           { l: "Location Resource Name", v: `locations/${locationId}` },
-          { l: "Maps URI", v: `https://maps.google.com/?cid=${locationId}` },
-          {
-            l: "New Review URI",
-            v: `https://search.google.com/local/writereview?placeid=...`,
-          },
+          { l: "Maps URI",               v: `https://maps.google.com/?cid=${locationId}` },
+          { l: "New Review URI",         v: `https://search.google.com/local/writereview?placeid=...` },
         ].map((row, i) => (
-          <div
-            key={i}
-            style={{
-              padding: "8px 0",
-              borderBottom: i < 2 ? s.div.borderTop : "none",
-            }}
-          >
+          <div key={i} style={{ padding: "8px 0", borderBottom: i < 2 ? s.div.borderTop : "none" }}>
             <p style={{ ...s.lbl, marginBottom: 2 }}>{row.l}</p>
-            <p
-              style={{
-                fontSize: 11,
-                fontFamily: "monospace",
-                fontWeight: 600,
-                margin: 0,
-                color: dark ? "#60a5fa" : "#2563eb",
-                wordBreak: "break-all",
-              }}
-            >
+            <p style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 600, margin: 0,
+              color: dark ? "#60a5fa" : "#2563eb", wordBreak: "break-all" }}>
               {row.v}
             </p>
           </div>
         ))}
       </Card>
+
     </motion.div>
   );
 }
-
 /* ═══════════════════════════════════════════════
    SETTINGS DRAWER
 ═══════════════════════════════════════════════ */
