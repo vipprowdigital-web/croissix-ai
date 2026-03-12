@@ -435,10 +435,17 @@ function AboutTab({ draft, upd, dark }: { draft:LocationDraft; upd:(p:Partial<Lo
   return (
     <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}>
       <Card title="Business Name" icon={<Building2 size={13}/>} dark={dark}>
-        <FW label="Business Name" required dark={dark} hint="Use your real-world name — as customers know it.">
-          <TI value={name} onChange={setName} dark={dark} />
-          <p style={{ fontSize:10, marginTop:3, textAlign:"right", color:name.length>750?"#ef4444":dark?"#334155":"#94a3b8", fontWeight:600 }}>{name.length}/750</p>
-        </FW>
+
+       <FW label="Business Name" required dark={dark} hint="Use your real-world name — as customers know it.">
+  <TA
+    value={name}
+    onChange={setName}
+    rows={2}
+    dark={dark}
+    maxLen={750}
+    placeholder="Your business name…"
+  />
+</FW>
         <FW label="Store Code" dark={dark} hint="Internal identifier. Not shown publicly.">
           <TI value={code} onChange={setCode} dark={dark} placeholder="e.g. STORE-JBP-001" prefix="# " />
         </FW>
