@@ -4,11 +4,9 @@ import { google } from "googleapis";
 import axios from "axios";
 
 export async function PATCH(req: Request) {
-
   console.log("===== GOOGLE LOCATION UPDATE START =====");
 
   try {
-
     const body = await req.json();
     const { locationId, payload, fields } = body;
 
@@ -32,7 +30,7 @@ export async function PATCH(req: Request) {
         headers: {
           Authorization: authHeader,
         },
-      }
+      },
     );
 
     const user = profile.data.user;
@@ -40,10 +38,7 @@ export async function PATCH(req: Request) {
     console.log("User profile loaded:", user?.email);
 
     if (!user.googleAccessToken) {
-      return Response.json(
-        { error: "Google not connected" },
-        { status: 401 }
-      );
+      return Response.json({ error: "Google not connected" }, { status: 401 });
     }
 
     /* --------------------------------------------
@@ -52,7 +47,7 @@ export async function PATCH(req: Request) {
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET
+      process.env.GOOGLE_CLIENT_SECRET,
     );
 
     oauth2Client.setCredentials({
@@ -72,21 +67,15 @@ export async function PATCH(req: Request) {
     --------------------------------------------- */
 
     if (payload.categories) {
-
-      if (payload.categories.primaryCategory) {
-        payload.primaryCategory = {
-          name: payload.categories.primaryCategory.name,
-        };
-      }
-
-      if (payload.categories.additionalCategories) {
-        payload.additionalCategories =
-          payload.categories.additionalCategories.map((c: any) => ({
+      payload.categories = {
+        primaryCategory: {
+          name: payload.categories.primaryCategory?.name,
+        },
+        additionalCategories:
+          payload.categories.additionalCategories?.map((c: any) => ({
             name: c.name,
-          }));
-      }
-
-      delete payload.categories;
+          })) || [],
+      };
     }
 
     /* --------------------------------------------
@@ -94,7 +83,6 @@ export async function PATCH(req: Request) {
     --------------------------------------------- */
 
     const filteredFields = fields.filter((f: string) => {
-
       if (f === "openInfo.openingDate" && !payload?.openInfo?.openingDate) {
         return false;
       }
@@ -106,15 +94,7 @@ export async function PATCH(req: Request) {
        BUILD updateMask
     --------------------------------------------- */
 
-    const updateMask = filteredFields
-      .map((f: string) => {
-        if (f === "categories") {
-          return ["primaryCategory", "additionalCategories"];
-        }
-        return f;
-      })
-      .flat()
-      .join(",");
+  const updateMask = filteredFields.join(",");
 
     console.log("Update Mask:", updateMask);
     console.log("Final Payload:", payload);
@@ -132,9 +112,7 @@ export async function PATCH(req: Request) {
     console.log("✅ Google update success:", res.data);
 
     return Response.json(res.data);
-
   } catch (error: any) {
-
     console.error("❌ GOOGLE UPDATE ERROR");
 
     if (error.response) {
@@ -149,7 +127,7 @@ export async function PATCH(req: Request) {
           error.message ||
           "Google API error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -267,22 +267,25 @@ async function patchLocation(
   console.log("Fields after filter:", filteredFields);
   /* ---------------- FIX GOOGLE PAYLOAD ---------------- */
 
+  /* ---------------- FIX GOOGLE PAYLOAD ---------------- */
+
   if (payload.categories) {
-    if (payload.categories.primaryCategory) {
-      payload.primaryCategory = {
-        name: payload.categories.primaryCategory.name,
-      };
-    }
-
-    if (payload.categories.additionalCategories) {
-      payload.additionalCategories =
-        payload.categories.additionalCategories.map((c: any) => ({
+    payload.categories = {
+      primaryCategory: {
+        name: payload.categories.primaryCategory?.name,
+      },
+      additionalCategories:
+        payload.categories.additionalCategories?.map((c: any) => ({
           name: c.name,
-        }));
-    }
-
-    delete payload.categories;
+        })) || [],
+    };
   }
+
+  // oauth2Client.on("tokens", (tokens) => {
+  //   if (tokens.access_token) {
+  //     console.log("New Access Token:", tokens.access_token);
+  //   }
+  // });
 
   /* -----------------------------------------
      Call Next.js API
@@ -901,7 +904,10 @@ function AboutTab({
             displayName: primary,
             name: draft.categories.primaryCategory.name,
           },
-          additionalCategories: cats.map((c) => ({ displayName: c, name: "" })),
+          additionalCategories: cats.map((c) => ({
+            displayName: c,
+            name: "gcid:software_company",
+          })),
         },
         openInfo: {
           status,
@@ -2835,6 +2841,36 @@ export default function GoogleProfileEditPage() {
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+
+  useEffect(() => {
+    async function loadLocation() {
+      const token = getToken();
+
+      const res = await fetch(
+        `/api/google/locations/get?locationId=${LOCATION_ID}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const data = await res.json();
+
+      console.log("Google Location:", data);
+
+      setDraft((d) => ({
+        ...d,
+        title: data.title || "",
+        storeCode: data.storeCode || "",
+        profile: {
+          description: data.profile?.description || "",
+        },
+      }));
+    }
+
+    loadLocation();
+  }, []);
 
   const pending = useRef<{ payload: Partial<LocationDraft>; fields: string[] }>(
     { payload: {}, fields: [] },
