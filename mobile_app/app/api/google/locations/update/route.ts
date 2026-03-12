@@ -1,11 +1,25 @@
 // mobile_app\app\api\google\locations\update\route.ts
-
-
 // mobile_app/app/api/google/locations/update/route.ts
 
-import { google }  from "googleapis";
-import axios       from "axios";
+import { google }       from "googleapis";
+import axios            from "axios";
 import { NextResponse } from "next/server";
+
+/* ── helpers ── */
+function toTimeObj(t: string | { hours?: number; minutes?: number }) {
+  if (typeof t === "object") return t; // already an object
+  const [h, m] = t.split(":").map(Number);
+  return { hours: h ?? 0, minutes: m ?? 0 };
+}
+
+function sanitizePeriods(periods: any[]) {
+  return (periods ?? []).map((p: any) => ({
+    openDay:   p.openDay,
+    closeDay:  p.closeDay ?? p.openDay,
+    openTime:  toTimeObj(p.openTime),
+    closeTime: toTimeObj(p.closeTime),
+  }));
+}
 
 export async function PATCH(req: Request) {
   console.log("===== GOOGLE LOCATION UPDATE START =====");
@@ -49,32 +63,28 @@ export async function PATCH(req: Request) {
       expiry_date:   user.googleTokenExpiry ?? undefined,
     });
 
-    // Force refresh if token is expired or within 60s of expiry
-    const expiry    = user.googleTokenExpiry ? Number(user.googleTokenExpiry) : 0;
+    const expiry       = user.googleTokenExpiry ? Number(user.googleTokenExpiry) : 0;
     const needsRefresh = !expiry || expiry - Date.now() < 60_000;
     if (needsRefresh) {
       const { credentials } = await oauth2Client.refreshAccessToken();
       oauth2Client.setCredentials(credentials);
-
-      // Persist refreshed token back to your backend
       if (credentials.access_token) {
         await axios.patch(
           `${process.env.NEXT_PUBLIC_API_URL}/users/profile/update-tokens`,
           {
-            googleAccessToken:  credentials.access_token,
-            googleTokenExpiry:  credentials.expiry_date,
+            googleAccessToken: credentials.access_token,
+            googleTokenExpiry: credentials.expiry_date,
           },
           { headers: { Authorization: authHeader } },
         ).catch(e => console.warn("Token persist failed:", e.message));
       }
     }
 
-    const service = google.mybusinessbusinessinformation({
-      version: "v1",
-      auth:    oauth2Client,
-    });
+    /* ══════════════════════════════════════════
+       SANITIZE PAYLOAD
+    ══════════════════════════════════════════ */
 
-    /* ── SANITIZE CATEGORIES ── */
+    /* 1 ── categories: keep only { name } */
     if (payload.categories && typeof payload.categories === "object") {
       const cats = payload.categories as any;
       payload.categories = {
@@ -85,7 +95,56 @@ export async function PATCH(req: Request) {
       };
     }
 
-    /* ── FILTER FIELDS ── */
+    /* 2 ── regularHours: convert "HH:MM" strings → { hours, minutes } */
+    if (payload.regularHours && typeof payload.regularHours === "object") {
+      const rh = payload.regularHours as any;
+      payload.regularHours = {
+        periods: sanitizePeriods(rh.periods ?? []),
+      };
+    }
+
+    /* 3 ── moreHours: same time conversion for each type */
+    if (Array.isArray(payload.moreHours)) {
+      payload.moreHours = (payload.moreHours as any[]).map((mh: any) => ({
+        hoursTypeId: mh.hoursTypeId,
+        periods:     sanitizePeriods(mh.periods ?? []),
+      }));
+    }
+
+    /* 4 ── specialHours: convert time strings + keep date objects */
+    if (payload.specialHours && typeof payload.specialHours === "object") {
+      const sh = payload.specialHours as any;
+      payload.specialHours = {
+        specialHourPeriods: (sh.specialHourPeriods ?? []).map((sp: any) => {
+          const base: any = {
+            startDate: sp.startDate,
+            endDate:   sp.endDate ?? sp.startDate,
+            closed:    !!sp.closed,
+          };
+          if (!sp.closed) {
+            base.openTime  = toTimeObj(sp.openTime  ?? "09:00");
+            base.closeTime = toTimeObj(sp.closeTime ?? "18:00");
+          }
+          return base;
+        }),
+      };
+    }
+
+    /* 5 ── openInfo: remove openingDate if empty */
+    if (payload.openInfo && typeof payload.openInfo === "object") {
+      const oi = payload.openInfo as any;
+      if (!oi.openingDate || !oi.openingDate.year) {
+        delete oi.openingDate;
+      }
+    }
+
+    /* 6 ── profile.description: remove if empty string */
+    if (payload.profile && typeof payload.profile === "object") {
+      const pr = payload.profile as any;
+      if (pr.description === "") delete pr.description;
+    }
+
+    /* ── BUILD updateMask (skip openInfo.openingDate if removed) ── */
     const updateMask = fields
       .filter(f => {
         if (f === "openInfo.openingDate") {
@@ -104,6 +163,11 @@ export async function PATCH(req: Request) {
     console.log("payload:",    JSON.stringify(payload, null, 2));
 
     /* ── PATCH ── */
+    const service = google.mybusinessbusinessinformation({
+      version: "v1",
+      auth:    oauth2Client,
+    });
+
     const res = await service.locations.patch({
       name:        `locations/${locationId}`,
       updateMask,

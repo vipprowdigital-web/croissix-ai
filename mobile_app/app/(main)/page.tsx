@@ -1070,7 +1070,7 @@ export default function HomePage() {
         {/* CIBIL SCORE */}
         <motion.div className="pt-4 pb-4 flex items-center justify-center"
           variants={scaleIn} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
-          <CibilScore score={300} change={12} min={0} max={1000} />
+          <CibilScore score={900} change={12} min={0} max={1000} />
         </motion.div>
 
         {isLoading && <HomeSkeleton isDark={isDark} />}
