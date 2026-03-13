@@ -1,7 +1,7 @@
 // app/api/google/delete-reply/route.ts
 
+import { getAuthClient } from "@/lib/googleAuth";
 import axios from "axios";
-import { getAuthClient } from "@/app/lib/googleAuth";
 
 export async function DELETE(req: Request) {
   const { reviewName } = await req.json();

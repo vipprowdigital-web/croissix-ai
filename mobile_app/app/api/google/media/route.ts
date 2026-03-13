@@ -1,6 +1,6 @@
 // app/api/google/media/route.ts
 
-import { getAuthClient } from "@/app/lib/googleAuth";
+import { getAuthClient } from "@/lib/googleAuth";
 import axios from "axios";
 import { google } from "googleapis";
 
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       const locations = locationsRes.data.locations || [];
 
       if (locations.find((l: any) => l.name === locationName)) {
-        accountId = acc.name;
+        accountId = acc.name ?? null;
         break;
       }
     }

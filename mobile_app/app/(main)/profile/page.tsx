@@ -817,7 +817,11 @@ function LocationRow({
       alert(`✅ ${location.title} linked successfully`);
     } catch (error) {
       console.error(error);
-      alert(error.message || "Something went wrong");
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert("Something went wrong");
+      }
     } finally {
       setLinkingId(null);
     }

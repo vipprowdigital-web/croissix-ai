@@ -1,6 +1,6 @@
 "use client";
 
-import { useAppConfig } from "@/app/features/app-config/hook/useAppConfig";
+import { useAppConfig } from "@/features/app-config/hook/useAppConfig";
 import { setAppConfig } from "@/redux/slices/appConfigSlice";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";

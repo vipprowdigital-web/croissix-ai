@@ -638,7 +638,6 @@ function TimePicker({
             gap: 6,
             padding: "7px 12px",
             borderRadius: 11,
-            border: "none",
             cursor: "pointer",
             background: dark ? "rgba(59,130,246,0.1)" : "rgba(219,234,254,0.6)",
             border: `1.5px solid ${dark ? "rgba(59,130,246,0.18)" : "rgba(147,197,253,0.55)"}`,

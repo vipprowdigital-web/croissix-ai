@@ -1,7 +1,7 @@
 // app/api/google/media/list/route.ts
 
 
-import { getAuthClient } from "@/app/lib/googleAuth";
+import { getAuthClient } from "@/lib/googleAuth";
 import axios from "axios";
 import { google } from "googleapis";
 

@@ -1458,8 +1458,9 @@ export default function SubscriptionPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const dark = mounted && resolvedTheme === "dark";
-
-  const [screen, setScreen] = useState<Screen>("plans");
+  const [screen, setScreen] = useState<
+    "plans" | "checkout" | "processing" | "success" | "failed"
+  >("plans");
   const [selectedPlan, setSelectedPlan] = useState<Plan>(PLANS[1]);
   const [selectedCycle, setSelectedCycle] = useState<Cycle>("yearly");
   const [subscriptionId, setSubscriptionId] = useState("");

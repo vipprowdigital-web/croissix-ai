@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     let pageToken: string | undefined = undefined;
 
     do {
-      const res = await infoService.accounts.locations.list({
+      const res:any = await infoService.accounts.locations.list({
         parent: acc.name!,
         readMask:
           "name,title,storeCode,phoneNumbers,websiteUri,storefrontAddress,openInfo",
