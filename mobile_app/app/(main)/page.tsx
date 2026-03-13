@@ -1068,7 +1068,7 @@ export default function HomePage() {
         </motion.div>
 
         {/* CIBIL SCORE */}
-        <motion.div className="pt-4 pb-4 flex items-center justify-center"
+        <motion.div className="pb-4 flex items-center justify-center"
           variants={scaleIn} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
           <CibilScore score={900} change={12} min={0} max={1000} />
         </motion.div>
