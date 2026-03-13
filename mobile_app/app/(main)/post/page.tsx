@@ -267,7 +267,7 @@ function stateBadge(s: PostState, isDark: boolean) {
     };
   return {
     cls: isDark
-      ? "bg-slate-500/15 text-slate-400"
+      ? "bg-slate-500/15 text-slate-700"
       : "bg-slate-50 text-slate-500",
     label: "Draft",
   };
@@ -338,13 +338,13 @@ function DeleteModal({
             Delete Post?
           </h3>
           <p
-            className={`text-[13px] leading-relaxed mb-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}
+            className={`text-[13px] leading-relaxed mb-1 ${isDark ? "text-slate-700" : "text-slate-500"}`}
           >
             This will permanently remove the post from your Google Business
             Profile.
           </p>
           <p
-            className={`text-[12px] font-medium line-clamp-1 ${isDark ? "text-slate-600" : "text-slate-400"}`}
+            className={`text-[12px] font-medium line-clamp-1 ${isDark ? "text-slate-600" : "text-slate-700"}`}
           >
             "{post.summary.slice(0, 60)}
             {post.summary.length > 60 ? "…" : ""}"
@@ -357,7 +357,7 @@ function DeleteModal({
             onClick={onCancel}
             disabled={isDeleting}
             className={`flex-1 h-11 rounded-2xl text-[13px] font-semibold transition-all active:scale-95 disabled:opacity-50
-              ${isDark ? "bg-white/[0.07] text-slate-300" : "bg-slate-100 text-slate-600"}`}
+              ${isDark ? "bg-white/[0.07] text-slate-700" : "bg-slate-100 text-slate-600"}`}
           >
             Cancel
           </button>
@@ -462,7 +462,7 @@ function PostCard({
                 {label}
               </span>
               <span
-                className={`text-[10px] ml-auto shrink-0 ${isDark ? "text-slate-600" : "text-slate-400"}`}
+                className={`text-[10px] ml-auto shrink-0 ${isDark ? "text-slate-600" : "text-slate-700"}`}
               >
                 {post.date}
               </span>
@@ -481,7 +481,7 @@ function PostCard({
             <button
               onClick={() => setMenuOpen((v) => !v)}
               className={`w-7 h-7 flex items-center justify-center rounded-xl transition-all active:scale-90
-                ${isDark ? "text-slate-500 hover:bg-white/[0.08] hover:text-slate-300" : "text-slate-400 hover:bg-slate-100"}`}
+                ${isDark ? "text-slate-500 hover:bg-white/[0.08] hover:text-slate-700" : "text-slate-700 hover:bg-slate-100"}`}
             >
               <MoreVertical size={15} />
             </button>
@@ -501,7 +501,7 @@ function PostCard({
                       onEdit(post);
                     }}
                     className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition-colors
-                      ${isDark ? "text-slate-300 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50"}`}
+                      ${isDark ? "text-slate-700 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50"}`}
                   >
                     <Edit3 size={13} className="text-blue-500" /> Edit Post
                   </button>
@@ -526,7 +526,7 @@ function PostCard({
 
         {/* body */}
         <p
-          className={`text-[13.5px] leading-relaxed ${isDark ? "text-slate-300" : "text-slate-700"}`}
+          className={`text-[13.5px] leading-relaxed ${isDark ? "text-slate-700" : "text-slate-700"}`}
           style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}
         >
           {needsTrunc && !expanded
@@ -570,7 +570,7 @@ function PostCard({
             onClick={() => onEdit(post)}
             className={`flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-semibold
               transition-all active:scale-95
-              ${isDark ? "bg-white/[0.07] text-slate-300 hover:bg-white/[0.12]" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              ${isDark ? "bg-white/[0.07] text-slate-700 hover:bg-white/[0.12]" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
           >
             <Edit3 size={12} /> Edit
           </button>
@@ -578,12 +578,12 @@ function PostCard({
             onClick={() => onDelete(post)}
             className={`flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-semibold
               transition-all active:scale-95
-              ${isDark ? "text-slate-600 hover:text-red-400 hover:bg-red-500/10" : "text-slate-400 hover:text-red-500 hover:bg-red-50"}`}
+              ${isDark ? "text-slate-600 hover:text-red-400 hover:bg-red-500/10" : "text-slate-700 hover:text-red-500 hover:bg-red-50"}`}
           >
             <Trash2 size={12} /> Delete
           </button>
           <span
-            className={`ml-auto text-[10px] flex items-center gap-1 ${isDark ? "text-slate-700" : "text-slate-300"}`}
+            className={`ml-auto text-[10px] flex items-center gap-1 ${isDark ? "text-slate-700" : "text-slate-700"}`}
           >
             <Clock size={10} /> Updated {post.updateDate}
           </span>
@@ -616,7 +616,7 @@ function StatCard({
     >
       <div className="flex items-center justify-between">
         <span
-          className={`text-[10px] font-semibold uppercase tracking-wide ${isDark ? "text-slate-500" : "text-slate-400"}`}
+          className={`text-[10px] font-semibold uppercase tracking-wide ${isDark ? "text-slate-500" : "text-slate-700"}`}
         >
           {label}
         </span>
@@ -824,7 +824,7 @@ export default function GooglePostsPage() {
                 onClick={() => refetch()}
                 disabled={isLoading}
                 className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 disabled:opacity-50
-                ${isDark ? "bg-white/[0.07] text-slate-400 hover:bg-white/[0.12]" : "bg-white text-slate-500 border border-slate-200"}`}
+                ${isDark ? "bg-white/[0.07] text-slate-700 hover:bg-white/[0.12]" : "bg-white text-slate-500 border border-slate-200"}`}
               >
                 <RefreshCw
                   size={15}
@@ -872,7 +872,7 @@ export default function GooglePostsPage() {
           >
             <Building2
               size={32}
-              className={`mx-auto mb-3 ${isDark ? "text-slate-600" : "text-slate-300"}`}
+              className={`mx-auto mb-3 ${isDark ? "text-slate-600" : "text-slate-700"}`}
             />
             <p
               className={`text-[14px] font-semibold mb-1 ${isDark ? "text-white" : "text-slate-900"}`}
@@ -880,7 +880,7 @@ export default function GooglePostsPage() {
               No Google Business Linked
             </p>
             <p
-              className={`text-[12.5px] mb-4 ${isDark ? "text-slate-500" : "text-slate-400"}`}
+              className={`text-[12.5px] mb-4 ${isDark ? "text-slate-500" : "text-slate-700"}`}
             >
               Go to your Profile page and link your Google Business Profile.
             </p>
@@ -964,19 +964,19 @@ export default function GooglePostsPage() {
             >
               <Search
                 size={14}
-                className={isDark ? "text-slate-600" : "text-slate-400"}
+                className={isDark ? "text-slate-600" : "text-slate-700"}
               />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search posts…"
                 className={`flex-1 bg-transparent outline-none text-[13.5px]
-                  ${isDark ? "text-white placeholder:text-slate-600" : "text-slate-900 placeholder:text-slate-400"}`}
+                  ${isDark ? "text-white placeholder:text-slate-600" : "text-slate-900 placeholder:text-slate-700"}`}
               />
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className={`text-[11px] font-medium ${isDark ? "text-slate-500" : "text-slate-400"}`}
+                  className={`text-[11px] font-medium ${isDark ? "text-slate-500" : "text-slate-700"}`}
                 >
                   Clear
                 </button>
@@ -995,7 +995,7 @@ export default function GooglePostsPage() {
                       filter === f.id
                         ? "bg-blue-500 text-white"
                         : isDark
-                          ? "bg-white/[0.07] text-slate-400 hover:bg-white/[0.12]"
+                          ? "bg-white/[0.07] text-slate-700 hover:bg-white/[0.12]"
                           : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
                     }`}
                 >
@@ -1025,7 +1025,7 @@ export default function GooglePostsPage() {
                   No Posts Yet
                 </p>
                 <p
-                  className={`text-[13px] mb-5 ${isDark ? "text-slate-500" : "text-slate-400"}`}
+                  className={`text-[13px] mb-5 ${isDark ? "text-slate-500" : "text-slate-700"}`}
                 >
                   Create your first Google Business post to engage customers.
                 </p>
@@ -1052,10 +1052,10 @@ export default function GooglePostsPage() {
               >
                 <Search
                   size={24}
-                  className={`mx-auto mb-2 ${isDark ? "text-slate-600" : "text-slate-300"}`}
+                  className={`mx-auto mb-2 ${isDark ? "text-slate-600" : "text-slate-700"}`}
                 />
                 <p
-                  className={`text-[13px] ${isDark ? "text-slate-500" : "text-slate-400"}`}
+                  className={`text-[13px] ${isDark ? "text-slate-500" : "text-slate-700"}`}
                 >
                   No posts match your filter
                 </p>
@@ -1096,13 +1096,13 @@ export default function GooglePostsPage() {
                     text-[13px] font-semibold border transition-all active:scale-[0.97]
                     ${
                       isDark
-                        ? "bg-[#131c2d] border-white/[0.08] text-slate-300 hover:bg-[#182236]"
+                        ? "bg-[#131c2d] border-white/[0.08] text-slate-700 hover:bg-[#182236]"
                         : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}
                 >
                   <span>Load More</span>
                   {/* <ChevronRight size={15}/> */}
-                  {/* <span className={`text-[11px] font-medium ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+                  {/* <span className={`text-[11px] font-medium ${isDark ? "text-slate-500" : "text-slate-700"}`}>
                     {posts.length} loaded
                   </span> */}
                 </button>
@@ -1113,7 +1113,7 @@ export default function GooglePostsPage() {
                     className={`flex-1 h-px ${isDark ? "bg-white/[0.06]" : "bg-slate-200"}`}
                   />
                   <p
-                    className={`text-[12px] font-medium ${isDark ? "text-slate-600" : "text-slate-400"}`}
+                    className={`text-[12px] font-medium ${isDark ? "text-slate-600" : "text-slate-700"}`}
                   >
                     All {total} posts loaded
                   </p>

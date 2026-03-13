@@ -92,8 +92,7 @@ export default function Footer() {
 
   return (
     <>
-      {/* body spacer so content isn't hidden behind fixed bar */}
-      <div className="h-[84px] md:h-0" />
+ 
 
       <footer className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
 

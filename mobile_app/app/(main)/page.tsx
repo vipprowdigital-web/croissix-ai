@@ -2188,7 +2188,7 @@ export default function HomePage() {
                   isDark={isDark}
                   action={{
                     label: "Full report",
-                    onClick: () => router.push("/dashboard/competitors"),
+                    onClick: () => router.push("/analysis/google"),
                   }}
                 />
                 <HeroCard
@@ -2262,7 +2262,7 @@ export default function HomePage() {
                   isDark={isDark}
                   action={{
                     label: "See all",
-                    onClick: () => router.push("/analysis/google"),
+                    onClick: () => router.push("/dashboard/competitors"),
                   }}
                 />
                 <motion.div

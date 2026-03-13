@@ -120,7 +120,7 @@ function pct(a: number, b: number) { if (!b) return "0%"; return Math.round((a /
 function trendIcon(val: number, isDark: boolean) {
   if (val > 0) return <TrendingUp size={12} className="text-green-400" />;
   if (val < 0) return <TrendingDown size={12} className="text-red-400" />;
-  return <Minus size={12} className={isDark ? "text-slate-500" : "text-slate-400"} />;
+  return <Minus size={12} className={isDark ? "text-slate-500" : "text-slate-700"} />;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -204,7 +204,7 @@ function StatCard({ label, value, icon, color, sub, trend, isDark }: {
         animate={{ scale: [1, 1.4, 1], opacity: [0.06, 0.12, 0.06] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
       <div className="flex items-center justify-between">
-        <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+        <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-700"}`}>
           {label}
         </span>
         <motion.span className="p-2 rounded-xl" style={{ background: `${color}18` }}
@@ -219,14 +219,14 @@ function StatCard({ label, value, icon, color, sub, trend, isDark }: {
         {trend !== undefined && (
           <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className={`flex items-center gap-0.5 mb-0.5 text-[11px] font-semibold
-              ${trend > 0 ? "text-green-400" : trend < 0 ? "text-red-400" : isDark ? "text-slate-500" : "text-slate-400"}`}>
+            className={`flex items-center gap-0.5 mb-0.5 text-[12px] font-semibold
+              ${trend > 0 ? "text-green-400" : trend < 0 ? "text-red-400" : isDark ? "text-slate-500" : "text-slate-700"}`}>
             {trendIcon(trend, isDark)}
             {trend !== 0 && `${Math.abs(trend)}%`}
           </motion.div>
         )}
       </div>
-      {sub && <span className={`text-[11px] ${isDark ? "text-slate-600" : "text-slate-400"}`}>{sub}</span>}
+      {sub && <span className={`text-[12px] ${isDark ? "text-slate-600" : "text-slate-700"}`}>{sub}</span>}
     </motion.div>
   );
 }
@@ -245,8 +245,8 @@ function ChartCard({ title, subtitle, children, isDark, action }: {
       <div className={`flex items-start justify-between px-4 pt-4 pb-3 border-b
         ${isDark ? "border-white/[0.05]" : "border-slate-100"}`}>
         <div>
-          <p className={`text-[13px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{title}</p>
-          {subtitle && <p className={`text-[11px] mt-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>{subtitle}</p>}
+          <p className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{title}</p>
+          {subtitle && <p className={`text-[12px] mt-0.5 ${isDark ? "text-slate-500" : "text-slate-700"}`}>{subtitle}</p>}
         </div>
         {action}
       </div>
@@ -269,7 +269,7 @@ function CustomTooltip({ active, payload, label, isDark }: any) {
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-          <span className={isDark ? "text-slate-400" : "text-slate-500"}>{p.name}:</span>
+          <span className={isDark ? "text-slate-700" : "text-slate-500"}>{p.name}:</span>
           <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{fmt(p.value)}</span>
         </div>
       ))}
@@ -310,7 +310,7 @@ function StarRow({ rating, count, max, isDark }: { rating: number; count: number
   const colors = ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"];
   return (
     <div className="flex items-center gap-2">
-      <span className={`text-[11px] font-bold w-3 ${isDark ? "text-slate-400" : "text-slate-600"}`}>{rating}</span>
+      <span className={`text-[12px] font-bold w-3 ${isDark ? "text-slate-700" : "text-slate-600"}`}>{rating}</span>
       <Star size={10} className="shrink-0" style={{ color: colors[rating - 1], fill: colors[rating - 1] }} />
       <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDark ? "bg-white/[0.07]" : "bg-slate-100"}`}>
         <motion.div className="h-full rounded-full"
@@ -320,7 +320,7 @@ function StarRow({ rating, count, max, isDark }: { rating: number; count: number
           transition={{ duration: 0.9, ease: "easeOut", delay: (5 - rating) * 0.08 }}
           viewport={{ once: true }} />
       </div>
-      <span className={`text-[10px] font-medium w-6 text-right ${isDark ? "text-slate-500" : "text-slate-400"}`}>{count}</span>
+      <span className={`text-[10px] font-medium w-6 text-right ${isDark ? "text-slate-500" : "text-slate-700"}`}>{count}</span>
     </div>
   );
 }
@@ -343,7 +343,7 @@ function ReviewCard({ review, isDark, index }: {
       className={`p-3.5 rounded-2xl border ${isDark ? "bg-[#182236] border-white/[0.05]" : "bg-slate-50 border-slate-100"}`}>
       <div className="flex items-start gap-2.5 mb-2">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
-          <span className="text-white text-[11px] font-bold">{review.author[0]?.toUpperCase()}</span>
+          <span className="text-white text-[12px] font-bold">{review.author[0]?.toUpperCase()}</span>
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-[12.5px] font-bold truncate ${isDark ? "text-white" : "text-slate-900"}`}>{review.author}</p>
@@ -360,7 +360,7 @@ function ReviewCard({ review, isDark, index }: {
                 </motion.div>
               ))}
             </div>
-            <span className={`text-[10px] ${isDark ? "text-slate-600" : "text-slate-400"}`}>{fmtDate(review.date)}</span>
+            <span className={`text-[10px] ${isDark ? "text-slate-600" : "text-slate-700"}`}>{fmtDate(review.date)}</span>
           </div>
         </div>
         <AnimatePresence>
@@ -375,11 +375,11 @@ function ReviewCard({ review, isDark, index }: {
         </AnimatePresence>
       </div>
       {review.comment && (
-        <p className={`text-[12px] leading-relaxed ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+        <p className={`text-[12px] leading-relaxed ${isDark ? "text-slate-700" : "text-slate-600"}`}>
           {exp || review.comment.length <= 80 ? review.comment : review.comment.slice(0, 80) + "…"}
           {review.comment.length > 80 && (
             <motion.button onClick={() => setExp(v => !v)} whileTap={{ scale: 0.9 }}
-              className="ml-1 text-blue-500 text-[11px] font-medium">
+              className="ml-1 text-blue-500 text-[12px] font-medium">
               {exp ? "Less" : "More"}
             </motion.button>
           )}
@@ -488,7 +488,7 @@ function RatingRing({ avgRating, isDark }: { avgRating: number; isDark: boolean 
         <AnimatedNumber value={`${avgRating}`}
           className={`text-[18px] font-black leading-none ${isDark ? "text-white" : "text-slate-900"}`}
           style={{ letterSpacing: "-0.04em" }} />
-        <span className={`text-[9px] font-semibold ${isDark ? "text-slate-500" : "text-slate-400"}`}>/ 5.0</span>
+        <span className={`text-[9px] font-semibold ${isDark ? "text-slate-500" : "text-slate-700"}`}>/ 5.0</span>
       </div>
     </div>
   );
@@ -595,7 +595,7 @@ export default function GoogleAnalysisPage() {
               <motion.button onClick={() => refetch()} disabled={isFetching}
                 whileTap={{ scale: 0.88, rotate: 180 }}
                 className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all disabled:opacity-40
-                  ${isDark ? "bg-white/[0.07] text-slate-400 hover:bg-white/[0.12]" : "bg-white text-slate-500 border border-slate-200"}`}>
+                  ${isDark ? "bg-white/[0.07] text-slate-700 hover:bg-white/[0.12]" : "bg-white text-slate-500 border border-slate-200"}`}>
                 <motion.div animate={isFetching ? { rotate: 360 } : {}}
                   transition={isFetching ? { duration: 0.9, repeat: Infinity, ease: "linear" } : {}}>
                   <RefreshCw size={14} />
@@ -651,7 +651,7 @@ export default function GoogleAnalysisPage() {
                 className={`h-8 px-4 rounded-xl text-[12px] font-semibold transition-all relative overflow-hidden
                   ${range === r.id
                     ? "bg-blue-500 text-white shadow-sm"
-                    : isDark ? "bg-white/[0.07] text-slate-400 hover:bg-white/[0.12]"
+                    : isDark ? "bg-white/[0.07] text-slate-700 hover:bg-white/[0.12]"
                     : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                 {range === r.id && (
                   <motion.div layoutId="range-pill"
@@ -674,7 +674,7 @@ export default function GoogleAnalysisPage() {
                 <Building2 size={32} className={`mx-auto mb-3 ${isDark ? "text-slate-600" : "text-slate-300"}`} />
               </motion.div>
               <p className={`text-[14px] font-bold mb-1 ${isDark ? "text-white" : "text-slate-900"}`}>No Google Business Linked</p>
-              <p className={`text-[12.5px] ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+              <p className={`text-[12.5px] ${isDark ? "text-slate-500" : "text-slate-700"}`}>
                 Link your Google Business Profile in the Profile page.
               </p>
             </motion.div>
@@ -711,7 +711,7 @@ export default function GoogleAnalysisPage() {
 
               {/* date range badge */}
               <motion.div variants={slideInLeft}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl self-start text-[11px] font-semibold border
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl self-start text-[12px] font-semibold border
                   ${isDark ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-600"}`}>
                 <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 4, repeat: Infinity }}>
                   <Calendar size={11} />
@@ -739,8 +739,8 @@ export default function GoogleAnalysisPage() {
                     {(["area", "bar"] as const).map(t => (
                       <motion.button key={t} onClick={() => setActiveChart(t)}
                         whileTap={{ scale: 0.9 }}
-                        className={`h-7 px-2.5 rounded-lg text-[11px] font-semibold transition-all
-                          ${activeChart === t ? "bg-blue-500 text-white" : isDark ? "bg-white/[0.07] text-slate-400" : "bg-slate-100 text-slate-500"}`}>
+                        className={`h-7 px-2.5 rounded-lg text-[12px] font-semibold transition-all
+                          ${activeChart === t ? "bg-blue-500 text-white" : isDark ? "bg-white/[0.07] text-slate-700" : "bg-slate-100 text-slate-500"}`}>
                         {t === "area" ? "Area" : "Bar"}
                       </motion.button>
                     ))}
@@ -843,8 +843,8 @@ export default function GoogleAnalysisPage() {
                           <span className="w-2.5 h-2.5 rounded-sm shrink-0"
                             style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
                           <div>
-                            <p className={`text-[10px] font-semibold leading-tight ${isDark ? "text-slate-400" : "text-slate-600"}`}>{d.name}</p>
-                            <p className={`text-[11px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{fmt(d.value)}</p>
+                            <p className={`text-[10px] font-semibold leading-tight ${isDark ? "text-slate-700" : "text-slate-600"}`}>{d.name}</p>
+                            <p className={`text-[12px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{fmt(d.value)}</p>
                           </div>
                         </motion.div>
                       ))}
@@ -866,7 +866,7 @@ export default function GoogleAnalysisPage() {
                           {row.icon}
                         </motion.span>
                         <div>
-                          <p className={`text-[10px] ${isDark ? "text-slate-500" : "text-slate-400"}`}>{row.label}</p>
+                          <p className={`text-[10px] ${isDark ? "text-slate-500" : "text-slate-700"}`}>{row.label}</p>
                           <AnimatedNumber value={fmt(row.val)}
                             className={`text-[13px] font-bold block ${isDark ? "text-white" : "text-slate-900"}`} />
                         </div>
@@ -912,7 +912,7 @@ export default function GoogleAnalysisPage() {
                 {data.recentReviews.length > 0 && (
                   <>
                     <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-                      className={`text-[11px] font-bold uppercase tracking-wide mb-2.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+                      className={`text-[12px] font-bold uppercase tracking-wide mb-2.5 ${isDark ? "text-slate-500" : "text-slate-700"}`}>
                       Recent Reviews
                     </motion.p>
                     <div className="flex flex-col gap-2.5">
@@ -953,7 +953,7 @@ export default function GoogleAnalysisPage() {
                         <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}>
                           <AnimatedBar pctValue={pct(row.value, row.pctOf)} color={row.color} />
                         </div>
-                        <p className={`text-[10px] mt-0.5 ${isDark ? "text-slate-600" : "text-slate-400"}`}>
+                        <p className={`text-[10px] mt-0.5 ${isDark ? "text-slate-600" : "text-slate-700"}`}>
                           {pct(row.value, row.pctOf)} of impressions
                         </p>
                       </div>
@@ -976,7 +976,7 @@ export default function GoogleAnalysisPage() {
                     </motion.div>
                     <div>
                       <p className={`text-[13px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Active Posts</p>
-                      <p className={`text-[11px] ${isDark ? "text-slate-500" : "text-slate-400"}`}>Published on Google Business</p>
+                      <p className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-700"}`}>Published on Google Business</p>
                     </div>
                   </div>
                   <AnimatedNumber value={String(s.totalPosts)}
@@ -987,7 +987,7 @@ export default function GoogleAnalysisPage() {
 
               {/* footer */}
               <motion.p variants={fadeIn}
-                className={`text-[10.5px] text-center leading-relaxed ${isDark ? "text-slate-700" : "text-slate-400"}`}>
+                className={`text-[12px] text-center leading-relaxed text-slate-700`}>
                 Data sourced from Google Business Profile Performance API.
                 Insights may have a 24–48 hour delay.
               </motion.p>
