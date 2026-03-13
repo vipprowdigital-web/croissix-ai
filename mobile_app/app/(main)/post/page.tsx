@@ -735,24 +735,43 @@ export default function GooglePostsPage() {
     return matchFilter && matchSearch;
   });
 
+  // fetchAnalysis
+
+  async function fetchAnalysis(locationId: string) {
+    const res = await fetch(`/api/google/analysis?locationId=${locationId}`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
+
+    const json = await res.json();
+
+    if (!json.success) {
+      throw new Error(json.error ?? "Failed to fetch analysis");
+    }
+
+    return json;
+  }
+
+  const { data: analysisData } = useQuery({
+    queryKey: ["google-analysis", user?.googleLocationId],
+    queryFn: () => fetchAnalysis(user!.googleLocationId!),
+    enabled: !!user?.googleLocationId,
+    staleTime: 60_000,
+  });
+
   /* ── stats ── */
+  const stats = analysisData?.stats;
 
-  const total = googleStats?.totalPosts ?? posts.length;
+  const total = stats?.totalPosts ?? posts.length;
 
-  const liveCount =
-    googleStats?.livePosts ?? posts.filter((p) => p.state === "LIVE").length;
+  const liveCount = stats?.livePosts ?? 0;
 
-  const evtCount =
-    googleStats?.eventPosts ??
-    posts.filter((p) => p.topicType === "EVENT").length;
+  const evtCount = stats?.eventPosts ?? 0;
 
-  const ofrCount =
-    googleStats?.offerPosts ??
-    posts.filter((p) => p.topicType === "OFFER").length;
+  const ofrCount = stats?.offerPosts ?? 0;
 
-  const updCount =
-    googleStats?.updatePosts ??
-    posts.filter((p) => p.topicType === "STANDARD").length;
+  const updCount = stats?.updatePosts ?? 0;
 
   const rejectedCount = posts.filter((p) => p.state === "REJECTED").length;
 
