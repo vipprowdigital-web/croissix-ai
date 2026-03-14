@@ -46,15 +46,13 @@ export async function GET(req: Request) {
   const accounts = await accountService.accounts.list({});
   const accountList = accounts.data.accounts || [];
 
-  console.log("accountList", accountList);
-
   let allLocations: any[] = [];
 
   for (const acc of accountList) {
     let pageToken: string | undefined = undefined;
 
     do {
-      const res:any = await infoService.accounts.locations.list({
+      const res: any = await infoService.accounts.locations.list({
         parent: acc.name!,
         readMask:
           "name,title,storeCode,phoneNumbers,websiteUri,storefrontAddress,openInfo",
@@ -71,8 +69,6 @@ export async function GET(req: Request) {
       pageToken = data?.nextPageToken || undefined;
     } while (pageToken);
   }
-
-  console.log(allLocations);
 
   return Response.json({ locations: allLocations });
 }
