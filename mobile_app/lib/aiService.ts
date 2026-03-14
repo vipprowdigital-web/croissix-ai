@@ -10,32 +10,44 @@ export async function generateReviewReply(
   review: string,
   rating: number,
   reviewerName?: string,
+  businessName?: string,
+  businessCategory?: string,
   tone?: string,
 ) {
+
   const prompt = `
-You are a friendly business owner replying to a Google review.
+You are the owner of a Google Business Profile replying to a customer review.
 
-Write a natural, human-like response.
+Your objectives:
+• Write a natural and human reply
+• Strengthen the Google Business Profile SEO
+• Reinforce the business name and services naturally
+• Increase trust and encourage future visits
 
-Guidelines:
-- Start by thanking the reviewer by their name if available
-- Mention something related to their review
-- Keep the tone warm, genuine and conversational
-- Do not sound robotic
-- Keep under 120 words
-- Do NOT repeat the review
-- Sound like a real human owner
-
-Tone: ${tone || "Professional"}
+Business Name: ${businessName || "our business"}
+Business Type: ${businessCategory || "local business"}
 
 Reviewer Name: ${reviewerName || "Customer"}
-
 Rating: ${rating}/5
 
 Customer Review:
 "${review}"
 
-Write a thoughtful reply from the business owner:
+Guidelines:
+- Start by thanking the reviewer by name if available.
+- Mention the business name naturally once.
+- If the review mentions a service or product, acknowledge it specifically.
+- Reinforce the main business service naturally for SEO.
+- Keep the reply warm, genuine, and conversational.
+- Encourage them to visit again or recommend the business.
+- Keep under 120 words.
+- Avoid repeating the review word-for-word.
+- Avoid sounding robotic or like a template.
+- Write as a real business owner would respond.
+
+Tone: ${tone || "Professional but friendly"}
+
+Write the reply now.
 `;
 
   const completion = await groq.chat.completions.create({
@@ -46,9 +58,17 @@ Write a thoughtful reply from the business owner:
         content: prompt,
       },
     ],
-    temperature: 0.8,
+    temperature: 0.9,
     max_tokens: 180,
   });
 
-  return completion.choices?.[0]?.message?.content || "";
+  const reply = completion.choices?.[0]?.message?.content?.trim() || "";
+
+  // ✅ Append signature automatically
+  const signature = `
+
+Best Regards,  
+${businessName || "Our Business"} Team`;
+
+  return reply + signature;
 }

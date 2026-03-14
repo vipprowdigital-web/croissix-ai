@@ -1,10 +1,15 @@
 // mobile_app\app\api\ai\reply\route.ts
-
 import { generateReviewReply } from "@/lib/aiService";
 
 export async function POST(req: Request) {
   try {
-    const { review, rating, reviewerName, tone } = await req.json();
+    const {
+      review,
+      rating,
+      reviewerName,
+      businessName,
+      tone,
+    } = await req.json();
 
     if (!review) {
       return Response.json(
@@ -13,7 +18,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const reply = await generateReviewReply(review, rating, reviewerName, tone);
+    const reply = await generateReviewReply(
+      review,
+      rating,
+      reviewerName,
+      businessName,
+      tone,
+    );
 
     return Response.json({
       success: true,

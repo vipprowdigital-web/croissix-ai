@@ -337,6 +337,7 @@ function ReplyComposer({
   const [apiError, setApiError] = useState("");
   const MAX = 4096;
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const { data: user, isLoading: userLoading } = useUser();
 
   const generateAI = async (tone?: string) => {
     try {
@@ -352,6 +353,7 @@ function ReplyComposer({
           review: review.text,
           rating: review.rating,
           reviewerName: review.author,
+          businessName: user?.googleLocationName,
           tone: tone || "Professional",
         }),
       });
@@ -436,7 +438,7 @@ function ReplyComposer({
         <textarea
           ref={taRef}
           value={text}
-          rows={10}
+          rows={14}
           onChange={(e) => {
             setText(e.target.value);
             setApiError("");
