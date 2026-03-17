@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Croissix – Social Media Management App | Vipprow Digital</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['poppin', 'sans-serif'],
+                        body: ['poppin', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        dark: {
+                            900: '#050c1a',
+                            800: '#080f22',
+                            700: '#0d1630',
+                            600: '#111d3c',
+                            500: '#172248',
+                            400: '#1e2d5a',
+                        },
+                        accent: '#38bdf8',
+                        neon: '#0ea5e9',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.6s ease forwards',
+                        'fade-in': 'fadeIn 0.8s ease forwards',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-16px)' } },
+                        slideUp: { from: { opacity: '0', transform: 'translateY(40px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+                        fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+                        glow: { from: { boxShadow: '0 0 20px #3b82f680' }, to: { boxShadow: '0 0 40px #3b82f6cc, 0 0 80px #3b82f640' } },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: #050c1a;
+            font-family: 'DM Sans', sans-serif;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        /* ── Background grid ── */
+        .bg-grid {
+            background-image:
+                linear-gradient(rgba(59, 130, 246, .07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, .07) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+
+        /* ── Mesh blobs ── */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .blob-1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(37, 99, 235, .25);
+            top: -100px;
+            left: -150px;
+        }
+
+        .blob-2 {
+            width: 400px;
+            height: 400px;
+            background: rgba(14, 165, 233, .18);
+            top: 20%;
+            right: -100px;
+            animation-delay: -3s;
+        }
+
+        .blob-3 {
+            width: 350px;
+            height: 350px;
+            background: rgba(29, 78, 216, .2);
+            bottom: 10%;
+            left: 30%;
+            animation-delay: -5s;
+        }
+
+        /* ── Glass card ── */
+        .glass {
+            background: rgba(13, 22, 48, .6);
+            border: 1px solid rgba(59, 130, 246, .18);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* ── Gradient text ── */
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa 0%, #38bdf8 50%, #93c5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ── Glow button ── */
+        .btn-glow {
+            background: linear-gradient(135deg, #2563eb, #0ea5e9);
+            box-shadow: 0 0 24px rgba(59, 130, 246, .5);
+            transition: all .3s ease;
+        }
+
+        .btn-glow:hover {
+            box-shadow: 0 0 40px rgba(59, 130, 246, .75), 0 0 80px rgba(59, 130, 246, .3);
+            transform: translateY(-2px);
+        }
+
+        /* ── Platform badge ── */
+        .platform-badge {
+            background: rgba(13, 22, 48, .8);
+            border: 1px solid rgba(59, 130, 246, .25);
+            transition: all .3s ease;
+        }
+
+        .platform-badge:hover {
+            border-color: rgba(59, 130, 246, .6);
+            box-shadow: 0 0 24px rgba(59, 130, 246, .2);
+            transform: translateY(-4px);
+        }
+
+        /* ── Feature card ── */
+        .feature-card {
+            background: rgba(13, 22, 48, .5);
+            border: 1px solid rgba(59, 130, 246, .15);
+            transition: all .3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(59, 130, 246, .45);
+            box-shadow: 0 8px 40px rgba(59, 130, 246, .15);
+            transform: translateY(-6px);
+        }
+
+        /* ── Screenshot frame ── */
+        .phone-frame {
+            background: #0d1630;
+            border: 2px solid rgba(59, 130, 246, .3);
+            border-radius: 40px;
+            box-shadow: 0 0 60px rgba(59, 130, 246, .2), inset 0 0 30px rgba(59, 130, 246, .05);
+        }
+
+        /* ── Scroll reveal ── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Navbar scroll effect ── */
+        #navbar {
+            transition: background .3s, box-shadow .3s;
+        }
+
+        #navbar.scrolled {
+            background: rgba(5, 12, 26, .95) !important;
+            box-shadow: 0 2px 30px rgba(59, 130, 246, .1);
+            backdrop-filter: blur(20px);
+        }
+
+        /* ── Pricing badge ── */
+        .price-tag {
+            background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+            clip-path: polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%);
+            padding: 6px 32px 6px 16px;
+        }
+
+        /* mobile nav */
+        #mobile-menu {
+            transition: max-height .4s ease, opacity .4s ease;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        #mobile-menu.open {
+            max-height: 500px;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-grid">
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║               NAVBAR                    ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 px-4 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Logo -->
+            <a href="#home" class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-xl btn-glow flex items-center justify-center">
+                    <img src="/webpage/assets/croissix.svg" alt="Croissix">
+                </div>
+                <span class=" font-800 text-xl text-white">Croissix<span class="gradient-text"> AI-Powered</span></span>
+            </a>
+
+            <!-- Desktop nav -->
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#home" class="text-slate-300 hover:text-white text-sm font-medium transition-colors">Home</a>
+                <a href="#features"
+                    class="text-slate-300 hover:text-white text-sm font-medium transition-colors">Features</a>
+                <a href="#screenshots"
+                    class="text-slate-300 hover:text-white text-sm font-medium transition-colors">Screenshots</a>
+                <a href="#pricing"
+                    class="text-slate-300 hover:text-white text-sm font-medium transition-colors">Pricing</a>
+                <a href="#privacy" class="text-slate-300 hover:text-white text-sm font-medium transition-colors">Privacy
+                    Policy</a>
+                <a href="#terms" class="text-slate-300 hover:text-white text-sm font-medium transition-colors">Terms</a>
+            </div>
+
+            <!-- CTA -->
+            <div class="hidden md:flex items-center gap-3">
+                <a href="#pricing" class="btn-glow text-white text-sm font-semibold px-5 py-2.5 rounded-xl ">
+                    ₹499/mo — Get Started
+                </a>
+            </div>
+
+            <!-- Mobile hamburger -->
+            <button id="menu-btn" class="md:hidden text-slate-300 hover:text-white p-1" onclick="toggleMenu()">
+                <svg id="icon-open" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <svg id="icon-close" class="hidden" width="24" height="24" fill="none" stroke="currentColor"
+                    stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden glass rounded-2xl mt-2 mx-0">
+            <div class="flex flex-col p-4 gap-3">
+                <a href="#home" class="text-slate-300 hover:text-white py-2 px-3 rounded-lg hover:bg-white/5 text-sm"
+                    onclick="toggleMenu()">Home</a>
+                <a href="#features"
+                    class="text-slate-300 hover:text-white py-2 px-3 rounded-lg hover:bg-white/5 text-sm"
+                    onclick="toggleMenu()">Features</a>
+                <a href="#screenshots"
+                    class="text-slate-300 hover:text-white py-2 px-3 rounded-lg hover:bg-white/5 text-sm"
+                    onclick="toggleMenu()">Screenshots</a>
+                <a href="#pricing" class="text-slate-300 hover:text-white py-2 px-3 rounded-lg hover:bg-white/5 text-sm"
+                    onclick="toggleMenu()">Pricing</a>
+                <a href="#privacy" class="text-slate-300 hover:text-white py-2 px-3 rounded-lg hover:bg-white/5 text-sm"
+                    onclick="toggleMenu()">Privacy Policy</a>
+                <a href="#terms" class="text-slate-300 hover:text-white py-2 px-3 rounded-lg hover:bg-white/5 text-sm"
+                    onclick="toggleMenu()">Terms</a>
+                <a href="#pricing"
+                    class="btn-glow text-white text-sm font-semibold px-4 py-2.5 rounded-xl text-center mt-1"
+                    onclick="toggleMenu()">₹499/mo — Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║                HERO                     ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <section id="home" class="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+
+        <div class="max-w-7xl mx-auto px-4 w-full">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+                <!-- Left copy -->
+                <div class="space-y-8">
+                    <!-- Badge -->
+                    <div
+                        class="inline-flex items-center gap-2 glass rounded-full px-4 py-2 text-xs font-medium text-brand-300">
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse-slow"></span>
+                        Now available on Google Play Store
+                    </div>
+
+                    <h1 class=" text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight text-white">
+                        One App.<br />
+                        <span class="gradient-text">Every Profile.</span><br />
+                        Zero Chaos.
+                    </h1>
+
+                    <p class="text-slate-400 text-lg leading-relaxed max-w-lg">
+                        Manage your <strong class="text-white">Google Business</strong>, <strong
+                            class="text-white">Facebook</strong>, and <strong class="text-white">Instagram</strong>
+                        profiles from a single powerful dashboard. Built for businesses that move fast.
+                    </p>
+
+                    <!-- Platform pills -->
+                    <div class="flex flex-wrap gap-3">
+                        <div class="flex items-center gap-2 glass rounded-full px-4 py-2">
+                            <!-- Google icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24">
+                                <path fill="#4285f4"
+                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                <path fill="#34a853"
+                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                <path fill="#fbbc05"
+                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                <path fill="#ea4335"
+                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                            </svg>
+                            <span class="text-sm text-slate-200">Google Business</span>
+                        </div>
+                        <div class="flex items-center gap-2 glass rounded-full px-4 py-2">
+                            <!-- Facebook icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877f2">
+                                <path
+                                    d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                            </svg>
+                            <span class="text-sm text-slate-200">Facebook</span>
+                        </div>
+                        <div class="flex items-center gap-2 glass rounded-full px-4 py-2">
+                            <!-- Instagram icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24">
+                                <defs>
+                                    <linearGradient id="ig" x1="0%" y1="100%" x2="100%" y2="0%">
+                                        <stop offset="0%" style="stop-color:#f09433" />
+                                        <stop offset="25%" style="stop-color:#e6683c" />
+                                        <stop offset="50%" style="stop-color:#dc2743" />
+                                        <stop offset="75%" style="stop-color:#cc2366" />
+                                        <stop offset="100%" style="stop-color:#bc1888" />
+                                    </linearGradient>
+                                </defs>
+                                <path fill="url(#ig)"
+                                    d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                            </svg>
+                            <span class="text-sm text-slate-200">Instagram</span>
+                        </div>
+                    </div>
+
+                    <!-- CTA buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="https://play.google.com/store" target="_blank"
+                            class="btn-glow flex items-center justify-center gap-3 text-white font-semibold px-7 py-4 rounded-2xl  text-base">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M3.18 23.76c.3.17.65.2.97.08l12.41-7.17-2.93-2.93-10.45 9.96v.06zM.45 2.26C.17 2.56 0 3.03 0 3.65v16.7c0 .62.17 1.09.45 1.39l.07.07 9.35-9.35v-.22L.52 2.19l-.07.07zM20.52 10.5l-2.65-1.53-3.29 3.29 3.29 3.29 2.65-1.53c.76-.44.76-1.58 0-2.02zM4.15.16L16.56 7.33l-2.93 2.93L3.18.3A1.18 1.18 0 014.15.16z" />
+                            </svg>
+                            Download on Play Store
+                        </a>
+                        <a href="#features"
+                            class="flex items-center justify-center gap-2 glass text-slate-200 hover:text-white font-semibold px-7 py-4 rounded-2xl  text-base border border-brand-700/40 hover:border-brand-500/60 transition-all">
+                            Explore Features
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+                                viewBox="0 0 24 24">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="flex gap-10 pt-2">
+                        <div>
+                            <div class=" text-3xl font-bold text-white">3</div>
+                            <div class="text-slate-400 text-sm">Platforms</div>
+                        </div>
+                        <div class="w-px bg-brand-800/60"></div>
+                        <div>
+                            <div class=" text-3xl font-bold text-white">₹499</div>
+                            <div class="text-slate-400 text-sm">Per Month</div>
+                        </div>
+                        <div class="w-px bg-brand-800/60"></div>
+                        <div>
+                            <div class=" text-3xl font-bold text-white">24hr</div>
+                            <div class="text-slate-400 text-sm">Support Reply</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right — hero visual -->
+                <div class="flex justify-center lg:justify-end relative">
+                    <!-- Glow rings -->
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-80 h-80 rounded-full border border-brand-700/20 animate-pulse-slow"></div>
+                        <div class="absolute w-64 h-64 rounded-full border border-brand-600/15 animate-pulse-slow"
+                            style="animation-delay:.5s"></div>
+                    </div>
+
+                    <!-- Phone mockup -->
+                    <div
+                        class="phone-frame w-64 md:w-72 h-[520px] md:h-[580px] relative z-10 animate-float flex flex-col overflow-hidden">
+                        <!-- Status bar -->
+                        <div class="flex justify-between items-center px-6 pt-6 pb-2">
+                            <span class="text-xs text-slate-400">9:41</span>
+                            <div class="w-20 h-5 bg-dark-600 rounded-full"></div>
+                            <div class="flex gap-1">
+                                <div class="w-4 h-3 bg-brand-500 rounded-sm opacity-80"></div>
+                                <div class="w-1 h-3 bg-slate-600 rounded-sm"></div>
+                            </div>
+                        </div>
+
+                        <!-- App header -->
+                        <div class="px-5 py-3 flex items-center justify-between">
+                            <span class=" font-bold text-white text-sm">Croissix</span>
+                            <div class="w-7 h-7 bg-brand-600 rounded-full flex items-center justify-center">
+                                <svg width="14" height="14" fill="white" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Dashboard cards -->
+                        <div class="px-4 space-y-3 flex-1 pb-4">
+                            <!-- Google Business card -->
+                            <div class="bg-dark-500/70 border border-brand-800/40 rounded-2xl p-3">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 bg-white rounded-lg flex items-center justify-center">
+                                            <svg width="14" height="14" viewBox="0 0 24 24">
+                                                <path fill="#4285f4"
+                                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                                <path fill="#34a853"
+                                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                                <path fill="#fbbc05"
+                                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                                <path fill="#ea4335"
+                                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-white text-xs font-semibold">Google Business</span>
+                                    </div>
+                                    <span class="text-green-400 text-xs">● Live</span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-1 text-center">
+                                    <div class="bg-dark-600 rounded-lg py-1.5">
+                                        <div class="text-brand-300 text-sm font-bold">142</div>
+                                        <div class="text-slate-500 text-[9px]">Views</div>
+                                    </div>
+                                    <div class="bg-dark-600 rounded-lg py-1.5">
+                                        <div class="text-brand-300 text-sm font-bold">48</div>
+                                        <div class="text-slate-500 text-[9px]">Clicks</div>
+                                    </div>
+                                    <div class="bg-dark-600 rounded-lg py-1.5">
+                                        <div class="text-yellow-400 text-sm font-bold">4.8★</div>
+                                        <div class="text-slate-500 text-[9px]">Rating</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Facebook + Instagram row -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="bg-dark-500/70 border border-brand-800/40 rounded-2xl p-3">
+                                    <div class="flex items-center gap-1.5 mb-2">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#1877f2">
+                                            <path
+                                                d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                                        </svg>
+                                        <span class="text-white text-[10px] font-semibold">Facebook</span>
+                                    </div>
+                                    <div class="text-brand-300 text-lg font-bold">2.4K</div>
+                                    <div class="text-slate-500 text-[9px]">Page Followers</div>
+                                    <div class="mt-1.5 h-1 bg-dark-600 rounded-full overflow-hidden">
+                                        <div
+                                            class="h-full w-3/4 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-dark-500/70 border border-brand-800/40 rounded-2xl p-3">
+                                    <div class="flex items-center gap-1.5 mb-2">
+                                        <svg width="13" height="13" viewBox="0 0 24 24">
+                                            <defs>
+                                                <linearGradient id="ig2" x1="0%" y1="100%" x2="100%" y2="0%">
+                                                    <stop offset="0%" style="stop-color:#f09433" />
+                                                    <stop offset="50%" style="stop-color:#dc2743" />
+                                                    <stop offset="100%" style="stop-color:#bc1888" />
+                                                </linearGradient>
+                                            </defs>
+                                            <path fill="url(#ig2)"
+                                                d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                                        </svg>
+                                        <span class="text-white text-[10px] font-semibold">Instagram</span>
+                                    </div>
+                                    <div class="text-brand-300 text-lg font-bold">1.8K</div>
+                                    <div class="text-slate-500 text-[9px]">Followers</div>
+                                    <div class="mt-1.5 h-1 bg-dark-600 rounded-full overflow-hidden">
+                                        <div class="h-full w-2/3 rounded-full"
+                                            style="background:linear-gradient(90deg,#f09433,#dc2743,#bc1888)"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Schedule post -->
+                            <div class="bg-brand-700/20 border border-brand-600/30 rounded-2xl p-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-white text-xs font-semibold">Next Scheduled Post</div>
+                                        <div class="text-slate-400 text-[10px] mt-0.5">Today · 6:00 PM</div>
+                                    </div>
+                                    <div class="w-8 h-8 btn-glow rounded-xl flex items-center justify-center">
+                                        <svg width="14" height="14" fill="white" viewBox="0 0 24 24">
+                                            <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom nav bar -->
+                        <div
+                            class="mx-4 mb-4 bg-dark-500 border border-brand-800/30 rounded-2xl p-3 flex justify-around">
+                            <div class="flex flex-col items-center gap-0.5"><svg width="16" height="16" fill="#3b82f6"
+                                    viewBox="0 0 24 24">
+                                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                                </svg><span class="text-[8px] text-brand-400">Home</span></div>
+                            <div class="flex flex-col items-center gap-0.5"><svg width="16" height="16" fill="#64748b"
+                                    viewBox="0 0 24 24">
+                                    <path
+                                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+                                </svg><span class="text-[8px] text-slate-500">Posts</span></div>
+                            <div class="flex flex-col items-center gap-0.5"><svg width="16" height="16" fill="#64748b"
+                                    viewBox="0 0 24 24">
+                                    <path
+                                        d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+                                </svg><span class="text-[8px] text-slate-500">Schedule</span></div>
+                            <div class="flex flex-col items-center gap-0.5"><svg width="16" height="16" fill="#64748b"
+                                    viewBox="0 0 24 24">
+                                    <path
+                                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+                                </svg><span class="text-[8px] text-slate-500">Analytics</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Floating badges -->
+                    <div class="absolute top-8 -right-4 glass rounded-2xl p-3 flex items-center gap-2 shadow-xl z-20 animate-float"
+                        style="animation-delay:-1s">
+                        <div class="w-8 h-8 bg-green-500/20 rounded-xl flex items-center justify-center">
+                            <svg width="16" height="16" fill="#22c55e" viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="text-white text-xs font-semibold">Post Published</div>
+                            <div class="text-slate-400 text-[10px]">Instagram · 2m ago</div>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-16 left-60 glass rounded-2xl p-3 flex items-center gap-2 shadow-xl z-20 animate-float"
+                        style="animation-delay:-2.5s">
+                        <div class="w-8 h-8 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                            <svg width="16" height="16" fill="#eab308" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="text-white text-xs font-semibold">New Review ★★★★★</div>
+                            <div class="text-slate-400 text-[10px]">Google Business</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║              FEATURES                   ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <section id="features" class="py-24 relative">
+        <div class="blob blob-3"></div>
+        <div class="max-w-7xl mx-auto px-4">
+
+            <div class="text-center mb-16 reveal">
+                <div
+                    class="inline-flex items-center gap-2 glass rounded-full px-4 py-2 text-xs font-medium text-brand-300 mb-4">
+                    <svg width="14" height="14" fill="#60a5fa" viewBox="0 0 24 24">
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Powerful Features
+                </div>
+                <h2 class="text-4xl md:text-5xl font-extrabold text-white">Everything You Need
+                    to<br /><span class="gradient-text">Dominate Social Media</span></h2>
+                <p class="text-slate-400 mt-4 max-w-xl mx-auto">One subscription, three platforms, unlimited
+                    possibilities.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- Feature 1 -->
+                <div class="feature-card rounded-3xl p-7 reveal">
+                    <div class="w-12 h-12 btn-glow rounded-2xl flex items-center justify-center mb-5">
+                        <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                        </svg>
+                    </div>
+                    <h3 class=" text-lg font-bold text-white mb-2">Unified Dashboard</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">View and control all three platforms in one clean,
+                        intuitive interface. No more tab switching.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card rounded-3xl p-7 reveal" style="transition-delay:.1s">
+                    <div class="w-12 h-12 btn-glow rounded-2xl flex items-center justify-center mb-5">
+                        <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+                            <path
+                                d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+                        </svg>
+                    </div>
+                    <h3 class=" text-lg font-bold text-white mb-2">Smart Scheduler</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Schedule posts across platforms at the best
+                        engagement times automatically.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card rounded-3xl p-7 reveal" style="transition-delay:.2s">
+                    <div class="w-12 h-12 btn-glow rounded-2xl flex items-center justify-center mb-5">
+                        <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+                            <path
+                                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+                        </svg>
+                    </div>
+                    <h3 class=" text-lg font-bold text-white mb-2">Analytics & Reports</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Track reach, engagement, clicks, and reviews in
+                        real-time with visual dashboards.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card rounded-3xl p-7 reveal" style="transition-delay:.3s">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+                        style="background:linear-gradient(135deg,#dc2626,#f97316)">
+                        <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+                            <path
+                                d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+                        </svg>
+                    </div>
+                    <h3 class=" text-lg font-bold text-white mb-2">Review Monitoring</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Get instant alerts for new Google reviews and
+                        respond directly from the app.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="feature-card rounded-3xl p-7 reveal" style="transition-delay:.4s">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+                        style="background:linear-gradient(135deg,#059669,#10b981)">
+                        <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+                        </svg>
+                    </div>
+                    <h3 class=" text-lg font-bold text-white mb-2">Inbox Manager</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Manage DMs and messages from Facebook and
+                        Instagram in one unified inbox.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="feature-card rounded-3xl p-7 reveal" style="transition-delay:.5s">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+                        style="background:linear-gradient(135deg,#7c3aed,#a855f7)">
+                        <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                        </svg>
+                    </div>
+                    <h3 class=" text-lg font-bold text-white mb-2">Profile Optimization</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Update business hours, photos, and info across
+                        Google Business and Facebook instantly.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║             SCREENSHOTS                 ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <section id="screenshots" class="py-24 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4">
+
+            <div class="text-center mb-16 reveal">
+                <div
+                    class="inline-flex items-center gap-2 glass rounded-full px-4 py-2 text-xs font-medium text-brand-300 mb-4">
+                    <svg width="14" height="14" fill="#60a5fa" viewBox="0 0 24 24">
+                        <path
+                            d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                    </svg>
+                    App Screenshots
+                </div>
+                <h2 class=" text-4xl md:text-5xl font-extrabold text-white">See It in <span
+                        class="gradient-text">Action</span></h2>
+                <p class="text-slate-400 mt-4 max-w-xl mx-auto">Clean, beautiful, and blazing fast — designed for the
+                    way you actually work.</p>
+            </div>
+
+            <!-- Screenshots grid (illustrated mockups) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+                <!-- Screen 1 -->
+                <div class="reveal phone-frame aspect-[9/16] relative overflow-hidden flex flex-col">
+                    <div class="bg-gradient-to-b from-dark-600 to-dark-800 flex-1 p-4 flex flex-col">
+                        <div class="text-[10px]  text-brand-400 font-bold mb-3">DASHBOARD</div>
+                        <div class="space-y-2 flex-1">
+                            <div class="bg-brand-900/50 border border-brand-700/30 rounded-xl p-2.5">
+                                <div class="text-[8px] text-slate-400 mb-1">Total Reach Today</div>
+                                <div class="text-lg  font-bold text-white">8,492</div>
+                                <div class="h-1 bg-dark-600 rounded mt-1.5 overflow-hidden">
+                                    <div class="h-full w-4/5 bg-gradient-to-r from-brand-600 to-accent rounded"></div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <div class="bg-dark-500 border border-brand-800/30 rounded-xl p-2">
+                                    <div class="text-[8px] text-slate-400">FB Posts</div>
+                                    <div class="text-sm font-bold text-white">12</div>
+                                </div>
+                                <div class="bg-dark-500 border border-brand-800/30 rounded-xl p-2">
+                                    <div class="text-[8px] text-slate-400">IG Posts</div>
+                                    <div class="text-sm font-bold text-white">18</div>
+                                </div>
+                            </div>
+                            <div class="bg-dark-500 border border-green-800/30 rounded-xl p-2.5">
+                                <div class="text-[8px] text-slate-400 mb-1">Reviews</div>
+                                <div class="flex items-center gap-1"><span
+                                        class="text-yellow-400 text-xs">★★★★★</span><span
+                                        class="text-[8px] text-slate-300 ml-1">4.9</span></div>
+                            </div>
+                        </div>
+                        <div class="flex justify-around mt-3 pt-2 border-t border-brand-900/40">
+                            <div class="w-5 h-5 bg-brand-600 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screen 2 -->
+                <div class="reveal phone-frame aspect-[9/16] relative overflow-hidden flex flex-col"
+                    style="transition-delay:.1s">
+                    <div class="bg-gradient-to-b from-dark-600 to-dark-800 flex-1 p-4 flex flex-col">
+                        <div class="text-[10px]  text-brand-400 font-bold mb-3">SCHEDULE</div>
+                        <div class="space-y-2 flex-1">
+                            <div class="bg-dark-500 border border-brand-800/30 rounded-xl p-2.5">
+                                <div class="text-[8px] text-brand-300 mb-1">Mon, Mar 17</div>
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center gap-1.5 bg-brand-900/40 rounded-lg p-1.5">
+                                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                        <span class="text-[8px] text-slate-300">9:00 AM · Facebook</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 bg-dark-400 rounded-lg p-1.5">
+                                        <div class="w-2 h-2 rounded-full" style="background:#dc2743"></div>
+                                        <span class="text-[8px] text-slate-300">1:00 PM · Instagram</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 bg-dark-400 rounded-lg p-1.5">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span class="text-[8px] text-slate-300">6:00 PM · Google</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="bg-brand-700/20 border border-brand-600/30 rounded-xl p-2.5 flex items-center gap-2">
+                                <div class="w-6 h-6 btn-glow rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg width="10" height="10" fill="white" viewBox="0 0 24 24">
+                                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                                    </svg>
+                                </div>
+                                <span class="text-[8px] text-brand-300 font-medium">Schedule New Post</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-around mt-3 pt-2 border-t border-brand-900/40">
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-brand-600 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screen 3 -->
+                <div class="reveal phone-frame aspect-[9/16] relative overflow-hidden flex flex-col"
+                    style="transition-delay:.2s">
+                    <div class="bg-gradient-to-b from-dark-600 to-dark-800 flex-1 p-4 flex flex-col">
+                        <div class="text-[10px]  text-brand-400 font-bold mb-3">ANALYTICS</div>
+                        <div class="space-y-2 flex-1">
+                            <div class="bg-dark-500 border border-brand-800/30 rounded-xl p-2.5">
+                                <div class="text-[8px] text-slate-400 mb-2">Weekly Engagement</div>
+                                <!-- Tiny bar chart -->
+                                <div class="flex items-end gap-1 h-12">
+                                    <div class="flex-1 bg-brand-700/40 rounded-t" style="height:40%"></div>
+                                    <div class="flex-1 bg-brand-700/40 rounded-t" style="height:65%"></div>
+                                    <div class="flex-1 bg-brand-600 rounded-t" style="height:85%"></div>
+                                    <div class="flex-1 bg-brand-700/40 rounded-t" style="height:55%"></div>
+                                    <div class="flex-1 bg-brand-700/40 rounded-t" style="height:75%"></div>
+                                    <div class="flex-1 bg-accent rounded-t" style="height:100%"></div>
+                                    <div class="flex-1 bg-brand-700/40 rounded-t" style="height:60%"></div>
+                                </div>
+                                <div class="flex justify-between mt-1">
+                                    <span class="text-[7px] text-slate-600">M</span><span
+                                        class="text-[7px] text-slate-600">T</span><span
+                                        class="text-[7px] text-slate-600">W</span><span
+                                        class="text-[7px] text-slate-600">T</span><span
+                                        class="text-[7px] text-slate-600">F</span><span
+                                        class="text-[7px] text-accent">S</span><span
+                                        class="text-[7px] text-slate-600">S</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <div class="bg-dark-500 border border-brand-800/30 rounded-xl p-2 text-center">
+                                    <div class="text-[8px] text-slate-400">Likes</div>
+                                    <div class="text-sm font-bold text-white">1.2K</div>
+                                </div>
+                                <div class="bg-dark-500 border border-brand-800/30 rounded-xl p-2 text-center">
+                                    <div class="text-[8px] text-slate-400">Shares</div>
+                                    <div class="text-sm font-bold text-white">340</div>
+                                </div>
+                                <div class="bg-dark-500 border border-brand-800/30 rounded-xl p-2 text-center">
+                                    <div class="text-[8px] text-slate-400">Saves</div>
+                                    <div class="text-sm font-bold text-white">89</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-around mt-3 pt-2 border-t border-brand-900/40">
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-brand-600 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screen 4 -->
+                <div class="reveal phone-frame aspect-[9/16] relative overflow-hidden flex flex-col"
+                    style="transition-delay:.3s">
+                    <div class="bg-gradient-to-b from-dark-600 to-dark-800 flex-1 p-4 flex flex-col">
+                        <div class="text-[10px]  text-brand-400 font-bold mb-3">INBOX</div>
+                        <div class="space-y-2 flex-1">
+                            <div class="flex items-center gap-2 bg-dark-500 border border-brand-800/30 rounded-xl p-2">
+                                <div
+                                    class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span class="text-[9px] text-white font-bold">A</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[9px] font-semibold text-white">Anjali M.</div>
+                                    <div class="text-[8px] text-slate-400 truncate">Great service!</div>
+                                </div>
+                                <div class="w-2 h-2 bg-brand-500 rounded-full flex-shrink-0"></div>
+                            </div>
+                            <div class="flex items-center gap-2 bg-dark-500 border border-brand-800/30 rounded-xl p-2">
+                                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                                    style="background:#dc2743"><span class="text-[9px] text-white font-bold">R</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[9px] font-semibold text-white">Rahul S.</div>
+                                    <div class="text-[8px] text-slate-400 truncate">What are your hours?</div>
+                                </div>
+                                <div class="w-2 h-2 bg-brand-500 rounded-full flex-shrink-0"></div>
+                            </div>
+                            <div
+                                class="flex items-center gap-2 bg-dark-400/40 border border-brand-900/20 rounded-xl p-2">
+                                <div
+                                    class="w-7 h-7 bg-green-700 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span class="text-[9px] text-white font-bold">P</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[9px] font-semibold text-white">Priya K.</div>
+                                    <div class="text-[8px] text-slate-500 truncate">Thank you so much!</div>
+                                </div>
+                            </div>
+                            <div
+                                class="flex items-center gap-2 bg-dark-400/40 border border-brand-900/20 rounded-xl p-2">
+                                <div
+                                    class="w-7 h-7 bg-purple-700 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span class="text-[9px] text-white font-bold">M</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[9px] font-semibold text-white">Mohan D.</div>
+                                    <div class="text-[8px] text-slate-500 truncate">Do you deliver?</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-around mt-3 pt-2 border-t border-brand-900/40">
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-brand-600 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                            <div class="w-5 h-5 bg-dark-400 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║              PRICING                    ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <section id="pricing" class="py-24 relative">
+        <div class="max-w-7xl mx-auto px-4">
+
+            <div class="text-center mb-16 reveal">
+                <div
+                    class="inline-flex items-center gap-2 glass rounded-full px-4 py-2 text-xs font-medium text-brand-300 mb-4">
+                    <svg width="14" height="14" fill="#60a5fa" viewBox="0 0 24 24">
+                        <path
+                            d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" />
+                    </svg>
+                    Simple Pricing
+                </div>
+                <h2 class=" text-4xl md:text-5xl font-extrabold text-white">One Plan. <span
+                        class="gradient-text">Everything Included.</span></h2>
+                <p class="text-slate-400 mt-4 max-w-xl mx-auto">No hidden fees, no per-platform charges. Just ₹499/month
+                    for full access.</p>
+            </div>
+
+            <div class="max-w-4xl mx-auto">
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+
+                    <!-- Price card -->
+                    <div class="glass rounded-3xl p-8 relative reveal"
+                        style="box-shadow: 0 0 60px rgba(59,130,246,.15);">
+                        <!-- Popular badge -->
+                        <div class="absolute -top-4 left-1/2 -translate-x-1/2">
+                            <div
+                                class="btn-glow rounded-full px-5 py-1.5 text-white text-xs font-semibold  whitespace-nowrap">
+                                🎉 Most Popular — Best Value
+                            </div>
+                        </div>
+
+                        <div class="pt-4">
+                            <div class=" text-lg font-bold text-white mb-1">Croissix Pro</div>
+                            <div class="text-slate-400 text-sm mb-6">Full-featured social media management</div>
+
+                            <div class="flex items-end gap-2 mb-8">
+                                <span class=" text-6xl font-extrabold text-white">₹499</span>
+                                <div class="pb-2">
+                                    <div class="text-slate-300 text-sm font-medium">/month</div>
+                                    <div class="text-slate-500 text-xs">per business</div>
+                                </div>
+                            </div>
+
+                            <a href="https://play.google.com/store" target="_blank"
+                                class="btn-glow w-full flex items-center justify-center gap-3 text-white font-semibold py-4 rounded-2xl  text-base mb-6">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M3.18 23.76c.3.17.65.2.97.08l12.41-7.17-2.93-2.93-10.45 9.96v.06zM.45 2.26C.17 2.56 0 3.03 0 3.65v16.7c0 .62.17 1.09.45 1.39l.07.07 9.35-9.35v-.22L.52 2.19l-.07.07zM20.52 10.5l-2.65-1.53-3.29 3.29 3.29 3.29 2.65-1.53c.76-.44.76-1.58 0-2.02zM4.15.16L16.56 7.33l-2.93 2.93L3.18.3A1.18 1.18 0 014.15.16z" />
+                                </svg>
+                                Download on Play Store
+                            </a>
+
+                            <div class="text-center text-slate-500 text-xs">Cancel anytime · Android App</div>
+                        </div>
+                    </div>
+
+                    <!-- Features included -->
+                    <div class="space-y-4 reveal" style="transition-delay:.1s">
+                        <div class="text-slate-300 text-sm font-semibold mb-3">Everything included in ₹499/mo:</div>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <div
+                                    class="w-5 h-5 bg-brand-600/20 border border-brand-600/40 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                                    <svg width="10" height="10" fill="#60a5fa" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-white text-sm font-medium">Google Business Profile Management</div>
+                                    <div class="text-slate-500 text-xs">Posts, hours, photos, reviews & Q&A</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div
+                                    class="w-5 h-5 bg-brand-600/20 border border-brand-600/40 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                                    <svg width="10" height="10" fill="#60a5fa" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-white text-sm font-medium">Facebook Page Management</div>
+                                    <div class="text-slate-500 text-xs">Posts, ads preview, audience insights</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div
+                                    class="w-5 h-5 bg-brand-600/20 border border-brand-600/40 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                                    <svg width="10" height="10" fill="#60a5fa" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-white text-sm font-medium">Instagram Profile Management</div>
+                                    <div class="text-slate-500 text-xs">Feed, stories, reels scheduling</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div
+                                    class="w-5 h-5 bg-brand-600/20 border border-brand-600/40 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                                    <svg width="10" height="10" fill="#60a5fa" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-white text-sm font-medium">Advanced Analytics</div>
+                                    <div class="text-slate-500 text-xs">Reach, engagement, clicks, conversions</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div
+                                    class="w-5 h-5 bg-brand-600/20 border border-brand-600/40 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                                    <svg width="10" height="10" fill="#60a5fa" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-white text-sm font-medium">Unified Inbox</div>
+                                    <div class="text-slate-500 text-xs">All messages in one place</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div
+                                    class="w-5 h-5 bg-brand-600/20 border border-brand-600/40 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                                    <svg width="10" height="10" fill="#60a5fa" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-white text-sm font-medium">Priority Customer Support</div>
+                                    <div class="text-slate-500 text-xs">Response within 24 hours</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║             PRIVACY POLICY              ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <section id="privacy" class="py-24 relative">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="glass rounded-3xl p-8 md:p-12 reveal">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="w-10 h-10 btn-glow rounded-xl flex items-center justify-center">
+                        <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+                            <path
+                                d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93C9.33 17.79 7 14.5 7 11V7.18L12 5zm-2 6l-2-2-1.41 1.41L10 13.83l5.41-5.42L14 7l-4 4z" />
+                        </svg>
+                    </div>
+                    <h2 class=" text-3xl font-bold text-white">Privacy Policy</h2>
+                </div>
+                <div class="space-y-6 text-slate-300 text-sm leading-7">
+                    <p class="text-slate-400 text-xs">Last updated: March 2025</p>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">1. Information We Collect</h3>
+                        <p>Croissix collects information you provide when creating an account, including your name,
+                            email address, phone number, and business details. We also collect data from the social
+                            media platforms you connect — Google Business Profile, Facebook, and Instagram — strictly to
+                            provide our management services.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">2. How We Use Your Information
+                        </h3>
+                        <p>Your data is used solely to deliver, improve, and personalize our services. We use it to
+                            display analytics, schedule posts, manage inboxes, and provide customer support. We do not
+                            sell your personal data to third parties.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">3. Data Security</h3>
+                        <p>We employ industry-standard encryption and security practices to protect your data. All
+                            connections use HTTPS/TLS. Platform tokens are stored securely and encrypted at rest. We
+                            regularly audit our security practices.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">4. Third-Party Services</h3>
+                        <p>Our app integrates with Google, Facebook, and Instagram APIs. Use of these platforms is
+                            subject to their respective privacy policies. We only request permissions necessary to
+                            provide our stated services.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">5. Data Retention & Deletion
+                        </h3>
+                        <p>You may request deletion of your account and data at any time by contacting us at
+                            vipprowdigital@gmail.com. We will process deletion requests within 30 days of receipt.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">6. Contact</h3>
+                        <p>For privacy-related queries, email us at <a href="mailto:vipprowdigital@gmail.com"
+                                class="text-brand-400 hover:text-brand-300 transition-colors">vipprowdigital@gmail.com</a>
+                            or call <a href="tel:9669932121"
+                                class="text-brand-400 hover:text-brand-300 transition-colors">9669932121</a>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║           TERMS & CONDITIONS            ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <section id="terms" class="py-8 relative">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="glass rounded-3xl p-8 md:p-12 reveal">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style="background:linear-gradient(135deg,#059669,#10b981)">
+                        <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+                            <path
+                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                        </svg>
+                    </div>
+                    <h2 class=" text-3xl font-bold text-white">Terms & Conditions</h2>
+                </div>
+                <div class="space-y-6 text-slate-300 text-sm leading-7">
+                    <p class="text-slate-400 text-xs">Last updated: March 2025</p>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">1. Acceptance of Terms</h3>
+                        <p>By downloading, installing, or using the Croissix application, you agree to be bound by
+                            these Terms and Conditions. If you do not agree, please do not use the app.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">2. Subscription & Billing</h3>
+                        <p>Croissix is available at ₹499 per month per business account. Subscriptions are billed
+                            monthly through Google Play Store. Cancellations take effect at the end of the current
+                            billing period. No partial refunds are issued for unused periods unless required by law.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">3. Permitted Use</h3>
+                        <p>You may use Croissix only for lawful business purposes. You must not use the service to
+                            publish spam, misleading content, or content that violates the terms of Google, Facebook, or
+                            Instagram. Vipprow Digital reserves the right to suspend accounts that violate these
+                            guidelines.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">4. Intellectual Property</h3>
+                        <p>All content, design, code, and trademarks within Croissix are the property of Vipprow
+                            Digital. You may not reproduce, distribute, or create derivative works without explicit
+                            written permission.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">5. Limitation of Liability</h3>
+                        <p>Vipprow Digital provides the service "as is" and makes no warranties regarding uptime or
+                            uninterrupted access. We are not liable for losses arising from platform API changes by
+                            Google, Facebook, or Instagram beyond our control.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">6. Governing Law</h3>
+                        <p>These terms are governed by the laws of India. Any disputes shall be subject to the exclusive
+                            jurisdiction of courts in Jabalpur, Madhya Pradesh.</p>
+                    </div>
+                    <div>
+                        <h3 class=" font-semibold text-white text-base mb-2">7. Contact</h3>
+                        <p>Questions about these terms? Reach us at <a href="mailto:vipprowdigital@gmail.com"
+                                class="text-brand-400 hover:text-brand-300 transition-colors">vipprowdigital@gmail.com</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║               CONTACT                  ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <section id="contact" class="py-24 relative">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+
+                <!-- Left -->
+                <div class="reveal">
+                    <div
+                        class="inline-flex items-center gap-2 glass rounded-full px-4 py-2 text-xs font-medium text-brand-300 mb-6">
+                        <svg width="14" height="14" fill="#60a5fa" viewBox="0 0 24 24">
+                            <path
+                                d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                        </svg>
+                        Get in Touch
+                    </div>
+                    <h2 class=" text-4xl md:text-5xl font-extrabold text-white mb-4">Let's talk
+                        about<br /><span class="gradient-text">your next move</span></h2>
+                    <p class="text-slate-400 text-base leading-relaxed mb-8 max-w-md">Whether you're scaling a SaaS,
+                        automating workflows, or exploring ideas, we're ready to help. We usually reply within 24 hours.
+                    </p>
+
+                    <div class="space-y-5">
+                        <a href="mailto:vipprowdigital@gmail.com" class="flex items-center gap-4 group">
+                            <div
+                                class="w-12 h-12 btn-glow rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                <svg width="20" height="20" fill="white" viewBox="0 0 24 24">
+                                    <path
+                                        d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-slate-400 text-xs">Email</div>
+                                <div class="text-white font-medium group-hover:text-brand-300 transition-colors">
+                                    vipprowdigital@gmail.com</div>
+                            </div>
+                        </a>
+
+                        <a href="tel:9669932121" class="flex items-center gap-4 group">
+                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"
+                                style="background:linear-gradient(135deg,#059669,#10b981)">
+                                <svg width="20" height="20" fill="white" viewBox="0 0 24 24">
+                                    <path
+                                        d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-slate-400 text-xs">Phone</div>
+                                <div class="text-white font-medium group-hover:text-green-300 transition-colors">
+                                    9669932121</div>
+                            </div>
+                        </a>
+
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                                style="background:linear-gradient(135deg,#7c3aed,#a855f7)">
+                                <svg width="20" height="20" fill="white" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-slate-400 text-xs">Location</div>
+                                <div class="text-white font-medium">Jabalpur | Mumbai</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right — Contact form iframe / CTA -->
+                <div class="glass rounded-3xl p-8 reveal" style="transition-delay:.1s">
+                    <h3 class=" text-xl font-bold text-white mb-2">Send us a Message</h3>
+                    <p class="text-slate-400 text-sm mb-6">Fill out our contact form and we'll get back to you within 24
+                        hours.</p>
+                    <a href="https://vipprow.com/contact" target="_blank"
+                        class="btn-glow w-full flex items-center justify-center gap-3 text-white font-semibold py-4 rounded-2xl  text-base mb-4">
+                        <svg width="20" height="20" fill="white" viewBox="0 0 24 24">
+                            <path
+                                d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                        </svg>
+                        Open Contact Form
+                    </a>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <a href="mailto:vipprowdigital@gmail.com"
+                            class="flex-1 flex items-center justify-center gap-2 glass text-slate-200 hover:text-white font-medium py-3 rounded-xl text-sm border border-brand-700/30 hover:border-brand-500/50 transition-all">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                            </svg>
+                            Email Us
+                        </a>
+                        <a href="tel:9669932121"
+                            class="flex-1 flex items-center justify-center gap-2 glass text-slate-200 hover:text-white font-medium py-3 rounded-xl text-sm border border-brand-700/30 hover:border-brand-500/50 transition-all">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                            </svg>
+                            Call Us
+                        </a>
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-brand-900/40">
+                        <div class="text-slate-400 text-xs text-center mb-3">Trusted & developed by</div>
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="w-7 h-7 btn-glow rounded-lg flex items-center justify-center">
+                                <svg width="14" height="14" fill="white" viewBox="0 0 24 24">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                </svg>
+                            </div>
+                            <span class=" font-bold text-white text-sm">Vipprow Digital</span>
+                        </div>
+                        <div class="text-slate-500 text-xs text-center mt-1">Jabalpur | Mumbai · India</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║               FOOTER                   ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    <footer class="relative border-t border-brand-900/40 py-12">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+
+                <!-- Brand -->
+                <div class="col-span-2 md:col-span-1">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 btn-glow rounded-xl flex items-center justify-center">
+                            <img src="/webpage/assets/croissix.svg" alt="Croissix">
+                        </div>
+                        <span class=" font-bold text-white">Croissix<span class="gradient-text">
+                                AI-Powered</span></span>
+                    </div>
+                    <p class="text-slate-500 text-xs leading-relaxed">by Vipprow Digital — Social media management for
+                        growing businesses.</p>
+                    <div class="mt-4">
+                        <a href="https://play.google.com/store" target="_blank"
+                            class="inline-flex items-center gap-2 glass rounded-xl px-4 py-2 text-xs text-slate-300 hover:text-white hover:border-brand-500/50 border border-brand-800/30 transition-all">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M3.18 23.76c.3.17.65.2.97.08l12.41-7.17-2.93-2.93-10.45 9.96v.06zM.45 2.26C.17 2.56 0 3.03 0 3.65v16.7c0 .62.17 1.09.45 1.39l.07.07 9.35-9.35v-.22L.52 2.19l-.07.07zM20.52 10.5l-2.65-1.53-3.29 3.29 3.29 3.29 2.65-1.53c.76-.44.76-1.58 0-2.02zM4.15.16L16.56 7.33l-2.93 2.93L3.18.3A1.18 1.18 0 014.15.16z" />
+                            </svg>
+                            Play Store
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Pages -->
+                <div>
+                    <div class=" font-semibold text-white text-sm mb-4">Pages</div>
+                    <div class="space-y-2.5">
+                        <a href="#home"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors">Home</a>
+                        <a href="#features"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors">Features</a>
+                        <a href="#screenshots"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors">Screenshots</a>
+                        <a href="#pricing"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors">Pricing</a>
+                    </div>
+                </div>
+
+                <!-- Legal -->
+                <div>
+                    <div class=" font-semibold text-white text-sm mb-4">Legal</div>
+                    <div class="space-y-2.5">
+                        <a href="#privacy"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors">Privacy
+                            Policy</a>
+                        <a href="#terms"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors">Terms &
+                            Conditions</a>
+                        <a href="https://vipprow.com/contact" target="_blank"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors">Contact</a>
+                    </div>
+                </div>
+
+                <!-- Contact -->
+                <div>
+                    <div class=" font-semibold text-white text-sm mb-4">Contact</div>
+                    <div class="space-y-2.5">
+                        <a href="mailto:vipprowdigital@gmail.com"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors break-all">vipprowdigital@gmail.com</a>
+                        <a href="tel:9669932121"
+                            class="block text-slate-500 hover:text-slate-300 text-xs transition-colors">9669932121</a>
+                        <p class="text-slate-500 text-xs">Jabalpur | Mumbai, India</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="border-t border-brand-900/40 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-slate-600 text-xs">© 2025 Vipprow Digital. All rights reserved.</p>
+                <p class="text-slate-600 text-xs">Made with ❤️ in India</p>
+            </div>
+        </div>
+    </footer>
+
+
+    <script>
+        // ── Navbar scroll ──
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 50);
+        });
+
+        // ── Mobile menu ──
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const iconOpen = document.getElementById('icon-open');
+            const iconClose = document.getElementById('icon-close');
+            menu.classList.toggle('open');
+            iconOpen.classList.toggle('hidden');
+            iconClose.classList.toggle('hidden');
+        }
+
+        // ── Scroll reveal ──
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.12 });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // ── Smooth active nav ──
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('nav a[href^="#"]');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(s => {
+                if (window.scrollY >= s.offsetTop - 100) current = s.getAttribute('id');
+            });
+            navLinks.forEach(a => {
+                a.classList.toggle('text-white', a.getAttribute('href') === '#' + current);
+                a.classList.toggle('text-slate-300', a.getAttribute('href') !== '#' + current);
+            });
+        });
+    </script>
+</body>
+
+</html>
