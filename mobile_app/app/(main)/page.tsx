@@ -1,5 +1,4 @@
 // mobile_app\app\(main)\page.tsx
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -94,7 +93,6 @@ interface Competitor {
   reviews: number;
   position: number;
 }
-
 /* ═══════════════════════════════════════════════════════════════
    FRAMER MOTION VARIANTS
 ═══════════════════════════════════════════════════════════════ */
