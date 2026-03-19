@@ -13,13 +13,14 @@ export async function GET(req: Request) {
   const token = state ? decodeURIComponent(state) : "";
 
   if (!code) {
-    return new Response("Missing code parameter", { status: 400 });
+    return Response.redirect(
+      `${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=missing_code`,
+    );
   }
 
   const redirectUri =
-    process.env.NODE_ENV === "production"
-      ? process.env.GOOGLE_REDIRECT_URI
-      : "http://localhost:3000/api/auth/callback";
+    process.env.GOOGLE_REDIRECT_URI ||
+    "http://localhost:3000/api/auth/callback";
 
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -70,8 +71,7 @@ export async function GET(req: Request) {
     );
 
     const frontendUrl =
-      process.env.GOOGLE_REDIRECT_URI ||
-      "http://localhost:3000/api/auth/callback";
+      process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
 
     return Response.redirect(frontendUrl);
   } catch (error) {

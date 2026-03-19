@@ -4,20 +4,14 @@ import { google } from "googleapis";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const token = searchParams.get("token") || "";
-
-  // Determine redirect URI dynamically
-  const redirectUri =
-    process.env.GOOGLE_REDIRECT_URI ||
-    "http://localhost:3000/api/auth/callback";
+  const token = searchParams.get("token");
 
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    redirectUri,
+    process.env.GOOGLE_REDIRECT_URI,
   );
 
-  // Generate Google OAuth URL
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
@@ -28,7 +22,7 @@ export async function GET(req: Request) {
       "https://www.googleapis.com/auth/userinfo.email",
       "openid",
     ],
-    state: encodeURIComponent(token), // encode token for safety
+    state: token || "",
   });
 
   return Response.redirect(url);
