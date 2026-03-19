@@ -1,12 +1,8 @@
 // mobile_app\app\api\razorpay\create-subscription\route.ts
-
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+export const dynamic = "force-dynamic"; // ⭐ IMPORTANT
 
 export async function POST(req: Request) {
   try {
@@ -16,12 +12,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Plan ID required" }, { status: 400 });
     }
 
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID!,
+      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    });
+
     const subscription = await razorpay.subscriptions.create({
       plan_id: planId,
       total_count: 12,
       customer_notify: 1,
       start_at: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
     });
+
     return NextResponse.json({
       subscriptionId: subscription.id,
     });
