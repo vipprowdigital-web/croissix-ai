@@ -44,6 +44,5 @@ next-env.d.ts
 
 pnpm-lock.yaml
 yarn.lock
-mobile_app/package-lock.json
 bun.lockb
 node_modules
