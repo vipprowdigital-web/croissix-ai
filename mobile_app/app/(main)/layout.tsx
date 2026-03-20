@@ -33,7 +33,7 @@ export default function MainLayout({
           <DesktopTopbar />
 
           {/* Page content */}
-          <main className="flex-grow px-4 py-14 md:px-6 lg:px-8 pb-28 md:pb-8">
+          <main className="flex-grow px-4 py-14 md:py-0 md:px-6 lg:px-8 pb-28 md:pb-8">
             <div className="mx-auto w-full">{children}</div>
           </main>
         </div>
