@@ -1,5 +1,4 @@
 // mobile_app\app\(main)\subscription\page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -24,58 +23,45 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useUser } from "@/features/user/hook/useUser";
+import { useSubscriptionActions } from "@/features/subscription/hook/useSubscriptionActions";
+import { useSubscription } from "@/features/subscription/hook/useSubscription";
 
-/* ═══════════════════════════════════════════
-   TYPES
-═══════════════════════════════════════════ */
 type Screen = "plans" | "processing" | "success" | "failed";
 
-/* ═══════════════════════════════════════════
-   PLAN CONFIG  — single Razorpay plan
-═══════════════════════════════════════════ */
 const PLAN = {
   id: "starter",
   name: "Starter",
-  razorpayPlanId: "plan_SR7GH5Kj45UJsP",
-  priceMonthly: 49900, // ₹499 in paise
-  description: "1 Google Business location, 4 posts/day, 30-day analytics",
+  razorpayPlanId:
+    process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID ?? "plan_SR7GH5Kj45UJsP",
+  priceMonthly: 49900,
   features: [
     { text: "1 Google Business Profile", highlight: true },
     { text: "Analytics dashboard", highlight: true },
-    { text: "Review Monitoring", highlight: true },
-    { text: "5 Posts/Day", highlight: true },
+    { text: "Review monitoring", highlight: false },
+    { text: "5 posts / month", highlight: false },
     { text: "AI insights", highlight: true },
-    { text: "Report Support", highlight: true },
+    { text: "Email support", highlight: false },
   ],
   unlocked: [
-    { icon: <BarChart2 size={13} />, label: "Analytics", color: "#3b82f6" },
-    {
-      icon: <MessageSquare size={13} />,
-      label: "AI Insights",
-      color: "#2563eb",
-    },
-    { icon: <Star size={13} />, label: "Reviews", color: "#f59e0b" },
-    { icon: <TrendingUp size={13} />, label: "Competitor", color: "#22c55e" },
+    { label: "Analytics", color: "#3b82f6" },
+    { label: "AI Insights", color: "#2563eb" },
+    { label: "Reviews", color: "#f59e0b" },
+    { label: "Competitor", color: "#22c55e" },
   ],
 };
 
-const fmtRupees = (paise: number) =>
-  `₹${(paise / 100).toLocaleString("en-IN")}`;
+const fmt = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
 
-/* ═══════════════════════════════════════════
-   RAZORPAY HELPERS
-═══════════════════════════════════════════ */
 declare global {
   interface Window {
     Razorpay: any;
   }
 }
-
-function loadRazorpayScript(): Promise<boolean> {
+function loadRzpScript(): Promise<boolean> {
   return new Promise((resolve) => {
-    if (document.getElementById("razorpay-script")) return resolve(true);
+    if (document.getElementById("rzp-script")) return resolve(true);
     const s = document.createElement("script");
-    s.id = "razorpay-script";
+    s.id = "rzp-script";
     s.src = "https://checkout.razorpay.com/v1/checkout.js";
     s.onload = () => resolve(true);
     s.onerror = () => resolve(false);
@@ -83,80 +69,6 @@ function loadRazorpayScript(): Promise<boolean> {
   });
 }
 
-interface CheckoutOpts {
-  user?: { name?: string; email?: string; phone?: string };
-  onSuccess: (subscriptionId: string) => void;
-  onFail: (reason: string) => void;
-  onDismiss: () => void;
-}
-
-async function openRazorpayCheckout(opts: CheckoutOpts) {
-  const loaded = await loadRazorpayScript();
-  if (!loaded) {
-    opts.onFail("Failed to load payment SDK");
-    return;
-  }
-
-  let subscriptionId: string;
-  try {
-    const res = await fetch("/api/razorpay/create-subscription", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-      body: JSON.stringify({ planId: PLAN.razorpayPlanId }),
-    });
-    const json = await res.json();
-    if (!json.subscriptionId)
-      throw new Error(json.error ?? "Could not create subscription");
-    subscriptionId = json.subscriptionId;
-  } catch (e: any) {
-    opts.onFail(e.message);
-    return;
-  }
-
-  const rzp = new window.Razorpay({
-    key: process.env.RAZORPAY_KEY_ID,
-    subscription_id: subscriptionId,
-    name: "Vipprow",
-    description: `${PLAN.name} Plan · ${fmtRupees(PLAN.priceMonthly)}/mo`,
-    image: "/logo.png",
-    prefill: {
-      name: opts.user?.name ?? "",
-      email: opts.user?.email ?? "",
-      contact: opts.user?.phone ?? "",
-    },
-    theme: { color: "#2563eb" },
-    handler: async (response: any) => {
-      const verify = await fetch("/api/razorpay/verify-subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_subscription_id: response.razorpay_subscription_id,
-          razorpay_signature: response.razorpay_signature,
-        }),
-      });
-      const data = await verify.json();
-      if (data.success) opts.onSuccess(response.razorpay_subscription_id);
-      else opts.onFail("Payment verification failed");
-    },
-    modal: {
-      ondismiss() {
-        opts.onDismiss();
-      },
-    },
-  });
-  rzp.open();
-  rzp.on("payment.failed", (resp: any) =>
-    opts.onFail(resp.error?.description ?? "Payment failed"),
-  );
-}
-
-/* ═══════════════════════════════════════════
-   STEP DOTS
-═══════════════════════════════════════════ */
 function StepDots({ step, dark }: { step: number; dark: boolean }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -166,13 +78,11 @@ function StepDots({ step, dark }: { step: number; dark: boolean }) {
             animate={{
               width: i === step ? 22 : 8,
               background:
-                i < step
+                i <= step
                   ? "#3b82f6"
-                  : i === step
-                    ? "#3b82f6"
-                    : dark
-                      ? "rgba(255,255,255,0.1)"
-                      : "rgba(0,0,0,0.1)",
+                  : dark
+                    ? "rgba(255,255,255,0.1)"
+                    : "rgba(0,0,0,0.1)",
             }}
             transition={{ duration: 0.28, ease: [0.34, 1.2, 0.64, 1] }}
             style={{ height: 8, borderRadius: 99 }}
@@ -198,10 +108,15 @@ function StepDots({ step, dark }: { step: number; dark: boolean }) {
   );
 }
 
-/* ═══════════════════════════════════════════
-   PLAN SCREEN
-═══════════════════════════════════════════ */
-function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
+function PlanScreen({
+  dark,
+  onStart,
+  alreadyActive,
+}: {
+  dark: boolean;
+  onStart: () => void;
+  alreadyActive: boolean;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -215,17 +130,49 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
         paddingBottom: 130,
       }}
     >
-      {/* HERO */}
-      <div className="pt-4">
+      <div style={{ paddingTop: 4, textAlign: "center" }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{
+            delay: 0.05,
+            duration: 0.4,
+            ease: [0.34, 1.3, 0.64, 1],
+          }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 12px",
+            borderRadius: 99,
+            marginBottom: 14,
+            background: dark
+              ? "rgba(59,130,246,0.12)"
+              : "rgba(219,234,254,0.8)",
+            border: `1px solid ${dark ? "rgba(59,130,246,0.2)" : "rgba(147,197,253,0.5)"}`,
+          }}
+        >
+          <Zap size={11} style={{ color: "#3b82f6" }} />
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 800,
+              color: "#3b82f6",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}
+          >
+            7-day free trial
+          </span>
+        </motion.div>
         <h1
           style={{
-            fontSize: 24,
+            fontSize: 26,
             fontWeight: 900,
             letterSpacing: "-0.045em",
             lineHeight: 1.15,
             margin: "0 0 8px",
             color: dark ? "#fff" : "#0f172a",
-            textAlign: "center",
           }}
         >
           Grow your Google
@@ -242,7 +189,6 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
         </h1>
         <p
           style={{
-            textAlign: "center",
             fontSize: 13,
             margin: 0,
             fontWeight: 500,
@@ -253,7 +199,34 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
         </p>
       </div>
 
-      {/* PLAN CARD */}
+      {alreadyActive && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            borderRadius: 14,
+            padding: "11px 14px",
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            background: dark ? "rgba(34,197,94,0.08)" : "rgba(220,252,231,0.7)",
+            border: `1px solid ${dark ? "rgba(34,197,94,0.2)" : "rgba(134,239,172,0.5)"}`,
+          }}
+        >
+          <CheckCircle2 size={14} style={{ color: "#22c55e", flexShrink: 0 }} />
+          <p
+            style={{
+              fontSize: 11.5,
+              fontWeight: 700,
+              margin: 0,
+              color: dark ? "#4ade80" : "#15803d",
+            }}
+          >
+            You already have an active Starter subscription
+          </p>
+        </motion.div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -264,19 +237,16 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
           border: `2px solid ${dark ? "rgba(59,130,246,0.3)" : "rgba(59,130,246,0.25)"}`,
           background: dark ? "rgba(37,99,235,0.06)" : "rgba(239,246,255,0.7)",
           boxShadow: dark
-            ? "0 0 0 4px rgba(59,130,246,0.08), 0 16px 48px rgba(37,99,235,0.18)"
-            : "0 0 0 4px rgba(59,130,246,0.06), 0 8px 40px rgba(37,99,235,0.12)",
+            ? "0 0 0 4px rgba(59,130,246,0.08),0 16px 48px rgba(37,99,235,0.18)"
+            : "0 0 0 4px rgba(59,130,246,0.06),0 8px 40px rgba(37,99,235,0.12)",
         }}
       >
-        {/* top gradient bar */}
         <div
           style={{
             height: 4,
             background: "linear-gradient(90deg,#1d4ed8,#3b82f6,#60a5fa)",
           }}
         />
-
-        {/* header */}
         <div style={{ padding: "18px 18px 0" }}>
           <div
             style={{
@@ -334,12 +304,10 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
                     color: dark ? "#475569" : "#64748b",
                   }}
                 >
-                  1 location · 4 posts/day · 30-day data
+                  1 location · 5 posts/mo · 30-day data
                 </p>
               </div>
             </div>
-
-            {/* price */}
             <div style={{ textAlign: "right" }}>
               <div
                 style={{ display: "flex", alignItems: "flex-start", gap: 2 }}
@@ -379,8 +347,6 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
             </div>
           </div>
         </div>
-
-        {/* divider */}
         <div
           style={{
             height: 1,
@@ -390,8 +356,6 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
               : "rgba(59,130,246,0.1)",
           }}
         />
-
-        {/* features */}
         <div style={{ padding: "14px 18px 18px" }}>
           <div
             style={{
@@ -452,7 +416,6 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
         </div>
       </motion.div>
 
-      {/* TRUST ROW */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -479,16 +442,11 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
               color: dark ? "#93c5fd" : "#1d4ed8",
             }}
           >
-            <strong>AI Powered</strong> · Scale with us.
+            <strong>7-day free trial</strong> · Cancel anytime · No setup fees
           </p>
         </div>
-
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 8,
-          }}
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
         >
           {[
             { icon: "🔒", text: "Secured by Razorpay" },
@@ -523,11 +481,10 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
         </div>
       </motion.div>
 
-      {/* STICKY CTA */}
       <div
         style={{
           position: "relative",
-          bottom: 10,
+          bottom: 0,
           left: 0,
           right: 0,
           padding: "12px 16px 28px",
@@ -540,12 +497,13 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
           <motion.button
             onClick={onStart}
             whileTap={{ scale: 0.975 }}
+            disabled={alreadyActive}
             style={{
               width: "100%",
               padding: "15px 20px",
               borderRadius: 18,
               border: "none",
-              cursor: "pointer",
+              cursor: alreadyActive ? "not-allowed" : "pointer",
               color: "#fff",
               fontSize: 14,
               fontWeight: 900,
@@ -554,37 +512,56 @@ function PlanScreen({ dark, onStart }: { dark: boolean; onStart: () => void }) {
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              background: "linear-gradient(135deg,#1d4ed8,#2563eb,#3b82f6)",
-              boxShadow: "0 10px 32px rgba(37,99,235,0.38)",
+              background: alreadyActive
+                ? "rgba(59,130,246,0.4)"
+                : "linear-gradient(135deg,#1d4ed8,#2563eb,#3b82f6)",
+              boxShadow: alreadyActive
+                ? "none"
+                : "0 10px 32px rgba(37,99,235,0.38)",
               position: "relative",
               overflow: "hidden",
+              opacity: alreadyActive ? 0.6 : 1,
             }}
           >
-            {/* shimmer */}
-            <motion.div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)",
-              }}
-              animate={{ x: ["-100%", "100%"] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
-            />
+            {!alreadyActive && (
+              <motion.div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)",
+                }}
+                animate={{ x: ["-100%", "100%"] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
+              />
+            )}
             <Zap size={15} style={{ position: "relative" }} />
             <span style={{ position: "relative" }}>
-              Start Free Trial · {fmtRupees(PLAN.priceMonthly)}/Monthly
+              {alreadyActive
+                ? "Plan Active ✓"
+                : `Start Free Trial · ${fmt(PLAN.priceMonthly)}/mo`}
             </span>
           </motion.button>
+          {!alreadyActive && (
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: 10,
+                marginTop: 6,
+                fontWeight: 500,
+                color: dark ? "#2d3f58" : "#94a3b8",
+              }}
+            >
+              Free for 7 days · then {fmt(PLAN.priceMonthly)}/month · cancel
+              anytime
+            </p>
+          )}
         </div>
       </div>
     </motion.div>
   );
 }
 
-/* ═══════════════════════════════════════════
-   PROCESSING SCREEN
-═══════════════════════════════════════════ */
 function ProcessingScreen({ dark }: { dark: boolean }) {
   return (
     <motion.div
@@ -602,7 +579,6 @@ function ProcessingScreen({ dark }: { dark: boolean }) {
       }}
     >
       <div style={{ position: "relative" }}>
-        {/* pulsing ring */}
         <motion.div
           animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0, 0.4] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
@@ -678,9 +654,6 @@ function ProcessingScreen({ dark }: { dark: boolean }) {
   );
 }
 
-/* ═══════════════════════════════════════════
-   SUCCESS SCREEN
-═══════════════════════════════════════════ */
 function SuccessScreen({
   dark,
   subscriptionId,
@@ -703,7 +676,6 @@ function SuccessScreen({
         paddingBottom: 130,
       }}
     >
-      {/* CHECK CIRCLE */}
       <motion.div
         style={{
           position: "relative",
@@ -763,7 +735,6 @@ function SuccessScreen({
             <CheckCircle2 size={34} color="#fff" strokeWidth={1.8} />
           </motion.div>
         </motion.div>
-        {/* particles */}
         {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
@@ -818,7 +789,6 @@ function SuccessScreen({
         Starter plan activated successfully
       </motion.p>
 
-      {/* subscription id */}
       {subscriptionId && (
         <motion.div
           initial={{ opacity: 0, y: 6 }}
@@ -861,7 +831,6 @@ function SuccessScreen({
         </motion.div>
       )}
 
-      {/* unlocked features */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -921,9 +890,10 @@ function SuccessScreen({
                   justifyContent: "center",
                   background: `${u.color}18`,
                   color: u.color,
+                  fontSize: 13,
                 }}
               >
-                {u.icon}
+                ●
               </div>
               <span
                 style={{
@@ -939,7 +909,6 @@ function SuccessScreen({
         </div>
       </motion.div>
 
-      {/* trial notice */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -987,7 +956,6 @@ function SuccessScreen({
         </div>
       </motion.div>
 
-      {/* CTA */}
       <div
         style={{
           position: "fixed",
@@ -1037,9 +1005,6 @@ function SuccessScreen({
   );
 }
 
-/* ═══════════════════════════════════════════
-   FAILED SCREEN
-═══════════════════════════════════════════ */
 function FailedScreen({
   dark,
   reason,
@@ -1085,7 +1050,6 @@ function FailedScreen({
       >
         <XCircle size={34} style={{ color: "#ef4444" }} strokeWidth={1.8} />
       </motion.div>
-
       <h1
         style={{
           fontSize: 24,
@@ -1108,7 +1072,6 @@ function FailedScreen({
       >
         No charges were made to your account.
       </p>
-
       {reason && (
         <motion.div
           initial={{ opacity: 0, y: 6 }}
@@ -1142,7 +1105,6 @@ function FailedScreen({
           </p>
         </motion.div>
       )}
-
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1172,8 +1134,6 @@ function FailedScreen({
           Need help? Email <strong>support@vipprow.com</strong>
         </p>
       </motion.div>
-
-      {/* CTAs */}
       <div
         style={{
           position: "fixed",
@@ -1253,9 +1213,6 @@ function FailedScreen({
   );
 }
 
-/* ═══════════════════════════════════════════
-   ROOT PAGE
-═══════════════════════════════════════════ */
 export default function SubscriptionPage() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
@@ -1266,32 +1223,86 @@ export default function SubscriptionPage() {
   const [screen, setScreen] = useState<Screen>("plans");
   const [subscriptionId, setSubscriptionId] = useState("");
   const [failReason, setFailReason] = useState("");
+
   const { data: user } = useUser();
+  const { isActive } = useSubscription();
+  const { createSubscription, verifySubscription } = useSubscriptionActions();
 
   const stepIndex = screen === "plans" ? 0 : screen === "processing" ? 1 : 2;
 
-  function handleStart() {
+  async function handleStart() {
+    if (isActive) return;
     setScreen("processing");
-    openRazorpayCheckout({
-      user,
-      onSuccess(subId) {
-        setSubscriptionId(subId);
-        setScreen("success");
+
+    const loaded = await loadRzpScript();
+    if (!loaded) {
+      setFailReason("Failed to load payment SDK. Check your connection.");
+      setScreen("failed");
+      return;
+    }
+
+    let rzSubId: string;
+    try {
+      const data = await createSubscription(PLAN.razorpayPlanId);
+      rzSubId = data.subscriptionId;
+      if (!rzSubId) throw new Error("No subscriptionId returned");
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ??
+        err.message ??
+        "Could not create subscription";
+      setFailReason(msg);
+      setScreen("failed");
+      return;
+    }
+
+    const rzp = new window.Razorpay({
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      subscription_id: rzSubId,
+      name: "Vipprow",
+      description: `Starter Plan · ${fmt(PLAN.priceMonthly)}/mo`,
+      image: "/logo.png",
+      prefill: {
+        name: user?.name ?? "",
+        email: user?.email ?? "",
+        contact: "",
       },
-      onFail(reason) {
-        setFailReason(reason);
-        setScreen("failed");
+      theme: { color: "#2563eb" },
+      handler: async (response: any) => {
+        try {
+          await verifySubscription({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_subscription_id: response.razorpay_subscription_id,
+            razorpay_signature: response.razorpay_signature,
+            planId: PLAN.razorpayPlanId,
+          });
+          setSubscriptionId(response.razorpay_subscription_id);
+          setScreen("success");
+        } catch (err: any) {
+          setFailReason(
+            err?.response?.data?.message ?? "Payment verification failed",
+          );
+          setScreen("failed");
+        }
       },
-      onDismiss() {
-        setScreen("plans");
+      modal: {
+        ondismiss() {
+          setScreen("plans");
+        },
       },
+    });
+    rzp.open();
+    rzp.on("payment.failed", (resp: any) => {
+      setFailReason(resp.error?.description ?? "Payment failed");
+      setScreen("failed");
     });
   }
 
   return (
     <div
       style={{
-        minHeight: "100vh",
+        minHeight: "auto",
+        paddingTop: "20px",
         background: dark
           ? "linear-gradient(150deg,#050d1a 0%,#080f1e 100%)"
           : "linear-gradient(150deg,#eef4ff 0%,#f0f5ff 100%)",
@@ -1299,7 +1310,6 @@ export default function SubscriptionPage() {
         transition: "background 0.35s",
       }}
     >
-      {/* ambient orb */}
       <div
         style={{
           position: "fixed",
@@ -1315,7 +1325,6 @@ export default function SubscriptionPage() {
             "radial-gradient(circle,rgba(37,99,235,0.1) 0%,transparent 70%)",
         }}
       />
-
       <div
         style={{
           maxWidth: 440,
@@ -1325,7 +1334,6 @@ export default function SubscriptionPage() {
           zIndex: 1,
         }}
       >
-        {/* TOP BAR */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1384,7 +1392,6 @@ export default function SubscriptionPage() {
           </div>
         </motion.div>
 
-        {/* SCREENS */}
         <AnimatePresence mode="wait">
           {screen === "plans" && (
             <motion.div
@@ -1394,7 +1401,11 @@ export default function SubscriptionPage() {
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.26 }}
             >
-              <PlanScreen dark={dark} onStart={handleStart} />
+              <PlanScreen
+                dark={dark}
+                onStart={handleStart}
+                alreadyActive={!!isActive}
+              />
             </motion.div>
           )}
           {screen === "processing" && (

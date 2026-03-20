@@ -21,7 +21,6 @@ export async function POST(req: Request) {
       plan_id: planId,
       total_count: 12,
       customer_notify: 1,
-      start_at: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
     });
 
     return NextResponse.json({

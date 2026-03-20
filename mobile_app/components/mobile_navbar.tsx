@@ -59,10 +59,32 @@ function AISparkle() {
       `}</style>
 
       <defs>
-        <linearGradient id="geminiGrad" x1="3" y1="2" x2="21" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   className="g-stop1" stopColor="white"   stopOpacity="0.9" />
-          <stop offset="50%"  className="g-stop2" stopColor="#a5f3fc" stopOpacity="1"   />
-          <stop offset="100%" className="g-stop3" stopColor="#c4b5fd" stopOpacity="1"   />
+        <linearGradient
+          id="geminiGrad"
+          x1="3"
+          y1="2"
+          x2="21"
+          y2="20"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop
+            offset="0%"
+            className="g-stop1"
+            stopColor="white"
+            stopOpacity="0.9"
+          />
+          <stop
+            offset="50%"
+            className="g-stop2"
+            stopColor="#a5f3fc"
+            stopOpacity="1"
+          />
+          <stop
+            offset="100%"
+            className="g-stop3"
+            stopColor="#c4b5fd"
+            stopOpacity="1"
+          />
         </linearGradient>
       </defs>
 
@@ -78,8 +100,20 @@ function AISparkle() {
       />
 
       {/* satellite dots */}
-      <circle className="g-dot-a" cx="19.5" cy="4.5" r="1.2" fill="url(#geminiGrad)" />
-      <circle className="g-dot-b" cx="4.5"  cy="19"  r="1"   fill="url(#geminiGrad)" />
+      <circle
+        className="g-dot-a"
+        cx="19.5"
+        cy="4.5"
+        r="1.2"
+        fill="url(#geminiGrad)"
+      />
+      <circle
+        className="g-dot-b"
+        cx="4.5"
+        cy="19"
+        r="1"
+        fill="url(#geminiGrad)"
+      />
     </svg>
   );
 }
@@ -204,24 +238,24 @@ export const MobileNavbar = () => {
                   transition: "color .3s",
                 }}
               >
-                AI-Powered   <span
-                style={{
-                  fontFamily:
-                    "-apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-sans)",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: titleColor,
-                  lineHeight: 1,
-                  opacity: 0.9,
-                  transition: "color .3s",
-                }}
-              >
-                - [Beta]
+                AI-Powered{" "}
+                <span
+                  style={{
+                    fontFamily:
+                      "-apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-sans)",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: titleColor,
+                    lineHeight: 1,
+                    opacity: 0.9,
+                    transition: "color .3s",
+                  }}
+                >
+                  - [Beta]
+                </span>
               </span>
-              </span>
-             
             </span>
           </NextLink>
 
@@ -249,7 +283,8 @@ export const MobileNavbar = () => {
             </button> */}
 
             {/* AI */}
-            <button
+            <a
+              href="/ai"
               aria-label="AI Assistant"
               style={{
                 height: 36,
@@ -287,7 +322,7 @@ export const MobileNavbar = () => {
             >
               <AISparkle />
               <span>Ask AI</span>
-            </button>
+            </a>
           </div>
         </div>
       </header>

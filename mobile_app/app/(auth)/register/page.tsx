@@ -1,5 +1,7 @@
 // mobile_app\app\register\page.tsx
 
+// mobile_app\app\register\page.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -82,7 +84,7 @@ function getStrength(pw: string): {
   return { score, ...map[score] };
 }
 
-/* ─── Input field (identical to login) ──────────────────── */
+/* ─── Input field ────────────────────────────────────────── */
 interface InputFieldProps {
   label: string;
   type: string;
@@ -267,12 +269,7 @@ export default function RegisterPage() {
     if (Object.keys(errs).length) return;
 
     registerMutation.mutate(
-      {
-        name,
-        email,
-        phone,
-        password,
-      },
+      { name, email, phone, password },
       {
         onSuccess: () => {
           alert("Account created successfully");
@@ -288,17 +285,17 @@ export default function RegisterPage() {
   return (
     <div
       className={`
-        min-h-screen flex transition-colors duration-300  justify-center
-      items-center
+        flex-1 flex flex-col items-center justify-center
+        min-h-screen px-5 py-10
+        transition-colors duration-300
         ${isDark ? "bg-[#0d1421]" : "bg-[#eef2fb]"}
       `}
     >
-      {/* ── status bar spacer ── */}
-      <div className="h-10" />
+      {/* ── content — constrained max-width on desktop ── */}
+      <div className="w-full max-w-[420px]">
 
-      <div className="flex-1 flex flex-col px-5">
-        {/* ── back + heading ── */}
-        <div className="mb-6 mt-5 text-center">
+        {/* heading */}
+        <div className="mb-6 text-center">
           <h1
             className={`text-xl font-bold leading-tight mb-1 ${isDark ? "text-white" : "text-slate-900"}`}
           >
@@ -314,39 +311,39 @@ export default function RegisterPage() {
         {/* ── form card ── */}
         <div
           className={`
-          rounded-[22px] p-5 flex flex-col gap-4
-          ${
-            isDark
-              ? "bg-[#131c2d] border border-white/[0.06] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
-              : "bg-white border border-black/[0.05] shadow-[0_8px_32px_rgba(37,99,235,0.08)]"
-          }
-        `}
+            rounded-[22px] p-5 md:p-7 flex flex-col gap-4
+            ${
+              isDark
+                ? "bg-[#131c2d] border border-white/[0.06] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+                : "bg-white border border-black/[0.05] shadow-[0_8px_32px_rgba(37,99,235,0.08)]"
+            }
+          `}
         >
-          {/* name */}
-          <InputField
-            label="Full Name"
-            type="text"
-            value={name}
-            onChange={setName}
-            placeholder="Alex Johnson"
-            isDark={isDark}
-            autoComplete="name"
-            leftIcon={<User size={15} strokeWidth={1.8} />}
-            error={errors.name}
-          />
-
-          {/* phone */}
-          <InputField
-            label="Phone Number"
-            type="tel"
-            value={phone}
-            onChange={setPhone}
-            placeholder="+91 98765 43210"
-            isDark={isDark}
-            autoComplete="tel"
-            leftIcon={<Phone size={15} strokeWidth={1.8} />}
-            error={errors.phone}
-          />
+          {/* name + phone — side by side on desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputField
+              label="Full Name"
+              type="text"
+              value={name}
+              onChange={setName}
+              placeholder="Alex Johnson"
+              isDark={isDark}
+              autoComplete="name"
+              leftIcon={<User size={15} strokeWidth={1.8} />}
+              error={errors.name}
+            />
+            <InputField
+              label="Phone Number"
+              type="tel"
+              value={phone}
+              onChange={setPhone}
+              placeholder="+91 98765 43210"
+              isDark={isDark}
+              autoComplete="tel"
+              leftIcon={<Phone size={15} strokeWidth={1.8} />}
+              error={errors.phone}
+            />
+          </div>
 
           {/* email */}
           <InputField
@@ -441,7 +438,7 @@ export default function RegisterPage() {
               text-[14px] font-bold text-white
               transition-all duration-150
               active:scale-[0.97] disabled:opacity-60
-             ${registerMutation.isPending ? "cursor-wait" : "cursor-pointer"}
+              ${registerMutation.isPending ? "cursor-wait" : "cursor-pointer"}
             `}
             style={{
               letterSpacing: "-0.01em",
@@ -506,7 +503,6 @@ export default function RegisterPage() {
         </p>
 
         {/* terms */}
-        {/* terms */}
         <p
           className={`text-center text-[11px] mt-4 leading-relaxed ${isDark ? "text-slate-700" : "text-slate-500"}`}
         >
@@ -525,7 +521,6 @@ export default function RegisterPage() {
             Privacy Policy
           </Link>
         </p>
-        <div className="h-10" />
       </div>
     </div>
   );

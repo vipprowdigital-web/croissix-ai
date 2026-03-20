@@ -50,6 +50,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import CibilScore from "@/components/cards/Cibilscore";
+import CroissixBanner from "@/components/banners/CroissixBanner";
+import ServicesSlider from "@/components/banners/ServicesSlider";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES
@@ -93,6 +95,7 @@ interface Competitor {
   reviews: number;
   position: number;
 }
+
 /* ═══════════════════════════════════════════════════════════════
    FRAMER MOTION VARIANTS
 ═══════════════════════════════════════════════════════════════ */
@@ -250,7 +253,7 @@ function AnimatedNumber({
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SPARKLINE (with draw-on animation)
+   SPARKLINE
 ═══════════════════════════════════════════════════════════════ */
 function Sparkline({
   data,
@@ -332,23 +335,38 @@ function Sk({
     />
   );
 }
+
 function HomeSkeleton({ isDark }: { isDark: boolean }) {
   return (
-    <motion.div
-      className="flex flex-col gap-5 pb-32"
-      variants={staggerContainer}
-      initial="hidden"
-      animate="show"
-    >
-      {[0, 1, 2, 3, 4].map((i) => (
-        <motion.div key={i} variants={fadeUp}>
-          <Sk
-            isDark={isDark}
-            className={`${i === 1 ? "h-44" : i === 0 ? "h-12" : "h-28"} w-full rounded-3xl`}
-          />
-        </motion.div>
-      ))}
-    </motion.div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <motion.div
+        className="flex flex-col gap-5"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
+        {[0, 1, 2].map((i) => (
+          <motion.div key={i} variants={fadeUp}>
+            <Sk
+              isDark={isDark}
+              className={`${i === 1 ? "h-44" : "h-28"} w-full rounded-3xl`}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
+      <motion.div
+        className="flex flex-col gap-5"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
+        {[0, 1, 2].map((i) => (
+          <motion.div key={i} variants={fadeUp}>
+            <Sk isDark={isDark} className="h-28 w-full rounded-3xl" />
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
   );
 }
 
@@ -716,7 +734,7 @@ function HeroCard({
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   METRICS SCROLL STRIP
+   METRICS GRID (desktop) / SCROLL STRIP (mobile)
 ═══════════════════════════════════════════════════════════════ */
 function MetricScrollStrip({
   metrics,
@@ -726,54 +744,84 @@ function MetricScrollStrip({
   isDark: boolean;
 }) {
   return (
+    <>
+      {/* Mobile: horizontal scroll */}
+      <motion.div
+        className="flex md:hidden gap-3 overflow-x-auto no-scrollbar pb-1"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-20px" }}
+      >
+        {metrics.map((m, i) => (
+          <MetricCard key={i} m={m} isDark={isDark} />
+        ))}
+      </motion.div>
+
+      {/* Desktop: 3-column grid */}
+      <motion.div
+        className="hidden md:grid grid-cols-3 gap-3"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-20px" }}
+      >
+        {metrics.map((m, i) => (
+          <MetricCard key={i} m={m} isDark={isDark} isGrid />
+        ))}
+      </motion.div>
+    </>
+  );
+}
+
+function MetricCard({
+  m,
+  isDark,
+  isGrid,
+}: {
+  m: MetricCardData;
+  isDark: boolean;
+  isGrid?: boolean;
+}) {
+  return (
     <motion.div
-      className="flex gap-3 overflow-x-auto no-scrollbar pb-1"
-      variants={staggerContainer}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-20px" }}
+      variants={staggerItem}
+      whileHover={{ y: -3, transition: { duration: 0.18 } }}
+      whileTap={{ scale: 0.95 }}
+      className={`rounded-2xl border p-3.5 flex flex-col gap-2
+        ${isGrid ? "w-full" : "shrink-0 min-w-[130px]"}
+        ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-slate-100"}`}
+      style={{ boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.05)" }}
     >
-      {metrics.map((m, i) => (
-        <motion.div
-          key={i}
-          variants={staggerItem}
-          whileHover={{ y: -3, transition: { duration: 0.18 } }}
-          whileTap={{ scale: 0.95 }}
-          className={`shrink-0 rounded-2xl border p-3.5 flex flex-col gap-2 min-w-[130px]
-            ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-slate-100"}`}
-          style={{ boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.05)" }}
+      <div className="flex items-center justify-between">
+        <motion.span
+          className="p-1.5 rounded-xl"
+          style={{ background: `${m.color}18` }}
+          whileHover={{ rotate: 12, scale: 1.1 }}
         >
-          <div className="flex items-center justify-between">
-            <motion.span
-              className="p-1.5 rounded-xl"
-              style={{ background: `${m.color}18` }}
-              whileHover={{ rotate: 12, scale: 1.1 }}
-            >
-              <span style={{ color: m.color }}>{m.icon}</span>
-            </motion.span>
-            {m.sparkData && m.sparkData.length > 1 && (
-              <Sparkline data={m.sparkData} color={m.color} height={22} />
-            )}
-          </div>
-          <div>
-            <AnimatedNumber
-              value={m.value}
-              className={`text-[22px] font-black leading-none mb-0.5 block ${isDark ? "text-white" : "text-slate-900"}`}
-              style={{ letterSpacing: "-0.04em" }}
-            />
-            <p
-              className={`text-[10px] font-bold uppercase tracking-wide ${isDark ? "text-slate-500" : "text-slate-500"}`}
-            >
-              {m.label}
-            </p>
-            <p
-              className={`text-[10px] mt-0.5 ${isDark ? "text-slate-600" : "text-slate-500"}`}
-            >
-              {m.sub}
-            </p>
-          </div>
-        </motion.div>
-      ))}
+          <span style={{ color: m.color }}>{m.icon}</span>
+        </motion.span>
+        {m.sparkData && m.sparkData.length > 1 && (
+          <Sparkline data={m.sparkData} color={m.color} height={22} />
+        )}
+      </div>
+      <div>
+        <AnimatedNumber
+          value={m.value}
+          className={`text-[22px] font-black leading-none mb-0.5 block ${isDark ? "text-white" : "text-slate-900"}`}
+          style={{ letterSpacing: "-0.04em" }}
+        />
+        <p
+          className={`text-[10px] font-bold uppercase tracking-wide ${isDark ? "text-slate-500" : "text-slate-500"}`}
+        >
+          {m.label}
+        </p>
+        <p
+          className={`text-[10px] mt-0.5 ${isDark ? "text-slate-600" : "text-slate-500"}`}
+        >
+          {m.sub}
+        </p>
+      </div>
     </motion.div>
   );
 }
@@ -895,7 +943,7 @@ function ReviewHealthCard({
       whileInView="show"
       viewport={{ once: true, margin: "-20px" }}
       whileTap={{ scale: 0.98 }}
-      className={`rounded-2xl border p-4 cursor-pointer ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-slate-100 shadow-sm"}`}
+      className={`rounded-2xl border p-4 cursor-pointer h-full ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-slate-100 shadow-sm"}`}
     >
       <div className="flex items-center justify-between mb-3">
         <p
@@ -1371,20 +1419,6 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
           animate={{ scale: [1, 1.25, 1] }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div
-          className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle,rgba(66,183,42,0.1),transparent 70%)",
-          }}
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1,
-          }}
-        />
         <div className="relative flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div
@@ -1444,16 +1478,6 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
                 page reach
               </span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-[12px] text-green-400 font-bold">
-                +12% growth
-              </span>
-              <span
-                className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-500"}`}
-              >
-                1.2K likes · 340 shares
-              </span>
-            </div>
           </div>
           <div className="absolute inset-0 flex items-center">
             <div
@@ -1482,12 +1506,8 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
             color: "#f59e0b",
           },
         ].map((m, i) => (
-          <motion.div
+          <div
             key={i}
-            initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            viewport={{ once: true }}
             className={`flex flex-col items-center py-3.5 gap-1 ${i < 3 ? `border-r ${isDark ? "border-white/[0.05]" : "border-slate-100"}` : ""}`}
           >
             <span style={{ color: m.color }} className="opacity-50">
@@ -1503,7 +1523,7 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
             >
               {m.label}
             </span>
-          </motion.div>
+          </div>
         ))}
       </div>
       <div className={`p-4 ${isDark ? "bg-[#0d1421]" : "bg-white"}`}>
@@ -1512,13 +1532,7 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
         >
           Features coming
         </p>
-        <motion.div
-          className="grid grid-cols-2 gap-2 mb-4"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-        >
+        <div className="grid grid-cols-2 gap-2 mb-4">
           {[
             {
               icon: <ThumbsUp size={11} />,
@@ -1551,9 +1565,8 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
               color: "#f97316",
             },
           ].map((f, i) => (
-            <motion.div
+            <div
               key={i}
-              variants={staggerItem}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl ${isDark ? "bg-white/[0.04] border border-white/[0.05]" : "bg-slate-50 border border-slate-100"}`}
             >
               <span style={{ color: f.color }}>{f.icon}</span>
@@ -1562,9 +1575,9 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
               >
                 {f.label}
               </span>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
         <motion.button
           onClick={() => setNotified(true)}
           whileTap={{ scale: 0.96 }}
@@ -1582,19 +1595,12 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
                 key="done"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 280 }}
                 className="flex items-center gap-2"
               >
                 <span>✓</span> You'll be notified!
               </motion.span>
             ) : (
-              <motion.span
-                key="cta"
-                initial={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-2"
-              >
+              <motion.span key="cta" className="flex items-center gap-2">
                 <Bell size={14} /> Notify Me When Live
               </motion.span>
             )}
@@ -1639,20 +1645,6 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
           }}
           animate={{ scale: [1, 1.25, 1] }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-0 w-28 h-28 rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle,rgba(252,175,69,0.1),transparent 70%)",
-          }}
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1.5,
-          }}
         />
         <div className="relative flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
@@ -1722,16 +1714,6 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
                 followers
               </span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-[12px] text-green-400 font-bold">
-                +23% this month
-              </span>
-              <span
-                className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-500"}`}
-              >
-                4.2% engagement
-              </span>
-            </div>
           </div>
           <div className="absolute inset-0 flex items-center">
             <div
@@ -1764,12 +1746,8 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
           { label: "Likes", icon: <Heart size={12} />, color: "#833ab4" },
           { label: "Saves", icon: <Bookmark size={12} />, color: "#fcaf45" },
         ].map((m, i) => (
-          <motion.div
+          <div
             key={i}
-            initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            viewport={{ once: true }}
             className={`flex flex-col items-center py-3.5 gap-1 ${i < 3 ? `border-r ${isDark ? "border-white/[0.05]" : "border-slate-100"}` : ""}`}
           >
             <span style={{ color: m.color }} className="opacity-50">
@@ -1785,7 +1763,7 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
             >
               {m.label}
             </span>
-          </motion.div>
+          </div>
         ))}
       </div>
       <div className={`p-4 ${isDark ? "bg-[#0d1421]" : "bg-white"}`}>
@@ -1794,13 +1772,7 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
         >
           Features coming
         </p>
-        <motion.div
-          className="grid grid-cols-2 gap-2 mb-4"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-        >
+        <div className="grid grid-cols-2 gap-2 mb-4">
           {[
             {
               icon: <PlayCircle size={11} />,
@@ -1833,9 +1805,8 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
               color: "#8b5cf6",
             },
           ].map((f, i) => (
-            <motion.div
+            <div
               key={i}
-              variants={staggerItem}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl ${isDark ? "bg-white/[0.04] border border-white/[0.05]" : "bg-slate-50 border border-slate-100"}`}
             >
               <span style={{ color: f.color }}>{f.icon}</span>
@@ -1844,9 +1815,9 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
               >
                 {f.label}
               </span>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
         <motion.button
           onClick={() => setNotified(true)}
           whileTap={{ scale: 0.96 }}
@@ -1866,7 +1837,6 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
                 key="done"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 280 }}
                 className="flex items-center gap-2"
               >
                 <span>✓</span> You'll be notified!
@@ -2023,13 +1993,14 @@ export default function HomePage() {
 
   return (
     <div
-      className={`min-h-screen transition-colors duration-300 ${isDark ? "bg-[#0d1421]" : "bg-[#eef2fb]"}`}
+      className="w-full"
       style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}
     >
-      <div className="max-w-lg mx-auto px-4 pb-32">
-        {/* ─── HEADER ─── */}
+      <div className="w-full">
+        {/* ─── PAGE HEADER ─── */}
+        {/* Mobile: full greeting header */}
         <motion.div
-          className="pt-4 pb-5 flex items-center justify-between"
+          className="md:hidden pt-2 pb-5 flex items-center justify-between"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -2071,7 +2042,7 @@ export default function HomePage() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.32 }}
                   >
-                    <span className={`text-[11px] text-slate-500`}>
+                    <span className="text-[11px] text-slate-500">
                       - {user.googleLocationName}
                     </span>
                   </motion.div>
@@ -2111,15 +2082,65 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        {/* CIBIL SCORE */}
+        {/* Desktop: slim greeting row — topbar shows page title, this shows user context */}
         <motion.div
-          className="pb-4 flex items-center justify-center"
-          variants={scaleIn}
-          initial="hidden"
-          animate="show"
-          transition={{ delay: 0.2 }}
+          className="hidden md:flex pt-1 pb-4 items-center justify-between"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
         >
-          <CibilScore />
+          <div>
+            {!userLoading && (
+              <>
+                <p
+                  className={`text-[13px] font-medium ${isDark ? "text-slate-500" : "text-slate-500"}`}
+                >
+                  {greet()} 👋
+                </p>
+                <h1
+                  className={`text-[22px] font-black leading-tight ${isDark ? "text-white" : "text-slate-900"}`}
+                  style={{ letterSpacing: "-0.04em" }}
+                >
+                  {user?.name?.split(" ")[0] ?? "Welcome"}
+                  {user?.googleLocationName && (
+                    <span className="text-[14px] font-medium ml-2 text-slate-500">
+                      · {user.googleLocationName}
+                    </span>
+                  )}
+                </h1>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {analytics && (
+              <motion.button
+                onClick={() => refetch()}
+                whileTap={{ scale: 0.85, rotate: 180 }}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl
+                  ${isDark ? "bg-white/[0.07] text-slate-500" : "bg-white text-slate-500 border border-slate-200"}`}
+              >
+                <motion.div
+                  animate={analyticsLoading ? { rotate: 360 } : {}}
+                  transition={
+                    analyticsLoading
+                      ? { duration: 0.9, repeat: Infinity, ease: "linear" }
+                      : {}
+                  }
+                >
+                  <RefreshCw size={14} />
+                </motion.div>
+              </motion.button>
+            )}
+            <motion.button
+              onClick={() => router.push("/profile")}
+              whileTap={{ scale: 0.88 }}
+              whileHover={{ scale: 1.06 }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-[13px] font-black text-white overflow-hidden shrink-0"
+              style={{ background: "linear-gradient(135deg,#2563eb,#4f46e5)" }}
+            >
+              {user?.name ? getInitials(user.name) : <Settings size={16} />}
+            </motion.button>
+          </div>
         </motion.div>
 
         {isLoading && <HomeSkeleton isDark={isDark} />}
@@ -2131,6 +2152,7 @@ export default function HomePage() {
             initial="hidden"
             animate="show"
           >
+            {/* ─── NOT CONNECTED / ERROR (full width) ─── */}
             <AnimatePresence>
               {!user?.googleLocationId && (
                 <NotConnectedBanner
@@ -2139,7 +2161,6 @@ export default function HomePage() {
                 />
               )}
             </AnimatePresence>
-
             <AnimatePresence>
               {isError && user?.googleLocationId && (
                 <motion.div
@@ -2167,288 +2188,310 @@ export default function HomePage() {
               )}
             </AnimatePresence>
 
-            {/* PLATFORMS */}
-            <motion.div variants={fadeUp}>
-              <SectionHeader
-                title="Your Platforms"
-                subtitle="All channels in one place"
-                isDark={isDark}
-              />
-              <PlatformsStrip isDark={isDark} onScrollTo={scrollTo} />
-            </motion.div>
-
-            {/* GOOGLE HERO */}
-            {s && (
-              <motion.div variants={fadeUp}>
-                <SectionHeader
-                  title="Google Business"
-                  subtitle="Live · Last 30 days"
-                  isDark={isDark}
-                  action={{
-                    label: "Full report",
-                    onClick: () => router.push("/analysis/google"),
-                  }}
-                />
-                <HeroCard
-                  summary={s}
-                  sparkData={sparkData}
-                  isDark={isDark}
-                  onTap={() => router.push("/analysis/google")}
-                />
-              </motion.div>
-            )}
-
-            {/* QUICK ACTIONS */}
-            <motion.div variants={fadeUp}>
-              <SectionHeader title="Quick Actions" isDark={isDark} />
-              <QuickActionsGrid
-                isDark={isDark}
-                onNavigate={(r) => router.push(r)}
-              />
-            </motion.div>
-
-            {/* METRICS SCROLL */}
-            {metrics.length > 0 && (
-              <motion.div variants={fadeUp}>
-                <SectionHeader
-                  title="Google Performance"
-                  subtitle="Last 30 days"
-                  isDark={isDark}
-                  action={{
-                    label: "Full report",
-                    onClick: () => router.push("/analysis/google"),
-                  }}
-                />
-                <MetricScrollStrip metrics={metrics} isDark={isDark} />
-              </motion.div>
-            )}
-
-            {/* REVIEW HEALTH */}
-            {s && (
-              <motion.div variants={fadeUp}>
-                <SectionHeader title="Review Health" isDark={isDark} />
-                <ReviewHealthCard
-                  summary={s}
-                  isDark={isDark}
-                  onNavigate={() => router.push("/reviews/google")}
-                />
-              </motion.div>
-            )}
-
-            {/* SMART INSIGHTS */}
-            {s && (
-              <motion.div variants={fadeUp}>
-                <SectionHeader
-                  title="Smart Insights"
-                  subtitle="AI-powered recommendations"
-                  isDark={isDark}
-                />
-                <InsightTip
-                  summary={s}
-                  isDark={isDark}
-                  onAction={(r) => router.push(r)}
-                />
-              </motion.div>
-            )}
-
-            {/* COMPETITOR ANALYSIS */}
-            {s && (
-              <motion.div variants={fadeUp}>
-                <SectionHeader
-                  title="Competitor Analysis"
-                  subtitle="Nearby businesses · Google Maps"
-                  isDark={isDark}
-                  action={{
-                    label: "See all",
-                    onClick: () => router.push("/"),
-                  }}
-                />
+            {/* ══════════════════════════════════════════════
+                DESKTOP 2-COLUMN GRID
+            ══════════════════════════════════════════════ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {/* ─── LEFT COLUMN ─── */}
+              <div className="flex flex-col gap-6">
+                {/* ─── CIBIL SCORE (full width) ─── */}
                 <motion.div
-                  className={`rounded-2xl border px-4 py-3 mb-3 flex items-center gap-3
-                  ${isDark ? "bg-blue-500/[0.08] border-blue-500/20" : "bg-blue-50 border-blue-200"}`}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4 }}
-                  viewport={{ once: true }}
+                  className="pb-4 flex items-center justify-center"
+                  variants={scaleIn}
+                  initial="hidden"
+                  animate="show"
+                  transition={{ delay: 0.2 }}
                 >
-                  <motion.div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDark ? "bg-blue-500/20" : "bg-blue-100"}`}
-                    animate={{ rotate: [0, -6, 6, 0] }}
-                    transition={{ duration: 4, repeat: Infinity }}
-                  >
-                    <Award
-                      size={16}
-                      className={isDark ? "text-blue-400" : "text-blue-600"}
+                  <CibilScore />
+                </motion.div>
+                {/* Platforms */}
+                <motion.div variants={fadeUp}>
+                  <SectionHeader
+                    title="Your Platforms"
+                    subtitle="All channels in one place"
+                    isDark={isDark}
+                  />
+                  <PlatformsStrip isDark={isDark} onScrollTo={scrollTo} />
+                </motion.div>
+
+                {/* Google Hero */}
+                {s && (
+                  <motion.div variants={fadeUp}>
+                    <SectionHeader
+                      title="Google Business"
+                      subtitle="Live · Last 30 days"
+                      isDark={isDark}
+                      action={{
+                        label: "Full report",
+                        onClick: () => router.push("/analysis/google"),
+                      }}
+                    />
+                    <HeroCard
+                      summary={s}
+                      sparkData={sparkData}
+                      isDark={isDark}
+                      onTap={() => router.push("/analysis/google")}
                     />
                   </motion.div>
-                  <div>
-                    <p
-                      className={`text-[12.5px] font-bold ${isDark ? "text-blue-300" : "text-blue-800"}`}
-                    >
-                      You rank #3 in your area
-                    </p>
-                    <p
-                      className={`text-[11px] ${isDark ? "text-blue-400/70" : "text-blue-600/70"}`}
-                    >
-                      0.3★ behind the top competitor
-                    </p>
-                  </div>
-                  <span
-                    className="ml-auto text-[20px] font-black"
-                    style={{ color: isDark ? "#60a5fa" : "#2563eb" }}
-                  >
-                    #3
-                  </span>
+                )}
+                <CroissixBanner dismissible={false} />
+
+                {/* Quick Actions */}
+                <motion.div variants={fadeUp}>
+                  <SectionHeader title="Quick Actions" isDark={isDark} />
+                  <QuickActionsGrid
+                    isDark={isDark}
+                    onNavigate={(r) => router.push(r)}
+                  />
                 </motion.div>
-                <motion.div
-                  className="flex gap-3 overflow-x-auto no-scrollbar pb-1"
-                  variants={staggerContainer}
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, margin: "-20px" }}
-                >
-                  {competitors.map((c, i) => (
-                    <CompetitorCard
-                      key={i}
-                      comp={c}
-                      myRating={s.avgRating}
+                {/* Metrics */}
+                {metrics.length > 0 && (
+                  <motion.div variants={fadeUp}>
+                    <SectionHeader
+                      title="Google Performance"
+                      subtitle="Last 30 days"
+                      isDark={isDark}
+                      action={{
+                        label: "Full report",
+                        onClick: () => router.push("/analysis/google"),
+                      }}
+                    />
+                    <MetricScrollStrip metrics={metrics} isDark={isDark} />
+                  </motion.div>
+                )}
+                {/* Competitor Analysis */}
+                {s && (
+                  <motion.div variants={fadeUp}>
+                    <SectionHeader
+                      title="Competitor Analysis"
+                      subtitle="Nearby businesses · Google Maps"
+                      isDark={isDark}
+                      action={{
+                        label: "See all",
+                        onClick: () => router.push("/"),
+                      }}
+                    />
+                    <motion.div
+                      className={`rounded-2xl border px-4 py-3 mb-3 flex items-center gap-3
+                      ${isDark ? "bg-blue-500/[0.08] border-blue-500/20" : "bg-blue-50 border-blue-200"}`}
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4 }}
+                      viewport={{ once: true }}
+                    >
+                      <motion.div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDark ? "bg-blue-500/20" : "bg-blue-100"}`}
+                        animate={{ rotate: [0, -6, 6, 0] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                      >
+                        <Award
+                          size={16}
+                          className={isDark ? "text-blue-400" : "text-blue-600"}
+                        />
+                      </motion.div>
+                      <div>
+                        <p
+                          className={`text-[12.5px] font-bold ${isDark ? "text-blue-300" : "text-blue-800"}`}
+                        >
+                          You rank #3 in your area
+                        </p>
+                        <p
+                          className={`text-[11px] ${isDark ? "text-blue-400/70" : "text-blue-600/70"}`}
+                        >
+                          0.3★ behind the top competitor
+                        </p>
+                      </div>
+                      <span
+                        className="ml-auto text-[20px] font-black"
+                        style={{ color: isDark ? "#60a5fa" : "#2563eb" }}
+                      >
+                        #3
+                      </span>
+                    </motion.div>
+                    <motion.div
+                      className="flex gap-3 overflow-x-auto no-scrollbar pb-1"
+                      variants={staggerContainer}
+                      initial="hidden"
+                      whileInView="show"
+                      viewport={{ once: true, margin: "-20px" }}
+                    >
+                      {competitors.map((c, i) => (
+                        <CompetitorCard
+                          key={i}
+                          comp={c}
+                          myRating={s.avgRating}
+                          isDark={isDark}
+                        />
+                      ))}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* ─── RIGHT COLUMN ─── */}
+              <div className="flex flex-col gap-6">
+                {/* Review Health */}
+                {s && (
+                  <motion.div variants={fadeUp}>
+                    <SectionHeader title="Review Health" isDark={isDark} />
+                    <ReviewHealthCard
+                      summary={s}
+                      isDark={isDark}
+                      onNavigate={() => router.push("/reviews/google")}
+                    />
+                  </motion.div>
+                )}
+
+                {/* Smart Insights */}
+                {s && (
+                  <motion.div variants={fadeUp}>
+                    <SectionHeader
+                      title="Smart Insights"
+                      subtitle="AI-powered recommendations"
                       isDark={isDark}
                     />
-                  ))}
-                </motion.div>
-              </motion.div>
-            )}
-
-            {/* RECENT REVIEWS */}
-            {(analytics?.recentReviews?.length ?? 0) > 0 && (
-              <motion.div variants={fadeUp}>
-                <SectionHeader
-                  title="Recent Reviews"
-                  isDark={isDark}
-                  action={{
-                    label: "All reviews",
-                    onClick: () => router.push("/reviews/google"),
-                  }}
-                />
-                <ActivityFeed
-                  reviews={analytics!.recentReviews}
-                  isDark={isDark}
-                />
-              </motion.div>
-            )}
-
-            {/* BOTTOM STATS */}
-            {s && (
-              <motion.div
-                variants={fadeUp}
-                className={`rounded-2xl border grid grid-cols-3 overflow-hidden
-                ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-slate-100 shadow-sm"}`}
-              >
-                {[
-                  {
-                    label: "Conversations",
-                    value: fmt(s.totalConversations),
-                    color: "#06b6d4",
-                  },
-                  {
-                    label: "Posts Live",
-                    value: String(s.totalPosts),
-                    color: "#8b5cf6",
-                  },
-                  {
-                    label: "Reply Rate",
-                    value: `${s.replyRate}%`,
-                    color: "#22c55e",
-                  },
-                ].map((row, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 14 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.35 }}
-                    viewport={{ once: true }}
-                    className={`flex flex-col items-center py-4 gap-1
-                    ${i < 2 ? `border-r ${isDark ? "border-white/[0.06]" : "border-slate-100"}` : ""}`}
-                  >
-                    <AnimatedNumber
-                      value={row.value}
-                      className="text-[20px] font-black block"
-                      style={{ color: row.color }}
+                    <InsightTip
+                      summary={s}
+                      isDark={isDark}
+                      onAction={(r) => router.push(r)}
                     />
-                    <span
-                      className={`text-[10px] font-semibold ${isDark ? "text-slate-500" : "text-slate-500"}`}
+                  </motion.div>
+                )}
+
+                {/* Recent Reviews */}
+                {(analytics?.recentReviews?.length ?? 0) > 0 && (
+                  <motion.div variants={fadeUp}>
+                    <SectionHeader
+                      title="Recent Reviews"
+                      isDark={isDark}
+                      action={{
+                        label: "All reviews",
+                        onClick: () => router.push("/reviews/google"),
+                      }}
+                    />
+                    <ActivityFeed
+                      reviews={analytics!.recentReviews}
+                      isDark={isDark}
+                    />
+                  </motion.div>
+                )}
+
+                {/* Bottom stats */}
+                {s && (
+                  <motion.div
+                    variants={fadeUp}
+                    className={`rounded-2xl border grid grid-cols-3 overflow-hidden
+                    ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-slate-100 shadow-sm"}`}
+                  >
+                    {[
+                      {
+                        label: "Conversations",
+                        value: fmt(s.totalConversations),
+                        color: "#06b6d4",
+                      },
+                      {
+                        label: "Posts Live",
+                        value: String(s.totalPosts),
+                        color: "#8b5cf6",
+                      },
+                      {
+                        label: "Reply Rate",
+                        value: `${s.replyRate}%`,
+                        color: "#22c55e",
+                      },
+                    ].map((row, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 14 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1, duration: 0.35 }}
+                        viewport={{ once: true }}
+                        className={`flex flex-col items-center py-4 gap-1
+                        ${i < 2 ? `border-r ${isDark ? "border-white/[0.06]" : "border-slate-100"}` : ""}`}
+                      >
+                        <AnimatedNumber
+                          value={row.value}
+                          className="text-[20px] font-black block"
+                          style={{ color: row.color }}
+                        />
+                        <span
+                          className={`text-[10px] font-semibold ${isDark ? "text-slate-500" : "text-slate-500"}`}
+                        >
+                          {row.label}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+
+                <ServicesSlider />
+                {/* Social divider */}
+                <motion.div
+                  className="flex items-center gap-3 py-2"
+                  variants={fadeUp}
+                >
+                  <div
+                    className={`h-px flex-1 ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
+                  />
+                  <motion.div
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest
+                    ${isDark ? "bg-white/[0.04] border-white/[0.08] text-slate-500" : "bg-white border-slate-200 text-slate-500"}`}
+                    animate={{ scale: [1, 1.04, 1] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        duration: 6,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
                     >
-                      {row.label}
+                      <Sparkles size={10} className="text-purple-400" />
+                    </motion.div>
+                    Social Media
+                    <span
+                      className="px-1.5 py-0.5 rounded-full text-white text-[8px]"
+                      style={{
+                        background: "linear-gradient(90deg,#8b5cf6,#ec4899)",
+                      }}
+                    >
+                      SOON
                     </span>
                   </motion.div>
-                ))}
-              </motion.div>
-            )}
-
-            {/* SOCIAL DIVIDER */}
-            <motion.div
-              className="flex items-center gap-3 py-2"
-              variants={fadeUp}
-            >
-              <div
-                className={`h-px flex-1 ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
-              />
-              <motion.div
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest
-                ${isDark ? "bg-white/[0.04] border-white/[0.08] text-slate-500" : "bg-white border-slate-200 text-slate-500"}`}
-                animate={{ scale: [1, 1.04, 1] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                >
-                  <Sparkles size={10} className="text-purple-400" />
+                  <div
+                    className={`h-px flex-1 ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
+                  />
                 </motion.div>
-                Social Media
-                <span
-                  className="px-1.5 py-0.5 rounded-full text-white text-[8px]"
-                  style={{
-                    background: "linear-gradient(90deg,#8b5cf6,#ec4899)",
-                  }}
-                >
-                  SOON
-                </span>
-              </motion.div>
-              <div
-                className={`h-px flex-1 ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
-              />
-            </motion.div>
 
-            {/* FACEBOOK */}
-            <motion.div ref={fbRef} variants={fadeUp}>
-              <SectionHeader
-                title="Facebook"
-                subtitle="Pages · Ads · Messenger analytics"
-                isDark={isDark}
-              />
-              <FacebookComingSoonCard isDark={isDark} />
-            </motion.div>
+                {/* Facebook */}
+                <motion.div ref={fbRef} variants={fadeUp}>
+                  <SectionHeader
+                    title="Facebook"
+                    subtitle="Pages · Ads · Messenger analytics"
+                    isDark={isDark}
+                  />
+                  <FacebookComingSoonCard isDark={isDark} />
+                </motion.div>
 
-            {/* INSTAGRAM */}
-            <motion.div ref={igRef} className="mt-1" variants={fadeUp}>
-              <SectionHeader
-                title="Instagram"
-                subtitle="Feed · Reels · Stories analytics"
-                isDark={isDark}
-              />
-              <InstagramComingSoonCard isDark={isDark} />
-            </motion.div>
+                {/* Instagram */}
+                <motion.div ref={igRef} variants={fadeUp}>
+                  <SectionHeader
+                    title="Instagram"
+                    subtitle="Feed · Reels · Stories analytics"
+                    isDark={isDark}
+                  />
+                  <InstagramComingSoonCard isDark={isDark} />
+                </motion.div>
+              </div>
+            </div>
 
-            <div style={{ textAlign: "center", padding: "10px 0 100px" }}>
-              <div
-                className={`text-[12px] text-center leading-relaxed text-slate-700`}
-              >
+            {/* Footer */}
+            <div style={{ textAlign: "center", padding: "10px 0 20px" }}>
+              <div className="text-[12px] text-center leading-relaxed text-slate-700">
                 Croissix · Beta Version 0.01
               </div>
-              <div
-                className={`text-[12px] text-center leading-relaxed text-slate-700`}
-              >
+              <div className="text-[12px] text-center leading-relaxed text-slate-700">
                 from Vipprow
               </div>
             </div>

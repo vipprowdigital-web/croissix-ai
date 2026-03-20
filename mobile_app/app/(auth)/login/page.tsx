@@ -1,5 +1,7 @@
 // mobile_app\app\login\page.tsx
 
+// mobile_app\app\login\page.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -198,10 +200,7 @@ export default function LoginPage() {
     }
 
     loginMutation.mutate(
-      {
-        email,
-        password,
-      },
+      { email, password },
       {
         onSuccess: () => {
           setTimeout(() => {
@@ -219,22 +218,21 @@ export default function LoginPage() {
     <GuestGuard>
       <div
         className={`
-      min-h-screen flex
-      transition-colors duration-300
-      justify-center
-      items-center
-      ${isDark ? "bg-[#0d1421]" : "bg-[#eef2fb]"}
-    `}
+          flex-1 flex flex-col items-center justify-center
+          min-h-screen px-5 py-10
+          transition-colors duration-300
+          ${isDark ? "bg-[#0d1421]" : "bg-[#eef2fb]"}
+        `}
       >
-        {/* ── content ── */}
-        <div className="flex-1 flex flex-col px-5">
+        {/* ── content — constrained max-width on desktop ── */}
+        <div className="w-full max-w-[420px]">
           {/* heading */}
-          <div className="mb-2 text-center">
+          <div className="mb-6 text-center">
             <h1
               className={`
-            text-xl font-black leading-tight mb-1
-            ${isDark ? "text-white" : "text-slate-900"}
-          `}
+                text-xl font-black leading-tight mb-1
+                ${isDark ? "text-white" : "text-slate-900"}
+              `}
               style={{
                 letterSpacing: "-0.04em",
                 fontFamily:
@@ -253,13 +251,13 @@ export default function LoginPage() {
           {/* ── form card ── */}
           <div
             className={`
-          rounded-[22px] p-5 flex flex-col gap-4
-          ${
-            isDark
-              ? "bg-[#131c2d] border border-white/[0.06] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
-              : "bg-white border border-black/[0.05] shadow-[0_8px_32px_rgba(37,99,235,0.08)]"
-          }
-        `}
+              rounded-[22px] p-5 md:p-7 flex flex-col gap-4
+              ${
+                isDark
+                  ? "bg-[#131c2d] border border-white/[0.06] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+                  : "bg-white border border-black/[0.05] shadow-[0_8px_32px_rgba(37,99,235,0.08)]"
+              }
+            `}
           >
             {/* email */}
             <InputField
@@ -288,14 +286,14 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPass((v) => !v)}
                   className={`
-                  w-8 h-8 flex items-center justify-center rounded-lg
-                  transition-all duration-150 active:scale-90
-                  ${
-                    isDark
-                      ? "text-slate-500 hover:text-slate-300"
-                      : "text-slate-600 hover:text-slate-600"
-                  }
-                `}
+                    w-8 h-8 flex items-center justify-center rounded-lg
+                    transition-all duration-150 active:scale-90
+                    ${
+                      isDark
+                        ? "text-slate-500 hover:text-slate-300"
+                        : "text-slate-600 hover:text-slate-600"
+                    }
+                  `}
                   aria-label={showPass ? "Hide password" : "Show password"}
                 >
                   {showPass ? (
@@ -329,13 +327,13 @@ export default function LoginPage() {
               onClick={handleSubmit}
               disabled={loginMutation.isPending}
               className={`
-              w-full h-[48px] rounded-[13px]
-              flex items-center justify-center gap-2
-              text-[14px] font-bold text-white
-              transition-all duration-150
-              active:scale-[0.97] disabled:opacity-60
-              ${loading ? "cursor-wait" : "cursor-pointer"}
-            `}
+                w-full h-[48px] rounded-[13px]
+                flex items-center justify-center gap-2
+                text-[14px] font-bold text-white
+                transition-all duration-150
+                active:scale-[0.97] disabled:opacity-60
+                ${loading ? "cursor-wait" : "cursor-pointer"}
+              `}
               style={{
                 letterSpacing: "-0.01em",
                 background: "linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%)",
@@ -364,16 +362,16 @@ export default function LoginPage() {
           {/* Google */}
           <button
             className={`
-            w-full h-[48px] rounded-[13px]
-            flex items-center justify-center gap-2.5
-            text-[14px] font-semibold border
-            transition-all duration-150 active:scale-[0.97]
-            ${
-              isDark
-                ? "bg-[#131c2d] border-white/[0.08] text-white hover:bg-[#182236]"
-                : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
-            }
-          `}
+              w-full h-[48px] rounded-[13px]
+              flex items-center justify-center gap-2.5
+              text-[14px] font-semibold border
+              transition-all duration-150 active:scale-[0.97]
+              ${
+                isDark
+                  ? "bg-[#131c2d] border-white/[0.08] text-white hover:bg-[#182236]"
+                  : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
+              }
+            `}
             style={{
               letterSpacing: "-0.01em",
               boxShadow: isDark

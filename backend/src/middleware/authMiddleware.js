@@ -1,4 +1,5 @@
 // backend\src\middleware\authMiddleware.js
+// backend/src/middleware/authMiddleware.js
 
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
@@ -7,9 +8,6 @@ export const ensureAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // ─────────────────────────────
-    // Check Authorization Header
-    // ─────────────────────────────
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         status: "error",
@@ -19,15 +17,12 @@ export const ensureAuth = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    // ─────────────────────────────
-    // Verify JWT
-    // ─────────────────────────────
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ─────────────────────────────
-    // Fetch User (lean for performance)
-    // ─────────────────────────────
-    const user = await User.findById(decoded.id).select("-password").lean();
+    // 🔥 Include subscription fields
+    const user = await User.findById(decoded.id)
+      .select("-password")
+      .lean();
 
     if (!user) {
       return res.status(401).json({
@@ -36,17 +31,21 @@ export const ensureAuth = async (req, res, next) => {
       });
     }
 
-    // Attach user to request
-    // normalize user object
     req.user = {
       id: user._id.toString(),
       email: user.email,
       provider: user.provider,
+
+      // 🔥 SaaS fields
+      subscription: user.subscription,
+      subscriptionStatus: user.subscriptionStatus,
+      plan: user.plan,
+      expiresAt: user.expiresAt,
+      role: user.role || "user",
     };
 
     next();
   } catch (error) {
-    // Token expired
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({
         status: "error",
@@ -54,7 +53,6 @@ export const ensureAuth = async (req, res, next) => {
       });
     }
 
-    // Invalid token
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
         status: "error",

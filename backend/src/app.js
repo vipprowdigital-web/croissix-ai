@@ -35,6 +35,7 @@ import domainsRoutes from "./routes/domain.routes.js";
 import policyRoutes from "./routes/policy.routes.js";
 import contatUsRoutes from "./routes/contactus.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
+import subscriptionRoutes from "./routes/subscription.routes.js";
 
 // ===============================================
 // 🧠 Environment Config
@@ -50,7 +51,13 @@ const allowedOrigins = [
 
   "http://localhost:3000",
 ];
-
+// ===============================================
+// 🔥 WEBHOOK FIRST (VERY IMPORTANT)
+// ===============================================
+app.use(
+  "/api/v1/subscription/webhook",
+  express.raw({ type: "application/json" }),
+);
 // ===============================================
 // 🧱 Core Middleware
 // ===============================================
@@ -72,7 +79,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -138,6 +145,7 @@ app.use(`${routePrefix}/domains`, domainsRoutes);
 app.use(`${routePrefix}/policy`, policyRoutes);
 app.use(`${routePrefix}/contact`, contatUsRoutes);
 app.use(`${routePrefix}/upload`, uploadRoutes);
+app.use(`${routePrefix}/subscription`, subscriptionRoutes);
 
 // ===============================================
 // 🩵 Health Check
