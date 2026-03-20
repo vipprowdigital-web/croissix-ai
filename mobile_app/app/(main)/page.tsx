@@ -50,6 +50,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import CibilScore from "@/components/cards/Cibilscore";
+import CroissixBanner from "@/components/banners/CroissixBanner";
+import ServicesSlider from "@/components/banners/ServicesSlider";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES
@@ -2150,7 +2152,6 @@ export default function HomePage() {
             initial="hidden"
             animate="show"
           >
-           
             {/* ─── NOT CONNECTED / ERROR (full width) ─── */}
             <AnimatePresence>
               {!user?.googleLocationId && (
@@ -2191,19 +2192,18 @@ export default function HomePage() {
                 DESKTOP 2-COLUMN GRID
             ══════════════════════════════════════════════ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-           
               {/* ─── LEFT COLUMN ─── */}
               <div className="flex flex-col gap-6">
-                    {/* ─── CIBIL SCORE (full width) ─── */}
-            <motion.div
-              className="pb-4 flex items-center justify-center"
-              variants={scaleIn}
-              initial="hidden"
-              animate="show"
-              transition={{ delay: 0.2 }}
-            >
-              <CibilScore />
-            </motion.div>
+                {/* ─── CIBIL SCORE (full width) ─── */}
+                <motion.div
+                  className="pb-4 flex items-center justify-center"
+                  variants={scaleIn}
+                  initial="hidden"
+                  animate="show"
+                  transition={{ delay: 0.2 }}
+                >
+                  <CibilScore />
+                </motion.div>
                 {/* Platforms */}
                 <motion.div variants={fadeUp}>
                   <SectionHeader
@@ -2234,6 +2234,7 @@ export default function HomePage() {
                     />
                   </motion.div>
                 )}
+                <CroissixBanner dismissible={false} />
 
                 {/* Quick Actions */}
                 <motion.div variants={fadeUp}>
@@ -2243,7 +2244,6 @@ export default function HomePage() {
                     onNavigate={(r) => router.push(r)}
                   />
                 </motion.div>
-
                 {/* Metrics */}
                 {metrics.length > 0 && (
                   <motion.div variants={fadeUp}>
@@ -2259,7 +2259,6 @@ export default function HomePage() {
                     <MetricScrollStrip metrics={metrics} isDark={isDark} />
                   </motion.div>
                 )}
-
                 {/* Competitor Analysis */}
                 {s && (
                   <motion.div variants={fadeUp}>
@@ -2425,6 +2424,7 @@ export default function HomePage() {
                   </motion.div>
                 )}
 
+                <ServicesSlider />
                 {/* Social divider */}
                 <motion.div
                   className="flex items-center gap-3 py-2"
