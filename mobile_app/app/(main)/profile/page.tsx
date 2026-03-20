@@ -1166,7 +1166,7 @@ export default function ProfilePage() {
 
   return (
     <div
-      className="w-full pt-2 pb-20"
+      className="w-full pt-2 pb-2"
       style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}
     >
       {/* QR Modal */}

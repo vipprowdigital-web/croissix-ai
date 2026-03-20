@@ -246,7 +246,7 @@ export function DesktopSidebar() {
           </span>
           <span className="flex flex-col">
             <span
-              className="text-[17px] font-bold leading-none"
+              className="text-[17px] font-semibold leading-none"
               style={{
                 letterSpacing: "-0.03em",
                 color: titleColor,
@@ -257,7 +257,7 @@ export function DesktopSidebar() {
               Croissix
             </span>
             <span
-              className="text-[10px] font-semibold uppercase mt-0.5"
+              className="text-[10px] font-semibold uppercase mt-2"
               style={{
                 letterSpacing: "0.06em",
                 color: tagColor,

@@ -214,12 +214,13 @@ export const MobileNavbar = () => {
                 style={{
                   fontFamily:
                     "-apple-system, BlinkMacSystemFont, 'SF Pro Display', var(--font-sans)",
-                  fontSize: 17,
-                  fontWeight: 700,
-                  letterSpacing: "-0.03em",
+                  fontSize: 18,
+                  fontWeight: 900,
+                  letterSpacing: "0.07em",
                   color: titleColor,
                   lineHeight: 1.15,
                   transition: "color .3s",
+                  marginBottom: 4,
                 }}
               >
                 Croissix
