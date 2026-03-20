@@ -34,7 +34,7 @@ export default function MainLayout({
 
           {/* Page content */}
           <main className="flex-grow px-4 md:px-6 lg:px-8 pb-28 md:pb-8">
-            <div className="mx-auto max-w-5xl w-full">{children}</div>
+            <div className="mx-auto w-full">{children}</div>
           </main>
         </div>
 

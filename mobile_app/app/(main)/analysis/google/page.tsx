@@ -1,5 +1,6 @@
 // mobile_app\app\(main)\analysis\google\page.tsx
 
+// mobile_app\app\(main)\analysis\google\page.tsx
 
 "use client";
 
@@ -64,27 +65,22 @@ const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
-
 const fadeIn = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { duration: 0.35 } },
 };
-
 const scaleIn = {
   hidden: { opacity: 0, scale: 0.92 },
   show: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: [0.34, 1.2, 0.64, 1] } },
 };
-
 const staggerContainer = {
   hidden: {},
   show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
 };
-
 const staggerItem = {
   hidden: { opacity: 0, y: 16, scale: 0.96 },
   show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.34, 1.26, 0.64, 1] } },
 };
-
 const slideInLeft = {
   hidden: { opacity: 0, x: -20 },
   show: { opacity: 1, x: 0, transition: { duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] } },
@@ -120,7 +116,7 @@ function pct(a: number, b: number) { if (!b) return "0%"; return Math.round((a /
 function trendIcon(val: number, isDark: boolean) {
   if (val > 0) return <TrendingUp size={12} className="text-green-400" />;
   if (val < 0) return <TrendingDown size={12} className="text-red-400" />;
-  return <Minus size={12} className={isDark ? "text-slate-500" : "text-slate-700"} />;
+  return <Minus size={12} className={isDark ? "text-slate-500" : "text-slate-400"} />;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -150,7 +146,6 @@ function AnimatedNumber({ value, className, style }: { value: string | number; c
   }, [inView]);
 
   if (!isNum) return <span ref={ref} className={className} style={style}>{value}</span>;
-
   return (
     <span ref={ref} className={className} style={style}>
       {inView ? <motion.span>{display}</motion.span> : value}
@@ -198,13 +193,12 @@ function StatCard({ label, value, icon, color, sub, trend, isDark }: {
       whileTap={{ scale: 0.97 }}
       className={`rounded-2xl p-4 border flex flex-col gap-2 relative overflow-hidden
         ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05] shadow-sm"}`}>
-      {/* animated glow */}
       <motion.div className="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-xl"
         style={{ background: color, opacity: 0.06 }}
         animate={{ scale: [1, 1.4, 1], opacity: [0.06, 0.12, 0.06] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
       <div className="flex items-center justify-between">
-        <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-700"}`}>
+        <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"}`}>
           {label}
         </span>
         <motion.span className="p-2 rounded-xl" style={{ background: `${color}18` }}
@@ -220,13 +214,13 @@ function StatCard({ label, value, icon, color, sub, trend, isDark }: {
           <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
             className={`flex items-center gap-0.5 mb-0.5 text-[12px] font-semibold
-              ${trend > 0 ? "text-green-400" : trend < 0 ? "text-red-400" : isDark ? "text-slate-500" : "text-slate-700"}`}>
+              ${trend > 0 ? "text-green-400" : trend < 0 ? "text-red-400" : isDark ? "text-slate-500" : "text-slate-400"}`}>
             {trendIcon(trend, isDark)}
             {trend !== 0 && `${Math.abs(trend)}%`}
           </motion.div>
         )}
       </div>
-      {sub && <span className={`text-[12px] ${isDark ? "text-slate-600" : "text-slate-700"}`}>{sub}</span>}
+      {sub && <span className={`text-[12px] ${isDark ? "text-slate-600" : "text-slate-400"}`}>{sub}</span>}
     </motion.div>
   );
 }
@@ -246,7 +240,7 @@ function ChartCard({ title, subtitle, children, isDark, action }: {
         ${isDark ? "border-white/[0.05]" : "border-slate-100"}`}>
         <div>
           <p className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{title}</p>
-          {subtitle && <p className={`text-[12px] mt-0.5 ${isDark ? "text-slate-500" : "text-slate-700"}`}>{subtitle}</p>}
+          {subtitle && <p className={`text-[12px] mt-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>{subtitle}</p>}
         </div>
         {action}
       </div>
@@ -269,7 +263,7 @@ function CustomTooltip({ active, payload, label, isDark }: any) {
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-          <span className={isDark ? "text-slate-700" : "text-slate-500"}>{p.name}:</span>
+          <span className={isDark ? "text-slate-400" : "text-slate-500"}>{p.name}:</span>
           <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{fmt(p.value)}</span>
         </div>
       ))}
@@ -278,39 +272,42 @@ function CustomTooltip({ active, payload, label, isDark }: any) {
 }
 
 /* ══════════════════════════════════════════════════════════
-   SKELETON
+   SKELETON — responsive 2-col on desktop
 ══════════════════════════════════════════════════════════ */
 function PageSkeleton({ isDark }: { isDark: boolean }) {
   return (
     <motion.div className="flex flex-col gap-4"
       variants={staggerContainer} initial="hidden" animate="show">
-      <motion.div variants={fadeUp} className="grid grid-cols-2 gap-3">
+      {/* stat grid: 2-col mobile, 3-col desktop */}
+      <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {[...Array(6)].map((_, i) => (
           <div key={i} className={`rounded-2xl p-4 h-24 border ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05]"}`}>
             <Sk isDark={isDark} className="h-2.5 w-20 mb-3" /><Sk isDark={isDark} className="h-7 w-16" />
           </div>
         ))}
       </motion.div>
-      {[0, 1].map((i) => (
-        <motion.div key={i} variants={fadeUp}
-          className={`rounded-2xl border h-56 ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05]"}`}>
-          <div className="p-4"><Sk isDark={isDark} className="h-3 w-32 mb-2" /><Sk isDark={isDark} className="h-2 w-20" /></div>
-          <div className="px-4 pb-4"><Sk isDark={isDark} className="h-32 w-full rounded-xl" /></div>
-        </motion.div>
-      ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <motion.div key={i} variants={fadeUp}
+            className={`rounded-2xl border h-56 ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05]"}`}>
+            <div className="p-4"><Sk isDark={isDark} className="h-3 w-32 mb-2" /><Sk isDark={isDark} className="h-2 w-20" /></div>
+            <div className="px-4 pb-4"><Sk isDark={isDark} className="h-32 w-full rounded-xl" /></div>
+          </motion.div>
+        ))}
+      </div>
     </motion.div>
   );
 }
 
 /* ══════════════════════════════════════════════════════════
-   STAR ROW (animated bar)
+   STAR ROW
 ══════════════════════════════════════════════════════════ */
 function StarRow({ rating, count, max, isDark }: { rating: number; count: number; max: number; isDark: boolean }) {
   const w = max ? Math.round((count / max) * 100) : 0;
   const colors = ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"];
   return (
     <div className="flex items-center gap-2">
-      <span className={`text-[12px] font-bold w-3 ${isDark ? "text-slate-700" : "text-slate-600"}`}>{rating}</span>
+      <span className={`text-[12px] font-bold w-3 ${isDark ? "text-slate-500" : "text-slate-400"}`}>{rating}</span>
       <Star size={10} className="shrink-0" style={{ color: colors[rating - 1], fill: colors[rating - 1] }} />
       <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDark ? "bg-white/[0.07]" : "bg-slate-100"}`}>
         <motion.div className="h-full rounded-full"
@@ -320,7 +317,7 @@ function StarRow({ rating, count, max, isDark }: { rating: number; count: number
           transition={{ duration: 0.9, ease: "easeOut", delay: (5 - rating) * 0.08 }}
           viewport={{ once: true }} />
       </div>
-      <span className={`text-[10px] font-medium w-6 text-right ${isDark ? "text-slate-500" : "text-slate-700"}`}>{count}</span>
+      <span className={`text-[10px] font-medium w-6 text-right ${isDark ? "text-slate-500" : "text-slate-400"}`}>{count}</span>
     </div>
   );
 }
@@ -335,10 +332,8 @@ function ReviewCard({ review, isDark, index }: {
   const [exp, setExp] = useState(false);
   return (
     <motion.div
-      initial={{ opacity: 0, x: -16 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.08, duration: 0.36 }}
-      viewport={{ once: true }}
+      initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.08, duration: 0.36 }} viewport={{ once: true }}
       whileHover={{ x: 2, transition: { duration: 0.18 } }}
       className={`p-3.5 rounded-2xl border ${isDark ? "bg-[#182236] border-white/[0.05]" : "bg-slate-50 border-slate-100"}`}>
       <div className="flex items-start gap-2.5 mb-2">
@@ -360,7 +355,7 @@ function ReviewCard({ review, isDark, index }: {
                 </motion.div>
               ))}
             </div>
-            <span className={`text-[10px] ${isDark ? "text-slate-600" : "text-slate-700"}`}>{fmtDate(review.date)}</span>
+            <span className={`text-[10px] ${isDark ? "text-slate-600" : "text-slate-400"}`}>{fmtDate(review.date)}</span>
           </div>
         </div>
         <AnimatePresence>
@@ -375,7 +370,7 @@ function ReviewCard({ review, isDark, index }: {
         </AnimatePresence>
       </div>
       {review.comment && (
-        <p className={`text-[12px] leading-relaxed ${isDark ? "text-slate-700" : "text-slate-600"}`}>
+        <p className={`text-[12px] leading-relaxed ${isDark ? "text-slate-400" : "text-slate-600"}`}>
           {exp || review.comment.length <= 80 ? review.comment : review.comment.slice(0, 80) + "…"}
           {review.comment.length > 80 && (
             <motion.button onClick={() => setExp(v => !v)} whileTap={{ scale: 0.9 }}
@@ -406,7 +401,7 @@ function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, value }: any) {
 }
 
 /* ══════════════════════════════════════════════════════════
-   DOWNLOAD HELPERS (unchanged)
+   DOWNLOAD HELPERS
 ══════════════════════════════════════════════════════════ */
 function downloadCSV(data: AnalysisData, range: RangeKey) {
   const rows: string[][] = [];
@@ -456,9 +451,9 @@ function downloadReport(data: AnalysisData, range: RangeKey, locationName: strin
 /* ══════════════════════════════════════════════════════════
    ANIMATED PROGRESS BAR
 ══════════════════════════════════════════════════════════ */
-function AnimatedBar({ pctValue, color, className = "" }: { pctValue: string; color: string; className?: string }) {
+function AnimatedBar({ pctValue, color }: { pctValue: string; color: string }) {
   return (
-    <motion.div className={`h-full rounded-full ${className}`} style={{ background: color }}
+    <motion.div className="h-full rounded-full" style={{ background: color }}
       initial={{ width: 0 }}
       whileInView={{ width: pctValue }}
       transition={{ duration: 0.85, ease: "easeOut" }}
@@ -488,7 +483,7 @@ function RatingRing({ avgRating, isDark }: { avgRating: number; isDark: boolean 
         <AnimatedNumber value={`${avgRating}`}
           className={`text-[18px] font-black leading-none ${isDark ? "text-white" : "text-slate-900"}`}
           style={{ letterSpacing: "-0.04em" }} />
-        <span className={`text-[9px] font-semibold ${isDark ? "text-slate-500" : "text-slate-700"}`}>/ 5.0</span>
+        <span className={`text-[9px] font-semibold ${isDark ? "text-slate-500" : "text-slate-400"}`}>/ 5.0</span>
       </div>
     </div>
   );
@@ -558,181 +553,184 @@ export default function GoogleAnalysisPage() {
   const locationName = user?.googleLocationName ?? "Please connect your business.";
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDark ? "bg-[#0d1421]" : "bg-[#eef2fb]"}`}
-      style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>
-      <div className="max-w-lg mx-auto px-4 pb-28">
+    <div className="w-full" style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}>
 
-        {/* ══ HEADER ══ */}
-        <motion.div className="pt-4 pb-4"
-          initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <motion.div className="flex items-center gap-2 mb-0.5"
-                initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.38 }}>
-                <GoogleLogo size={16} />
-                <h1 className={`text-[18px] font-black ${isDark ? "text-white" : "text-slate-900"}`}>Analytics</h1>
-                <AnimatePresence>
-                  {isFetching && !isLoading && (
-                    <motion.div initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.6 }}>
-                      <Spin size={13} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-              <motion.div className="flex items-center gap-1.5"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                <Building2 size={11} className={isDark ? "text-slate-600" : "text-slate-900"} />
-                <span className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-900"}`}>{locationName}</span>
-              </motion.div>
-            </div>
-
-            <motion.div className="flex items-center gap-2"
-              initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15, duration: 0.38 }}>
-              <motion.button onClick={() => refetch()} disabled={isFetching}
-                whileTap={{ scale: 0.88, rotate: 180 }}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all disabled:opacity-40
-                  ${isDark ? "bg-white/[0.07] text-slate-700 hover:bg-white/[0.12]" : "bg-white text-slate-500 border border-slate-200"}`}>
-                <motion.div animate={isFetching ? { rotate: 360 } : {}}
-                  transition={isFetching ? { duration: 0.9, repeat: Infinity, ease: "linear" } : {}}>
-                  <RefreshCw size={14} />
-                </motion.div>
-              </motion.button>
-
-              <div className="relative" ref={dlRef}>
-                <motion.button onClick={() => setShowDl(v => !v)} disabled={!data}
-                  whileTap={{ scale: 0.93 }}
-                  className={`flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12px] font-bold transition-all disabled:opacity-30
-                    ${isDark ? "bg-white/[0.07] text-slate-300 hover:bg-white/[0.12]" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
-                  <Download size={13} />
-                  Report
-                  <motion.div animate={{ rotate: showDl ? 180 : 0 }} transition={{ duration: 0.22 }}>
-                    <ChevronDown size={12} />
+      {/* ══ HEADER ══ */}
+      <motion.div className="pt-2 pb-4"
+        initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <motion.div className="flex items-center gap-2 mb-0.5"
+              initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1, duration: 0.38 }}>
+              <GoogleLogo size={16} />
+              <h1 className={`text-[18px] font-black ${isDark ? "text-white" : "text-slate-900"}`}>
+                Google Analytics
+              </h1>
+              <AnimatePresence>
+                {isFetching && !isLoading && (
+                  <motion.div initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.6 }}>
+                    <Spin size={13} />
                   </motion.div>
-                </motion.button>
-                <AnimatePresence>
-                  {showDl && data && (
-                    <motion.div initial={{ opacity: 0, scale: 0.92, y: -6 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.92, y: -6 }}
-                      transition={{ duration: 0.18, ease: [0.34, 1.2, 0.64, 1] }}
-                      className={`absolute right-0 top-11 z-[100] rounded-2xl border overflow-hidden shadow-2xl min-w-[160px]
-                        ${isDark ? "bg-[#1e2a42] border-white/[0.08]" : "bg-white border-black/[0.07]"}`}>
-                      <motion.button onClick={() => { downloadCSV(data, range); setShowDl(false); }}
-                        whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }}
-                        className={`w-full flex items-center gap-2.5 px-4 py-3 text-[13px] transition-colors
-                          ${isDark ? "text-slate-300 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50"}`}>
-                        <FileText size={13} className="text-blue-500" /> Export CSV
-                      </motion.button>
-                      <div className={`h-px mx-3 ${isDark ? "bg-white/[0.06]" : "bg-slate-100"}`} />
-                      <motion.button onClick={() => { downloadReport(data, range, locationName); setShowDl(false); }}
-                        whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }}
-                        className={`w-full flex items-center gap-2.5 px-4 py-3 text-[13px] transition-colors
-                          ${isDark ? "text-slate-300 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50"}`}>
-                        <Download size={13} className="text-purple-500" /> PDF Report
-                      </motion.button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+            <motion.div className="flex items-center gap-1.5"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+              <Building2 size={11} className={isDark ? "text-slate-600" : "text-slate-400"} />
+              <span className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-500"}`}>{locationName}</span>
             </motion.div>
           </div>
 
-          {/* range filters */}
-          <motion.div className="flex gap-1.5 mt-3"
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.35 }}>
-            {RANGES.map((r, i) => (
-              <motion.button key={r.id} onClick={() => setRange(r.id)}
+          <motion.div className="flex items-center gap-2"
+            initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15, duration: 0.38 }}>
+            <motion.button onClick={() => refetch()} disabled={isFetching}
+              whileTap={{ scale: 0.88, rotate: 180 }}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all disabled:opacity-40
+                ${isDark ? "bg-white/[0.07] text-slate-400 hover:bg-white/[0.12]" : "bg-white text-slate-500 border border-slate-200"}`}>
+              <motion.div animate={isFetching ? { rotate: 360 } : {}}
+                transition={isFetching ? { duration: 0.9, repeat: Infinity, ease: "linear" } : {}}>
+                <RefreshCw size={14} />
+              </motion.div>
+            </motion.button>
+
+            <div className="relative" ref={dlRef}>
+              <motion.button onClick={() => setShowDl(v => !v)} disabled={!data}
                 whileTap={{ scale: 0.93 }}
-                className={`h-8 px-4 rounded-xl text-[12px] font-semibold transition-all relative overflow-hidden
-                  ${range === r.id
-                    ? "bg-blue-500 text-white shadow-sm"
-                    : isDark ? "bg-white/[0.07] text-slate-700 hover:bg-white/[0.12]"
-                    : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
-                {range === r.id && (
-                  <motion.div layoutId="range-pill"
-                    className="absolute inset-0 bg-blue-500 rounded-xl -z-10"
-                    transition={{ type: "spring", stiffness: 280, damping: 26 }} />
-                )}
-                {r.label}
-              </motion.button>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        {/* ══ NOT CONNECTED ══ */}
-        <AnimatePresence>
-          {!userLoading && !user?.googleLocationId && (
-            <motion.div variants={scaleIn} initial="hidden" animate="show" exit={{ opacity: 0, scale: 0.95 }}
-              className={`rounded-2xl p-10 text-center border
-                ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05]"}`}>
-              <motion.div animate={{ rotate: [0, -5, 5, 0] }} transition={{ duration: 3, repeat: Infinity }}>
-                <Building2 size={32} className={`mx-auto mb-3 ${isDark ? "text-slate-600" : "text-slate-300"}`} />
-              </motion.div>
-              <p className={`text-[14px] font-bold mb-1 ${isDark ? "text-white" : "text-slate-900"}`}>No Google Business Linked</p>
-              <p className={`text-[12.5px] ${isDark ? "text-slate-500" : "text-slate-700"}`}>
-                Link your Google Business Profile in the Profile page.
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ══ ERROR ══ */}
-        <AnimatePresence>
-          {isError && (
-            <motion.div variants={fadeUp} initial="hidden" animate="show"
-              exit={{ opacity: 0, height: 0 }}
-              className={`rounded-2xl p-4 flex items-start gap-3 border mb-4
-                ${isDark ? "bg-red-500/[0.08] border-red-500/20" : "bg-red-50 border-red-200"}`}>
-              <WifiOff size={16} className="text-red-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[13px] font-semibold text-red-400 mb-0.5">Failed to load analytics</p>
-                <p className={`text-[12px] ${isDark ? "text-red-500/70" : "text-red-400"}`}>{(error as any)?.message}</p>
-                <motion.button onClick={() => refetch()} whileTap={{ scale: 0.93 }}
-                  className="mt-1.5 text-[12px] font-semibold text-blue-500">Retry</motion.button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ══ SKELETON ══ */}
-        {isInitial && user?.googleLocationId && <PageSkeleton isDark={isDark} />}
-
-        {/* ══ MAIN CONTENT ══ */}
-        <AnimatePresence mode="wait">
-          {data && s && (
-            <motion.div key={range} className="flex flex-col gap-4"
-              variants={staggerContainer} initial="hidden" animate="show"
-              exit={{ opacity: 0, y: 10, transition: { duration: 0.2 } }}>
-
-              {/* date range badge */}
-              <motion.div variants={slideInLeft}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl self-start text-[12px] font-semibold border
-                  ${isDark ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-600"}`}>
-                <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 4, repeat: Infinity }}>
-                  <Calendar size={11} />
+                className={`flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12px] font-bold transition-all disabled:opacity-30
+                  ${isDark ? "bg-white/[0.07] text-slate-300 hover:bg-white/[0.12]" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
+                <Download size={13} />
+                Report
+                <motion.div animate={{ rotate: showDl ? 180 : 0 }} transition={{ duration: 0.22 }}>
+                  <ChevronDown size={12} />
                 </motion.div>
-                {fmtDate(data.startDate)} – {fmtDate(data.endDate)}
-              </motion.div>
+              </motion.button>
+              <AnimatePresence>
+                {showDl && data && (
+                  <motion.div initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                    transition={{ duration: 0.18, ease: [0.34, 1.2, 0.64, 1] }}
+                    className={`absolute right-0 top-11 z-[100] rounded-2xl border overflow-hidden shadow-2xl min-w-[160px]
+                      ${isDark ? "bg-[#1e2a42] border-white/[0.08]" : "bg-white border-black/[0.07]"}`}>
+                    <motion.button onClick={() => { downloadCSV(data, range); setShowDl(false); }}
+                      whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }}
+                      className={`w-full flex items-center gap-2.5 px-4 py-3 text-[13px] transition-colors
+                        ${isDark ? "text-slate-300 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50"}`}>
+                      <FileText size={13} className="text-blue-500" /> Export CSV
+                    </motion.button>
+                    <div className={`h-px mx-3 ${isDark ? "bg-white/[0.06]" : "bg-slate-100"}`} />
+                    <motion.button onClick={() => { downloadReport(data, range, locationName); setShowDl(false); }}
+                      whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }}
+                      className={`w-full flex items-center gap-2.5 px-4 py-3 text-[13px] transition-colors
+                        ${isDark ? "text-slate-300 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50"}`}>
+                      <Download size={13} className="text-purple-500" /> PDF Report
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </div>
 
-              {/* ── STAT GRID ── */}
-              <motion.div className="grid grid-cols-2 gap-3"
-                variants={staggerContainer}>
-                <StatCard label="Impressions"    value={s.totalImpressions}  icon={<Eye size={14} />}           color="#3b82f6" isDark={isDark} />
-                <StatCard label="Calls"          value={s.totalCalls}         icon={<Phone size={14} />}         color="#22c55e" isDark={isDark} />
-                <StatCard label="Website Clicks" value={s.totalWebsite}       icon={<Globe size={14} />}         color="#8b5cf6" isDark={isDark} />
-                <StatCard label="Directions"     value={s.totalDirections}    icon={<Navigation size={14} />}    color="#f97316" isDark={isDark} />
-                <StatCard label="Avg Rating"     value={`${s.avgRating} ★`}   icon={<Star size={14} />}          color="#f59e0b"
-                  sub={`${s.totalReviews} reviews`} isDark={isDark} />
-                <StatCard label="Reply Rate"     value={`${s.replyRate}%`}    icon={<MessageSquare size={14} />} color="#06b6d4"
-                  sub="Reviews replied" isDark={isDark} />
-              </motion.div>
+        {/* range filters */}
+        <motion.div className="flex gap-1.5 mt-3"
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.35 }}>
+          {RANGES.map((r) => (
+            <motion.button key={r.id} onClick={() => setRange(r.id)}
+              whileTap={{ scale: 0.93 }}
+              className={`h-8 px-4 rounded-xl text-[12px] font-semibold transition-all relative overflow-hidden
+                ${range === r.id
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : isDark ? "bg-white/[0.07] text-slate-400 hover:bg-white/[0.12]"
+                  : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+              {range === r.id && (
+                <motion.div layoutId="range-pill"
+                  className="absolute inset-0 bg-blue-500 rounded-xl -z-10"
+                  transition={{ type: "spring", stiffness: 280, damping: 26 }} />
+              )}
+              {r.label}
+            </motion.button>
+          ))}
+        </motion.div>
+      </motion.div>
 
-              {/* ── IMPRESSIONS CHART ── */}
+      {/* ══ NOT CONNECTED ══ */}
+      <AnimatePresence>
+        {!userLoading && !user?.googleLocationId && (
+          <motion.div variants={scaleIn} initial="hidden" animate="show" exit={{ opacity: 0, scale: 0.95 }}
+            className={`rounded-2xl p-10 text-center border
+              ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05]"}`}>
+            <motion.div animate={{ rotate: [0, -5, 5, 0] }} transition={{ duration: 3, repeat: Infinity }}>
+              <Building2 size={32} className={`mx-auto mb-3 ${isDark ? "text-slate-600" : "text-slate-300"}`} />
+            </motion.div>
+            <p className={`text-[14px] font-bold mb-1 ${isDark ? "text-white" : "text-slate-900"}`}>No Google Business Linked</p>
+            <p className={`text-[12.5px] ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+              Link your Google Business Profile in the Profile page.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══ ERROR ══ */}
+      <AnimatePresence>
+        {isError && (
+          <motion.div variants={fadeUp} initial="hidden" animate="show"
+            exit={{ opacity: 0, height: 0 }}
+            className={`rounded-2xl p-4 flex items-start gap-3 border mb-4
+              ${isDark ? "bg-red-500/[0.08] border-red-500/20" : "bg-red-50 border-red-200"}`}>
+            <WifiOff size={16} className="text-red-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-red-400 mb-0.5">Failed to load analytics</p>
+              <p className={`text-[12px] ${isDark ? "text-red-500/70" : "text-red-400"}`}>{(error as any)?.message}</p>
+              <motion.button onClick={() => refetch()} whileTap={{ scale: 0.93 }}
+                className="mt-1.5 text-[12px] font-semibold text-blue-500">Retry</motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══ SKELETON ══ */}
+      {isInitial && user?.googleLocationId && <PageSkeleton isDark={isDark} />}
+
+      {/* ══ MAIN CONTENT ══ */}
+      <AnimatePresence mode="wait">
+        {data && s && (
+          <motion.div key={range} className="flex flex-col gap-4"
+            variants={staggerContainer} initial="hidden" animate="show"
+            exit={{ opacity: 0, y: 10, transition: { duration: 0.2 } }}>
+
+            {/* date range badge */}
+            <motion.div variants={slideInLeft}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl self-start text-[12px] font-semibold border
+                ${isDark ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-600"}`}>
+              <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 4, repeat: Infinity }}>
+                <Calendar size={11} />
+              </motion.div>
+              {fmtDate(data.startDate)} – {fmtDate(data.endDate)}
+            </motion.div>
+
+            {/* ── STAT GRID: 2-col mobile → 3-col desktop ── */}
+            <motion.div className="grid grid-cols-2 md:grid-cols-6 gap-3"
+              variants={staggerContainer}>
+              <StatCard label="Impressions"    value={s.totalImpressions}  icon={<Eye size={14} />}           color="#3b82f6" isDark={isDark} />
+              <StatCard label="Calls"          value={s.totalCalls}         icon={<Phone size={14} />}         color="#22c55e" isDark={isDark} />
+              <StatCard label="Website Clicks" value={s.totalWebsite}       icon={<Globe size={14} />}         color="#8b5cf6" isDark={isDark} />
+              <StatCard label="Directions"     value={s.totalDirections}    icon={<Navigation size={14} />}    color="#f97316" isDark={isDark} />
+              <StatCard label="Avg Rating"     value={`${s.avgRating} ★`}   icon={<Star size={14} />}          color="#f59e0b"
+                sub={`${s.totalReviews} reviews`} isDark={isDark} />
+              <StatCard label="Reply Rate"     value={`${s.replyRate}%`}    icon={<MessageSquare size={14} />} color="#06b6d4"
+                sub="Reviews replied" isDark={isDark} />
+            </motion.div>
+
+            {/* ── CHARTS: stacked mobile → 2-col desktop ── */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+              {/* Impressions Chart */}
               <ChartCard title="Impressions Over Time" subtitle={`Desktop + Mobile · ${range}`} isDark={isDark}
                 action={
                   <div className="flex gap-1">
@@ -740,7 +738,7 @@ export default function GoogleAnalysisPage() {
                       <motion.button key={t} onClick={() => setActiveChart(t)}
                         whileTap={{ scale: 0.9 }}
                         className={`h-7 px-2.5 rounded-lg text-[12px] font-semibold transition-all
-                          ${activeChart === t ? "bg-blue-500 text-white" : isDark ? "bg-white/[0.07] text-slate-700" : "bg-slate-100 text-slate-500"}`}>
+                          ${activeChart === t ? "bg-blue-500 text-white" : isDark ? "bg-white/[0.07] text-slate-400" : "bg-slate-100 text-slate-500"}`}>
                         {t === "area" ? "Area" : "Bar"}
                       </motion.button>
                     ))}
@@ -765,7 +763,7 @@ export default function GoogleAnalysisPage() {
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                           <XAxis dataKey="name" tick={{ fill: axisLblColor, fontSize: 10 }} tickLine={false} axisLine={false}
-                            interval={Math.floor(impData.length / 6)} />
+                            interval={Math.floor(impData.length / 5)} />
                           <YAxis tick={{ fill: axisLblColor, fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={fmt} />
                           <Tooltip content={<CustomTooltip isDark={isDark} />} />
                           <Legend iconType="circle" iconSize={8}
@@ -781,7 +779,7 @@ export default function GoogleAnalysisPage() {
                         <BarChart data={impData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barGap={2}>
                           <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                           <XAxis dataKey="name" tick={{ fill: axisLblColor, fontSize: 10 }} tickLine={false} axisLine={false}
-                            interval={Math.floor(impData.length / 6)} />
+                            interval={Math.floor(impData.length / 5)} />
                           <YAxis tick={{ fill: axisLblColor, fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={fmt} />
                           <Tooltip content={<CustomTooltip isDark={isDark} />} />
                           <Legend iconType="circle" iconSize={8}
@@ -797,13 +795,13 @@ export default function GoogleAnalysisPage() {
                 </AnimatePresence>
               </ChartCard>
 
-              {/* ── ACTIONS CHART ── */}
+              {/* Actions Chart */}
               <ChartCard title="Customer Actions" subtitle={`Calls · Website · Directions · ${range}`} isDark={isDark}>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={actData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                     <XAxis dataKey="name" tick={{ fill: axisLblColor, fontSize: 10 }} tickLine={false} axisLine={false}
-                      interval={Math.floor(actData.length / 6)} />
+                      interval={Math.floor(actData.length / 5)} />
                     <YAxis tick={{ fill: axisLblColor, fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={fmt} />
                     <Tooltip content={<CustomTooltip isDark={isDark} />} />
                     <Legend iconType="circle" iconSize={8}
@@ -818,7 +816,7 @@ export default function GoogleAnalysisPage() {
                 </ResponsiveContainer>
               </ChartCard>
 
-              {/* ── IMPRESSION SOURCE PIE ── */}
+              {/* Impression Source Pie */}
               {pieData.length > 0 && (
                 <ChartCard title="Impression Sources" subtitle="Where customers found you" isDark={isDark}>
                   <div className="flex items-center gap-4">
@@ -843,7 +841,7 @@ export default function GoogleAnalysisPage() {
                           <span className="w-2.5 h-2.5 rounded-sm shrink-0"
                             style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
                           <div>
-                            <p className={`text-[10px] font-semibold leading-tight ${isDark ? "text-slate-700" : "text-slate-600"}`}>{d.name}</p>
+                            <p className={`text-[10px] font-semibold leading-tight ${isDark ? "text-slate-400" : "text-slate-500"}`}>{d.name}</p>
                             <p className={`text-[12px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{fmt(d.value)}</p>
                           </div>
                         </motion.div>
@@ -854,10 +852,10 @@ export default function GoogleAnalysisPage() {
                   <motion.div className={`grid grid-cols-2 gap-2 mt-3 pt-3 border-t ${isDark ? "border-white/[0.05]" : "border-slate-100"}`}
                     variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }}>
                     {[
-                      { label: "Desktop Maps", icon: <Monitor size={11} />, color: "#3b82f6", val: data.charts.impressionBreakdown.desktopMaps },
-                      { label: "Desktop Search", icon: <Search size={11} />, color: "#6366f1", val: data.charts.impressionBreakdown.desktopSearch },
-                      { label: "Mobile Maps", icon: <Smartphone size={11} />, color: "#06b6d4", val: data.charts.impressionBreakdown.mobileMaps },
-                      { label: "Mobile Search", icon: <Search size={11} />, color: "#8b5cf6", val: data.charts.impressionBreakdown.mobileSearch },
+                      { label: "Desktop Maps",   icon: <Monitor size={11} />,    color: "#3b82f6", val: data.charts.impressionBreakdown.desktopMaps },
+                      { label: "Desktop Search", icon: <Search size={11} />,     color: "#6366f1", val: data.charts.impressionBreakdown.desktopSearch },
+                      { label: "Mobile Maps",    icon: <Smartphone size={11} />, color: "#06b6d4", val: data.charts.impressionBreakdown.mobileMaps },
+                      { label: "Mobile Search",  icon: <Search size={11} />,     color: "#8b5cf6", val: data.charts.impressionBreakdown.mobileSearch },
                     ].map((row, i) => (
                       <motion.div key={i} variants={staggerItem} whileHover={{ y: -2, transition: { duration: 0.18 } }}
                         className={`flex items-center gap-2 p-2.5 rounded-xl ${isDark ? "bg-white/[0.03]" : "bg-slate-50"}`}>
@@ -866,7 +864,7 @@ export default function GoogleAnalysisPage() {
                           {row.icon}
                         </motion.span>
                         <div>
-                          <p className={`text-[10px] ${isDark ? "text-slate-500" : "text-slate-700"}`}>{row.label}</p>
+                          <p className={`text-[10px] ${isDark ? "text-slate-500" : "text-slate-400"}`}>{row.label}</p>
                           <AnimatedNumber value={fmt(row.val)}
                             className={`text-[13px] font-bold block ${isDark ? "text-white" : "text-slate-900"}`} />
                         </div>
@@ -876,63 +874,15 @@ export default function GoogleAnalysisPage() {
                 </ChartCard>
               )}
 
-              {/* ── REVIEWS BREAKDOWN ── */}
-              <ChartCard title="Review Analysis" subtitle={`${s.totalReviews} total · ${s.avgRating}★ avg`} isDark={isDark}>
-                <div className="flex items-center gap-4 mb-4">
-                  <RatingRing avgRating={s.avgRating} isDark={isDark} />
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    {[5, 4, 3, 2, 1].map(n => (
-                      <StarRow key={n} rating={n}
-                        count={data.charts.ratingDistribution[n] ?? 0}
-                        max={ratingMax} isDark={isDark} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* reply rate bar */}
-                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.38 }} viewport={{ once: true }}
-                  className={`flex items-center justify-between p-3 rounded-xl mb-4 ${isDark ? "bg-white/[0.04]" : "bg-slate-50"}`}>
-                  <div className="flex items-center gap-2">
-                    <MessageSquare size={13} className="text-cyan-500" />
-                    <span className={`text-[12px] font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>Reply Rate</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-24 h-2 rounded-full overflow-hidden ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}>
-                      <motion.div className="h-full rounded-full bg-cyan-500"
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${s.replyRate}%` }}
-                        transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                        viewport={{ once: true }} />
-                    </div>
-                    <span className={`text-[12px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{s.replyRate}%</span>
-                  </div>
-                </motion.div>
-
-                {data.recentReviews.length > 0 && (
-                  <>
-                    <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-                      className={`text-[12px] font-bold uppercase tracking-wide mb-2.5 ${isDark ? "text-slate-500" : "text-slate-700"}`}>
-                      Recent Reviews
-                    </motion.p>
-                    <div className="flex flex-col gap-2.5">
-                      {data.recentReviews.map((r, i) => (
-                        <ReviewCard key={i} review={r} isDark={isDark} index={i} />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </ChartCard>
-
-              {/* ── ENGAGEMENT SUMMARY ── */}
+              {/* Engagement Summary */}
               <ChartCard title="Engagement Summary" subtitle="Total actions this period" isDark={isDark}>
                 <motion.div className="flex flex-col gap-2"
                   variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }}>
                   {[
-                    { label: "Phone Calls",       value: s.totalCalls,         icon: <Phone size={14} />,        color: "#22c55e", pctOf: s.totalImpressions },
-                    { label: "Website Visits",     value: s.totalWebsite,       icon: <Globe size={14} />,        color: "#8b5cf6", pctOf: s.totalImpressions },
-                    { label: "Direction Requests", value: s.totalDirections,    icon: <Navigation size={14} />,   color: "#f97316", pctOf: s.totalImpressions },
-                    { label: "Conversations",      value: s.totalConversations, icon: <MessageSquare size={14} />, color: "#06b6d4", pctOf: s.totalImpressions },
+                    { label: "Phone Calls",        value: s.totalCalls,         icon: <Phone size={14} />,         color: "#22c55e", pctOf: s.totalImpressions },
+                    { label: "Website Visits",      value: s.totalWebsite,       icon: <Globe size={14} />,         color: "#8b5cf6", pctOf: s.totalImpressions },
+                    { label: "Direction Requests",  value: s.totalDirections,    icon: <Navigation size={14} />,    color: "#f97316", pctOf: s.totalImpressions },
+                    { label: "Conversations",        value: s.totalConversations, icon: <MessageSquare size={14} />, color: "#06b6d4", pctOf: s.totalImpressions },
                   ].map((row, i) => (
                     <motion.div key={i} variants={staggerItem}
                       whileHover={{ x: 3, transition: { duration: 0.18 } }}
@@ -944,7 +894,7 @@ export default function GoogleAnalysisPage() {
                       </motion.span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[12px] font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                          <span className={`text-[12px] font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                             {row.label}
                           </span>
                           <AnimatedNumber value={fmt(row.value)}
@@ -953,7 +903,7 @@ export default function GoogleAnalysisPage() {
                         <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}>
                           <AnimatedBar pctValue={pct(row.value, row.pctOf)} color={row.color} />
                         </div>
-                        <p className={`text-[10px] mt-0.5 ${isDark ? "text-slate-600" : "text-slate-700"}`}>
+                        <p className={`text-[10px] mt-0.5 ${isDark ? "text-slate-600" : "text-slate-400"}`}>
                           {pct(row.value, row.pctOf)} of impressions
                         </p>
                       </div>
@@ -962,41 +912,91 @@ export default function GoogleAnalysisPage() {
                 </motion.div>
               </ChartCard>
 
-              {/* ── POSTS STAT ── */}
-              {s.totalPosts > 0 && (
-                <motion.div variants={fadeUp}
-                  whileHover={{ y: -2, transition: { duration: 0.18 } }}
-                  className={`flex items-center justify-between p-4 rounded-2xl border
-                    ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05] shadow-sm"}`}>
-                  <div className="flex items-center gap-3">
-                    <motion.div className={`w-10 h-10 rounded-xl flex items-center justify-center
-                      ${isDark ? "bg-blue-500/15" : "bg-blue-50"}`}
-                      animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.5, repeat: Infinity }}>
-                      <FileText size={16} className={isDark ? "text-blue-400" : "text-blue-500"} />
-                    </motion.div>
-                    <div>
-                      <p className={`text-[13px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Active Posts</p>
-                      <p className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-700"}`}>Published on Google Business</p>
-                    </div>
+            </div>{/* end 2-col chart grid */}
+
+            {/* ── REVIEWS: full width (rich content benefits from wider column) ── */}
+            <ChartCard title="Review Analysis" subtitle={`${s.totalReviews} total · ${s.avgRating}★ avg`} isDark={isDark}>
+              {/* On desktop: rating ring + bars side by side, reviews in 2-col grid */}
+              <div className="flex items-center gap-4 mb-4">
+                <RatingRing avgRating={s.avgRating} isDark={isDark} />
+                <div className="flex-1 flex flex-col gap-1.5">
+                  {[5, 4, 3, 2, 1].map(n => (
+                    <StarRow key={n} rating={n}
+                      count={data.charts.ratingDistribution[n] ?? 0}
+                      max={ratingMax} isDark={isDark} />
+                  ))}
+                </div>
+              </div>
+
+              {/* reply rate */}
+              <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.38 }} viewport={{ once: true }}
+                className={`flex items-center justify-between p-3 rounded-xl mb-4 ${isDark ? "bg-white/[0.04]" : "bg-slate-50"}`}>
+                <div className="flex items-center gap-2">
+                  <MessageSquare size={13} className="text-cyan-500" />
+                  <span className={`text-[12px] font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Reply Rate</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-24 h-2 rounded-full overflow-hidden ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}>
+                    <motion.div className="h-full rounded-full bg-cyan-500"
+                      initial={{ width: 0 }}
+                      whileInView={{ width: `${s.replyRate}%` }}
+                      transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                      viewport={{ once: true }} />
                   </div>
-                  <AnimatedNumber value={String(s.totalPosts)}
-                    className={`text-[22px] font-black block ${isDark ? "text-white" : "text-slate-900"}`}
-                    style={{ letterSpacing: "-0.04em" }} />
-                </motion.div>
+                  <span className={`text-[12px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{s.replyRate}%</span>
+                </div>
+              </motion.div>
+
+              {data.recentReviews.length > 0 && (
+                <>
+                  <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+                    className={`text-[12px] font-bold uppercase tracking-wide mb-2.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+                    Recent Reviews
+                  </motion.p>
+                  {/* 1-col mobile, 2-col on desktop */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+                    {data.recentReviews.map((r, i) => (
+                      <ReviewCard key={i} review={r} isDark={isDark} index={i} />
+                    ))}
+                  </div>
+                </>
               )}
+            </ChartCard>
 
-              {/* footer */}
-              <motion.p variants={fadeIn}
-                className={`text-[12px] text-center leading-relaxed text-slate-700`}>
-                Data sourced from Google Business Profile Performance API.
-                Insights may have a 24–48 hour delay.
-              </motion.p>
+            {/* Posts stat */}
+            {s.totalPosts > 0 && (
+              <motion.div variants={fadeUp}
+                whileHover={{ y: -2, transition: { duration: 0.18 } }}
+                className={`flex items-center justify-between p-4 rounded-2xl border
+                  ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05] shadow-sm"}`}>
+                <div className="flex items-center gap-3">
+                  <motion.div className={`w-10 h-10 rounded-xl flex items-center justify-center
+                    ${isDark ? "bg-blue-500/15" : "bg-blue-50"}`}
+                    animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.5, repeat: Infinity }}>
+                    <FileText size={16} className={isDark ? "text-blue-400" : "text-blue-500"} />
+                  </motion.div>
+                  <div>
+                    <p className={`text-[13px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Active Posts</p>
+                    <p className={`text-[12px] ${isDark ? "text-slate-500" : "text-slate-400"}`}>Published on Google Business</p>
+                  </div>
+                </div>
+                <AnimatedNumber value={String(s.totalPosts)}
+                  className={`text-[22px] font-black block ${isDark ? "text-white" : "text-slate-900"}`}
+                  style={{ letterSpacing: "-0.04em" }} />
+              </motion.div>
+            )}
 
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <motion.p variants={fadeIn}
+              className="text-[12px] text-center leading-relaxed text-slate-500 pb-4">
+              Data sourced from Google Business Profile Performance API.
+              Insights may have a 24–48 hour delay.
+            </motion.p>
 
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
