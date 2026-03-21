@@ -24,33 +24,32 @@ export const createSubscription = async (req, res) => {
       return res.status(400).json({ message: "planId is required" });
     }
 
-    // ── Block duplicate active subscription ──────────────────
+    // 🔥 Prevent duplicate (active + created)
     const existing = await Subscription.findOne({
       user: userId,
-      status: "active",
+      status: { $in: ["active", "created"] },
     }).lean();
 
     if (existing) {
-      return res.status(409).json({
-        message: "You already have an active subscription",
+      return res.status(200).json({
         subscriptionId: existing.razorpaySubscriptionId,
+        reused: true, // 🔥 important for frontend
       });
     }
 
-    // ── Create on Razorpay ───────────────────────────────────
+    // 🔥 Create subscription in Razorpay
     const rzSub = await razorpay.subscriptions.create({
       plan_id: planId,
-      total_count: 12, // 12 billing cycles (1 year)
+      total_count: 12,
       customer_notify: 1,
       quantity: 1,
-      addons: [],
       notes: {
         userId: userId.toString(),
         planId,
       },
     });
 
-    // ── Save stub in DB (status = created) ───────────────────
+    // 🔥 Save
     await Subscription.create({
       user: userId,
       razorpaySubscriptionId: rzSub.id,
@@ -61,10 +60,16 @@ export const createSubscription = async (req, res) => {
       amount: 499,
     });
 
-    return res.json({ subscriptionId: rzSub.id });
+    return res.json({
+      subscriptionId: rzSub.id,
+      reused: false,
+    });
   } catch (err) {
     console.error("[createSubscription]", err);
-    return res.status(500).json({ message: "Failed to create subscription" });
+
+    return res.status(500).json({
+      message: err?.error?.description || "Failed to create subscription",
+    });
   }
 };
 
@@ -82,6 +87,10 @@ export const verifySubscription = async (req, res) => {
       razorpay_signature,
       planId,
     } = req.body;
+
+    if (!planId && !razorpay_subscription_id) {
+      return res.status(400).json({ message: "Invalid payload" });
+    }
 
     const userId = req.user.id;
 
