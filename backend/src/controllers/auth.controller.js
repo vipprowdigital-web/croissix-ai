@@ -1,39 +1,101 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import Business from "../models/business.model.js";
+import { sendWelcomeEmail } from "./email.servce.js";
 
 // Register a New User
 
+// export const register = async (req, res) => {
+//   try {
+//     console.log("📥 Register payload:", req.body);
+//     const { name, phone, password } = req.body;
+//     let email = req.body.email?.trim().toLowerCase();
+
+//     if (!name || !email || !phone || !password) {
+//       console.log("Fields required.");
+
+//       return res.status(400).json({
+//         message: "All fields are required",
+//       });
+//     }
+
+//     const existingUser = await User.findOne({ email });
+//     if (existingUser) {
+//       console.log("Email already registered");
+//       return res.status(400).json({ message: "Email already registered" });
+//     }
+
+//     // check phone
+//     const existingPhone = await User.findOne({ phone });
+
+//     if (existingPhone) {
+//       console.log("Phone number already registered");
+//       return res.status(400).json({
+//         message: "Phone number already registered",
+//       });
+//     }
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     const user = await User.create({
+//       name,
+//       email,
+//       phone,
+//       password: hashedPassword,
+//       provider: "local",
+//     });
+
+//     res.status(201).json({
+//       message: "User registered successfully.",
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         phone: user.phone,
+//         email: user.email,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Register error:", error.message);
+//     res.status(500).json({ message: "Internal Server Error." });
+//   }
+// };
 export const register = async (req, res) => {
   try {
     console.log("📥 Register payload:", req.body);
-    const { name, phone, password } = req.body;
+
+    const { name, phone, password, businessName, employeeCount, city, state } =
+      req.body;
+
     let email = req.body.email?.trim().toLowerCase();
 
-    if (!name || !email || !phone || !password) {
-      console.log("Fields required.");
-
-      return res.status(400).json({
-        message: "All fields are required",
-      });
+    // ── Required field guard ─────────────────────────────────────
+    if (
+      !name ||
+      !email ||
+      !phone ||
+      !password ||
+      !businessName ||
+      !city ||
+      !state
+    ) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      console.log("Email already registered");
+    // ── Duplicate checks ─────────────────────────────────────────
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    // check phone
     const existingPhone = await User.findOne({ phone });
-
     if (existingPhone) {
-      console.log("Phone number already registered");
-      return res.status(400).json({
-        message: "Phone number already registered",
-      });
+      return res
+        .status(400)
+        .json({ message: "Phone number already registered" });
     }
 
+    // ── Create User ──────────────────────────────────────────────
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
@@ -44,6 +106,28 @@ export const register = async (req, res) => {
       provider: "local",
     });
 
+    // ── Create Business linked to user ───────────────────────────
+    const business = await Business.create({
+      owner: user._id,
+      businessName,
+      employeeCount: Number(employeeCount) || 0,
+      city,
+      state,
+    });
+
+    // ── Send welcome email (non-blocking) ────────────────────────
+    // We don't await this — if email fails, registration still succeeds
+    sendWelcomeEmail({
+      name,
+      email,
+      phone,
+      businessName,
+      employeeCount: Number(employeeCount) || 0,
+      city,
+      state,
+    }).catch((err) => console.error("Welcome email failed silently:", err));
+
+    // ── Response ─────────────────────────────────────────────────
     res.status(201).json({
       message: "User registered successfully.",
       user: {
@@ -52,9 +136,18 @@ export const register = async (req, res) => {
         phone: user.phone,
         email: user.email,
       },
+      business: {
+        id: business._id,
+        businessName: business.businessName,
+        city: business.city,
+        state: business.state,
+        employeeCount: business.employeeCount,
+      },
     });
   } catch (error) {
     console.error("Register error:", error.message);
+    // If user was created but business creation failed, clean up the orphan
+    // (optional — only needed if you don't use DB transactions)
     res.status(500).json({ message: "Internal Server Error." });
   }
 };
@@ -312,5 +405,3 @@ export const logout = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error." });
   }
 };
-
-
