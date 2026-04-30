@@ -5,6 +5,7 @@ import axios from "axios";
 
 export async function getAuthClient(authHeader?: string) {
   console.log("===== GOOGLE AUTH (DB MODE) =====");
+  console.log("AuthHeader: ", authHeader);
 
   if (!authHeader) {
     console.log("❌ No Authorization header");

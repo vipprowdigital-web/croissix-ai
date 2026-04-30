@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getToken } from "@/lib/token";
 
 export default function GuestGuard({
@@ -12,13 +12,21 @@ export default function GuestGuard({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     const token = getToken();
 
     if (token) {
-      router.replace("/dashboard");
+      // router.replace("/dashboard");
+      // If already logged in and has callback, go straight to home with callback
+      const callback = searchParams.get("callback");
+      if (callback) {
+        router.replace(`/?callback=${encodeURIComponent(callback)}`);
+      } else {
+        router.replace("/dashboard");
+      }
       return;
     }
 

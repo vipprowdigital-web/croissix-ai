@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { KeyRound, Mail, Eye, EyeOff, Sun, Moon } from "lucide-react";
 import { useLogin } from "@/features/auth/hook/useAuth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import GuestGuard from "@/components/auth/GuestGuard";
 
 /* ─── Google G ───────────────────────────────────────────── */
@@ -190,11 +190,17 @@ export default function LoginPage() {
 
   useEffect(() => setMounted(true), []);
   const isDark = mounted && resolvedTheme === "dark";
+  const searchParams = useSearchParams();
+
+  console.log("login page.....");
 
   const handleSubmit = () => {
+    console.log("Inside handle submit");
     setError("");
 
     if (!email || !password) {
+      console.log("email: ", email, " password: ", password);
+
       setError("Please fill in all fields.");
       return;
     }
@@ -204,7 +210,14 @@ export default function LoginPage() {
       {
         onSuccess: () => {
           setTimeout(() => {
-            router.replace("/");
+            // router.replace("/");
+            // ✅ Carry callback back after successful login
+            const callback = searchParams.get("callback");
+            if (callback) {
+              router.replace(`/?callback=${encodeURIComponent(callback)}`);
+            } else {
+              router.replace("/");
+            }
           }, 50);
         },
         onError: () => {
