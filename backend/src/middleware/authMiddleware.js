@@ -7,8 +7,11 @@ import User from "../models/user.model.js";
 export const ensureAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    console.log("Auth Header: ", authHeader);
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("Inside !authHeader");
+
       return res.status(401).json({
         status: "error",
         message: "Authorization token missing",
@@ -20,9 +23,7 @@ export const ensureAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 🔥 Include subscription fields
-    const user = await User.findById(decoded.id)
-      .select("-password")
-      .lean();
+    const user = await User.findById(decoded.id).select("-password").lean();
 
     if (!user) {
       return res.status(401).json({

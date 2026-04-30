@@ -8,19 +8,23 @@ import {
 // Get Logged-in User's to these Profile
 export const getProfile = async (req, res) => {
   try {
+    console.log("Inside getProfile...... from backend");
+
     const userId = req.user?.id;
+    console.log("userId: ", userId);
 
     if (!userId) {
-      console.log('user id : ', userId);
-      
+      console.log("user id : ", userId);
+
       console.log("Unauthorized. Please login again.");
-      
+
       return res.status(401).json({
         message: "Unauthorized. Please login again.",
       });
     }
 
     const user = await User.findById(userId).select("-password").lean();
+    console.log("User: ", user);
 
     if (!user) {
       return res.status(404).json({
@@ -43,6 +47,7 @@ export const getProfile = async (req, res) => {
         googleLocationId: user.googleLocationId || null,
         googleLocationName: user.googleLocationName || null,
         avatar: user.avatar || null,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
