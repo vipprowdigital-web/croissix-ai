@@ -293,7 +293,6 @@ export default function RegisterPage() {
     >
       {/* ── content — constrained max-width on desktop ── */}
       <div className="w-full max-w-[420px]">
-
         {/* heading */}
         <div className="mb-6 text-center">
           <h1

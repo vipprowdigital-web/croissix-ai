@@ -12,7 +12,11 @@ import { DesktopSidebar } from "@/components/desktop_sidebar";
 import { DesktopTopbar } from "@/components/desktop_topbar";
 import SubscriptionGuard from "@/components/auth/Subscriptionguard";
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <SubscriptionGuard>
       <div className="relative flex min-h-screen">

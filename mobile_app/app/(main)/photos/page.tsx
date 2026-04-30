@@ -233,11 +233,11 @@ const MOCK: GBPMedia[] = [
    API
 ════════════════════════════════════════════════════════ */
 async function fetchMedia(): Promise<MediaResponse> {
-  // const res = await fetch("/api/google/media");
-  // if (!res.ok) throw new Error("Failed to fetch media");
-  // return res.json();
-  await new Promise((r) => setTimeout(r, 900));
-  return { mediaItems: MOCK, totalMediaItemCount: MOCK.length };
+  const res = await fetch("/api/google/media/list");
+  if (!res.ok) throw new Error("Failed to fetch media");
+  return res.json();
+  // await new Promise((r) => setTimeout(r, 900));
+  // return { mediaItems: MOCK, totalMediaItemCount: MOCK.length };
 }
 
 async function deleteMedia(mediaName: string): Promise<void> {

@@ -5,6 +5,10 @@ import crypto from "crypto";
 import Subscription from "../models/subscription.model.js";
 import User from "../models/user.model.js";
 
+// const razorpay = new Razorpay({
+//   key_id: process.env.RAZORPAY_TEST_KEY_ID,
+//   key_secret: process.env.RAZORPAY_TEST_KEY_SECRET,
+// });
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -19,6 +23,7 @@ export const createSubscription = async (req, res) => {
   try {
     const { planId } = req.body;
     const userId = req.user.id;
+    console.log("Creating subscription for planId: ", planId);
 
     if (!planId) {
       return res.status(400).json({ message: "planId is required" });
@@ -29,6 +34,8 @@ export const createSubscription = async (req, res) => {
       user: userId,
       status: { $in: ["active", "created"] },
     }).lean();
+
+    console.log("Existing subscription: ", existing);
 
     if (existing) {
       return res.status(200).json({
@@ -49,6 +56,8 @@ export const createSubscription = async (req, res) => {
       },
     });
 
+    console.log("Subscription from razorpay: ", rzSub);
+
     // 🔥 Save
     await Subscription.create({
       user: userId,
@@ -57,7 +66,8 @@ export const createSubscription = async (req, res) => {
       status: "created",
       totalCount: 12,
       paidCount: 0,
-      amount: 499,
+      amount: 599,
+      // amount: 1,
     });
 
     return res.json({
@@ -89,6 +99,8 @@ export const verifySubscription = async (req, res) => {
     } = req.body;
 
     if (!planId && !razorpay_subscription_id) {
+      console.log("Invalid payload: ", planId, " ", razorpay_subscription_id);
+
       return res.status(400).json({ message: "Invalid payload" });
     }
 
@@ -100,12 +112,25 @@ export const verifySubscription = async (req, res) => {
       !razorpay_subscription_id ||
       !razorpay_signature
     ) {
+      console.log(
+        "Missing fields: ",
+        razorpay_payment_id,
+        " ",
+        razorpay_signature,
+        " ",
+        razorpay_subscription_id,
+      );
+
       return res
         .status(400)
         .json({ success: false, message: "Missing payment fields" });
     }
 
     // ── Signature verification ───────────────────────────────
+    // const generated = crypto
+    //   .createHmac("sha256", process.env.RAZORPAY_TEST_KEY_SECRET)
+    //   .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
+    //   .digest("hex");
     const generated = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
@@ -117,6 +142,7 @@ export const verifySubscription = async (req, res) => {
         Buffer.from(razorpay_signature, "hex"),
       )
     ) {
+      console.log("Signature mismatch");
       return res
         .status(400)
         .json({ success: false, message: "Signature mismatch" });
@@ -143,6 +169,7 @@ export const verifySubscription = async (req, res) => {
       // Non-fatal: fall back to 30-day expiry
       rzSub = null;
     }
+    console.log("Razorpay subs: ", rzSub);
 
     const now = new Date();
     const currentEnd = rzSub?.current_end
@@ -161,7 +188,8 @@ export const verifySubscription = async (req, res) => {
         currentEnd,
         paidCount: 1,
         totalCount: rzSub?.total_count ?? 12,
-        amount: 499,
+        amount: 599,
+        // amount: 1,
       },
       { upsert: true, new: true },
     );
@@ -172,6 +200,8 @@ export const verifySubscription = async (req, res) => {
       plan: planId ?? "starter",
       expiresAt: currentEnd,
     });
+
+    console.log("Razorpay verified user: ", await User.find({ _id: userId }));
 
     return res.json({
       success: true,
@@ -194,6 +224,7 @@ export const getMySubscription = async (req, res) => {
     const sub = await Subscription.findOne({ user: req.user.id })
       .sort({ createdAt: -1 })
       .lean();
+    console.log("sub: ", sub);
 
     if (!sub) {
       return res.json(null);
@@ -243,10 +274,20 @@ export const cancelSubscription = async (req, res) => {
     }
 
     // ── Cancel on Razorpay (cancel_at_cycle_end = 1 = graceful) ──
-    await razorpay.subscriptions.cancel(subscriptionId, true);
+    // await razorpay.subscriptions.cancel(subscriptionId, true);
+    const rzpResponse = await razorpay.subscriptions.cancel(subscriptionId, 0); // 0 - immediate cancel
 
-    await Subscription.findByIdAndUpdate(sub._id, { status: "cancelled" });
-    await User.findByIdAndUpdate(userId, { subscriptionStatus: "cancelled" });
+    // await Subscription.findByIdAndUpdate(sub._id, { status: "cancelled" });
+    // await User.findByIdAndUpdate(userId, { subscriptionStatus: "cancelled" });
+    // Only update DB if Razorpay confirmed the cancellation
+    if (rzpResponse && rzpResponse.status === "cancelled") {
+      await Subscription.findByIdAndUpdate(sub._id, { status: "cancelled" });
+      await User.findByIdAndUpdate(userId, { subscriptionStatus: "cancelled" });
+    } else {
+      return res
+        .status(502)
+        .json({ message: "Razorpay did not confirm cancellation" });
+    }
 
     return res.json({ success: true });
   } catch (err) {

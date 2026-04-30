@@ -10,6 +10,8 @@ export const fetchMySubscription = async () => {
   const res = await API.get("/subscription/me", {
     headers: { Authorization: getAuthHeader() },
   });
+  console.log("Data from subscription: ", res);
+
   return res.data;
 };
 

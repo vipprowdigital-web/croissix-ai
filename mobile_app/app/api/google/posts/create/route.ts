@@ -113,9 +113,18 @@ export async function POST(req: Request) {
                 const form = new FormData();
 
                 const base64 = m.sourceUrl.split(",")[1];
-                const buffer = Buffer.from(base64, "base64");
 
+                const buffer = Buffer.from(base64, "base64");
                 const blob = new Blob([buffer], { type: "image/png" });
+
+                // -----— convert to Uint8Array which is always a valid BlobPart
+                // const binaryString = atob(base64);
+                // const bytes = new Uint8Array(binaryString.length);
+                // for (let i = 0; i < binaryString.length; i++) {
+                //   bytes[i] = binaryString.charCodeAt(i);
+                // }
+                // const blob = new Blob([bytes], { type: "image/png" });
+                // -----— convert to Uint8Array which is always a valid BlobPart
 
                 form.append("file", blob, "ai-image.png");
 
@@ -206,8 +215,12 @@ export async function POST(req: Request) {
     const data = await res.json();
 
     console.log("Google response:", data);
+    // console.log("Google response:", data.error.details);
+    // console.log("Google response:", data.error.details.errorDetails);
 
     if (!res.ok) {
+      const violations = data?.error?.details?.[0]?.fieldViolations;
+      console.log("Field violations:", JSON.stringify(violations, null, 2));
       return Response.json(
         {
           success: false,

@@ -10,9 +10,14 @@ cloudinary.config({
 
 export async function POST(req: Request) {
   const formData = await req.formData();
+  console.log("Inside api/upload...");
+  console.log("Formdata: ", formData);
+
   const file = formData.get("file") as File;
+  console.log("file: ", file);
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  console.log("Buffer: ", buffer);
 
   const upload = await new Promise((resolve, reject) => {
     cloudinary.uploader
@@ -22,6 +27,7 @@ export async function POST(req: Request) {
       })
       .end(buffer);
   });
+  console.log("Upload: ", upload);
 
   return Response.json(upload);
 }

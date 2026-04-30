@@ -11,6 +11,8 @@ export const register = async (req, res) => {
     let email = req.body.email?.trim().toLowerCase();
 
     if (!name || !email || !phone || !password) {
+      console.log("Fields required.");
+
       return res.status(400).json({
         message: "All fields are required",
       });
@@ -18,6 +20,7 @@ export const register = async (req, res) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log("Email already registered");
       return res.status(400).json({ message: "Email already registered" });
     }
 
@@ -25,6 +28,7 @@ export const register = async (req, res) => {
     const existingPhone = await User.findOne({ phone });
 
     if (existingPhone) {
+      console.log("Phone number already registered");
       return res.status(400).json({
         message: "Phone number already registered",
       });
@@ -59,6 +63,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     let { email, password } = req.body;
+    // console.log("Inside login: email: ", email, " password: ", password);
 
     // Normalize email (avoid case sensitivity issues)
     email = email?.trim().toLowerCase();
@@ -157,6 +162,7 @@ export const linkGoogleAccount = async (req, res) => {
     const userId = req.user?.id;
 
     if (!userId) {
+      console.log("User is missing.");
       return res.status(401).json({
         message: "Unauthorized: Missing user",
       });
@@ -171,6 +177,7 @@ export const linkGoogleAccount = async (req, res) => {
     }
 
     if (!googleId) {
+      console.log("Google ID is required.");
       return res.status(400).json({
         message: "Google ID is required",
         received: req.body,
@@ -180,6 +187,7 @@ export const linkGoogleAccount = async (req, res) => {
     const user = await User.findById(userId);
 
     if (!user) {
+      console.log("User not found for linking Google account.");
       return res.status(404).json({
         message: "User not found",
       });
@@ -304,3 +312,5 @@ export const logout = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error." });
   }
 };
+
+
