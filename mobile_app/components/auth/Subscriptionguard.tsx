@@ -7,18 +7,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import {
-  Zap,
-  Shield,
-  Check,
-  RefreshCw,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Bell,
-  Lock,
-  AlertCircle,
-  Tag,
-  X,
+  Zap, Shield, Check, RefreshCw, CheckCircle2,
+  XCircle, Clock, Bell, Lock, AlertCircle, Tag, X,
 } from "lucide-react";
 import { getToken } from "@/lib/token";
 import { useSubscription } from "@/features/subscription/hook/useSubscription";
@@ -348,8 +338,6 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
     let rzSubId: string;
     try {
       const data = await createSubscription(planId);
-      console.log("Data from createSubscription: ", data);
-
       rzSubId = data.subscriptionId;
       console.log("Subscription Ids: ", rzSubId);
       if (!rzSubId) throw new Error("No subscription ID returned.");
@@ -1121,11 +1109,7 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
 /* ══════════════════════════════════════════════════
    GUARD
 ══════════════════════════════════════════════════ */
-export default function SubscriptionGuard({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { resolvedTheme } = useTheme();
