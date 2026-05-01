@@ -78,7 +78,7 @@ export async function GET(req: Request) {
     const acctSvc = google.mybusinessaccountmanagement({ version: "v1", auth: oauth2 });
     const acctRes = await acctSvc.accounts.list();
     const accountName = acctRes.data.accounts?.[0]?.name ?? "";
-    console.log("Account:", accountName);
+    // console.log("Account:", accountName);
 
     const AUTH = { Authorization: `Bearer ${accessToken}` };
     const BASE_V1 = "https://mybusinessbusinessinformation.googleapis.com/v1";
@@ -152,7 +152,7 @@ export async function GET(req: Request) {
         case "VIDEO":    videoCount++;          break;
       }
     }
-    console.log(`Media: logo=${logoUploaded} cover=${coverUploaded} ext=${exteriorCount} int=${interiorCount} prod=${productCount} vid=${videoCount}`);
+    // console.log(`Media: logo=${logoUploaded} cover=${coverUploaded} ext=${exteriorCount} int=${interiorCount} prod=${productCount} vid=${videoCount}`);
 
     /* ════════════════════════════════════════════════════════
        SERVICES & PRODUCTS
@@ -173,7 +173,7 @@ export async function GET(req: Request) {
       if (a.valueType === "BOOL") return a.uriValues?.length > 0 || a.values?.some((v: any) => v === true || v === "true");
       return (a.values?.length ?? 0) > 0 || (a.uriValues?.length ?? 0) > 0;
     }).length;
-    console.log(`Attributes: ${attributesSet}/${attributesTotal}`);
+    // console.log(`Attributes: ${attributesSet}/${attributesTotal}`);
 
     /* ════════════════════════════════════════════════════════
        LOCATION FLAGS
@@ -211,7 +211,7 @@ export async function GET(req: Request) {
     const allNegativeReplied = negativeReviews.length === 0 ||
       negativeReviews.every((r: any) => !!r.reviewReply);
 
-    console.log(`Reviews: count=${reviewCount} avg=${avgRating} replyRate=${replyRate}% lastReview=${lastReviewDaysAgo}d allNegReplied=${allNegativeReplied}`);
+    // console.log(`Reviews: count=${reviewCount} avg=${avgRating} replyRate=${replyRate}% lastReview=${lastReviewDaysAgo}d allNegReplied=${allNegativeReplied}`);
 
     /* ════════════════════════════════════════════════════════
        POSTS
@@ -239,13 +239,13 @@ export async function GET(req: Request) {
       return p.state === "LIVE";
     });
 
-    console.log(`Posts: last30d=${postsLast30d} hasOffer=${hasActiveOffer}`);
+    // console.log(`Posts: last30d=$/{postsLast30d} hasOffer=${hasActiveOffer}`);
 
     /* ════════════════════════════════════════════════════════
        Q&A
     ════════════════════════════════════════════════════════ */
     const qaCount = (qaData?.questions ?? []).length;
-    console.log(`Q&A: ${qaCount}`);
+    // console.log(`Q&A: ${qaCount}`);
 
     /* ════════════════════════════════════════════════════════
        RESPONSE

@@ -6,8 +6,8 @@ import axios from "axios";
 export async function DELETE(req: Request) {
   const { mediaName } = await req.json();
   const authHeader = req.headers.get("authorization");
-  console.log("Auth Header: ", authHeader);
-  console.log("Media Name: ", mediaName);
+  // console.log("Auth Header: ", authHeader);
+  // console.log("Media Name: ", mediaName);
 
   if (!mediaName) {
     return Response.json({ error: "Missing mediaName" }, { status: 400 });

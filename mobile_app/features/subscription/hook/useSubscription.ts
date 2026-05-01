@@ -13,10 +13,10 @@ export const useSubscription = () => {
     queryFn: async () => {
       try {
         const result = await fetchMySubscription();
-        console.log("✅ fetchMySubscription result:", result);
+        // console.log("✅ fetchMySubscription result:", result);
         return result;
       } catch (err) {
-        console.error("❌ fetchMySubscription error:", err);
+        // console.error("❌ fetchMySubscription error:", err);
         throw err;
       }
     },
@@ -41,10 +41,10 @@ export const useSubscription = () => {
     await query.refetch();
   };
 
-  console.log("subscription raw:", subscription);
-  console.log("subscription status:", subscription?.status);
-  console.log("subscription currentEnd:", subscription?.currentEnd);
-  console.log("isActive:", isActive);
+  // console.log("subscription raw:", subscription);
+  // console.log("subscription status:", subscription?.status);
+  // console.log("subscription currentEnd:", subscription?.currentEnd);
+  // console.log("isActive:", isActive);
 
   return {
     ...query,

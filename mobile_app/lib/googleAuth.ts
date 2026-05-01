@@ -5,7 +5,7 @@ import axios from "axios";
 
 export async function getAuthClient(authHeader?: string) {
   console.log("===== GOOGLE AUTH (DB MODE) =====");
-  console.log("AuthHeader: ", authHeader);
+  // console.log("AuthHeader: ", authHeader);
 
   if (!authHeader) {
     console.log("❌ No Authorization header");
@@ -28,7 +28,7 @@ export async function getAuthClient(authHeader?: string) {
       return null;
     }
 
-    console.log("✅ User found:", user.email);
+    // console.log("✅ User found:", user.email);
 
     // ✅ STEP 2: Create OAuth client
     const oauth2Client = new google.auth.OAuth2(

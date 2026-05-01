@@ -94,7 +94,7 @@ export async function GET(req: Request) {
       );
     }
 
-    console.log("User:", user.email);
+    // console.log("User:", user.email);
 
     /* ── FIX 1: get a fresh access token ──────────────────────────────────
      *
@@ -165,13 +165,13 @@ export async function GET(req: Request) {
     qp.set("dailyRange.end_date.day", String(endDate.getDate()));
 
     const perfEndpoint = `${PERF_BASE}/v1/locations/${locationId}:fetchMultiDailyMetricsTimeSeries?${qp}`;
-    console.log("Perf endpoint:", perfEndpoint);
+    // console.log("Perf endpoint:", perfEndpoint);
 
     const perfRes = await fetch(perfEndpoint, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-    console.log("Perf status:", perfRes.status);
+    // console.log("Perf status:", perfRes.status);
 
     if (!perfRes.ok) {
       const perfErr = await perfRes.json().catch(() => ({}));
@@ -181,10 +181,10 @@ export async function GET(req: Request) {
 
     const perfJson = perfRes.ok ? await perfRes.json() : { multiDailyMetricTimeSeries: [] };
 
-    console.log(
-      "Metric series count:",
-      perfJson.multiDailyMetricTimeSeries?.length,
-    );
+    // console.log(
+    //   "Metric series count:",
+    //   perfJson.multiDailyMetricTimeSeries?.length,
+    // );
 
     /* ── FIX 4: parse metric series ─────────────────────────────────────────
      *
@@ -225,7 +225,7 @@ export async function GET(req: Request) {
       }
     }
 
-    console.log("Parsed metric keys:", Object.keys(series));
+    // console.log("Parsed metric keys:", Object.keys(series));
 
     /* ── totals / daily arrays ────────────────────────────────────────────── */
     const totalImpressions =
@@ -296,7 +296,7 @@ export async function GET(req: Request) {
     const acctRes = await acctSvc.accounts.list();
     // accountName looks like "accounts/117769049285321930480"
     const accountName = acctRes.data.accounts?.[0]?.name ?? "";
-    console.log("Account:", accountName);
+    // console.log("Account:", accountName);
 
     const ratingMap: Record<string, number> = {
       ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5,
@@ -317,7 +317,7 @@ export async function GET(req: Request) {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      console.log("Reviews status:", rRes.status);
+      // console.log("Reviews status:", rRes.status);
 
       if (rRes.ok) {
         const reviewsData = await rRes.json();
@@ -327,7 +327,7 @@ export async function GET(req: Request) {
           ? parseFloat(parseFloat(reviewsData.averageRating).toFixed(1))
           : 0;
 
-        console.log("Reviews fetched:", reviews.length, "total:", totalReviewCount);
+        // console.log("Reviews fetched:", reviews.length, "total:", totalReviewCount);
       } else {
         const errBody = await rRes.json().catch(() => ({}));
         console.error("Reviews API error:", JSON.stringify(errBody));

@@ -10,11 +10,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     let { payload } = body;
 
-    console.log("Incoming payload:", payload);
+    // console.log("Incoming payload:", payload);
 
     const token = req.headers.get("authorization");
 
-    console.log("Authorization header:", token);
+    // console.log("Authorization header:", token);
 
     if (!token) {
       return Response.json(
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
     const user = profile.data.user;
 
-    console.log("User:", user);
+    // console.log("User:", user);
 
     if (!user.googleAccessToken) {
       return Response.json(
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
 
     const accountId = accountsRes.data.accounts?.[0]?.name;
 
-    console.log("Account ID:", accountId);
+    // console.log("Account ID:", accountId);
 
     if (!accountId) {
       return Response.json(
@@ -90,20 +90,20 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("Location ID:", locationId);
+    // console.log("Location ID:", locationId);
 
     /* ---------------- FIX BASE64 IMAGES ---------------- */
 
     /* ---------------- UPLOAD BASE64 IMAGES ---------------- */
 
     if (payload?.media?.length) {
-      console.log("Processing media images...");
+      // console.log("Processing media images...");
 
       const uploadedMedia = [];
 
       for (const m of payload.media) {
         if (m.sourceUrl.startsWith("data:")) {
-          console.log("Uploading AI image to Cloudinary...");
+          // console.log("Uploading AI image to Cloudinary...");
 
           const uploadRes = await fetch(
             `${process.env.NEXT_PUBLIC_BASE_URL}/api/upload`,
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
 
           const uploaded = await uploadRes.json();
 
-          console.log("Uploaded URL:", uploaded.secure_url);
+          // console.log("Uploaded URL:", uploaded.secure_url);
 
           uploadedMedia.push({
             mediaFormat: "PHOTO",
@@ -191,17 +191,17 @@ export async function POST(req: Request) {
       }
     }
 
-    console.log("FINAL GOOGLE PAYLOAD:", JSON.stringify(payload, null, 2));
+    // console.log("FINAL GOOGLE PAYLOAD:", JSON.stringify(payload, null, 2));
     /* ---------------- GOOGLE POST API ---------------- */
 
     const url = `https://mybusiness.googleapis.com/v4/${accountId}/locations/${locationId}/localPosts`;
 
-    console.log("Google Post API URL:", url);
+    // console.log("Google Post API URL:", url);
 
     /* get oauth headers */
     const authHeaders = await oauth2Client.getRequestHeaders();
 
-    console.log("Google Auth Header:", authHeaders);
+    // console.log("Google Auth Header:", authHeaders);
 
     const res = await fetch(url, {
       method: "POST",
@@ -214,13 +214,13 @@ export async function POST(req: Request) {
 
     const data = await res.json();
 
-    console.log("Google response:", data);
+    // console.log("Google response:", data);
     // console.log("Google response:", data.error.details);
     // console.log("Google response:", data.error.details.errorDetails);
 
     if (!res.ok) {
       const violations = data?.error?.details?.[0]?.fieldViolations;
-      console.log("Field violations:", JSON.stringify(violations, null, 2));
+      // console.log("Field violations:", JSON.stringify(violations, null, 2));
       return Response.json(
         {
           success: false,
@@ -235,7 +235,7 @@ export async function POST(req: Request) {
       post: data,
     });
   } catch (error: any) {
-    console.error("GOOGLE POST ERROR:", error);
+    // console.error("GOOGLE POST ERROR:", error);
 
     return Response.json(
       {

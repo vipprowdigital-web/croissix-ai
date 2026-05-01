@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
   try {
     const auth = await getAuthClient(authHeader || undefined);
-    console.log("Auth: ", auth);
+    // console.log("Auth: ", auth);
 
     if (!auth) {
       return Response.json({ error: "Authentication failed" }, { status: 401 });
@@ -30,10 +30,10 @@ export async function GET(req: Request) {
 
     const accounts = await accountService.accounts.list();
     const accountId = accounts.data.accounts?.[0]?.name;
-    console.log("Account Id: ", accountId);
+    // console.log("Account Id: ", accountId);
 
     const locationId = locationName.split("/")[1];
-    console.log("Location Id: ", locationId);
+    // console.log("Location Id: ", locationId);
 
     const res = await axios.get(
       `https://mybusiness.googleapis.com/v4/${accountId}/locations/${locationId}/media`,
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
         },
       },
     );
-    console.log("Response:  ", res);
+    // console.log("Response:  ", res);
 
     // return Response.json({ media: res.data.mediaItems || [] });
     // return Response.json({ media: res.data || [] });

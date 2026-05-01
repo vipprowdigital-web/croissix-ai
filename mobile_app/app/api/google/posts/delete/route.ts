@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     const text = await res.text();
 
     if (!res.ok) {
-      console.log("GOOGLE DELETE ERROR:", text);
+      // console.log("GOOGLE DELETE ERROR:", text);
       return Response.json(
         { success: false, error: text },
         { status: 500 }

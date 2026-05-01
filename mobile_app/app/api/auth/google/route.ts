@@ -8,8 +8,8 @@ export async function GET(req: Request) {
   // For the mobile app
   const platform = searchParams.get("platform");
 
-  console.log("Redirect URI:", process.env.GOOGLE_REDIRECT_URI);
-  console.log("Platform:", platform);
+  // console.log("Redirect URI:", process.env.GOOGLE_REDIRECT_URI);
+  // console.log("Platform:", platform);
 
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     }),
   });
 
-  console.log("Url from google route.js: ", url);
+  // console.log("Url from google route.js: ", url);
 
   return Response.redirect(url);
 }

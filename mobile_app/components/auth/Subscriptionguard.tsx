@@ -343,13 +343,13 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
 
     // Default plan Id only
     const planId = PLAN.planId ?? "";
-    console.log("Plan id: ", planId);
+    // console.log("Plan id: ", planId);
 
     let rzSubId: string;
     try {
       const data = await createSubscription(planId);
       rzSubId = data.subscriptionId;
-      console.log("Subscription Ids: ", rzSubId);
+      // console.log("Subscription Ids: ", rzSubId);
       if (!rzSubId) throw new Error("No subscription ID returned.");
     } catch (err: any) {
       setFailMsg(
@@ -383,7 +383,7 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
             razorpay_signature: resp.razorpay_signature,
             planId,
           });
-          console.log("Verified successfullyy..");
+          // console.log("Verified successfullyy..");
           setScreen("success");
           await refetchSubscription();
           // ---------------------------
@@ -1142,14 +1142,14 @@ export default function SubscriptionGuard({
     setAuthed(true);
   }, [router]);
 
-  const { isActive, isLoading: subLoading, subscription } = useSubscription();
+  const { isActive, isLoading: subLoading } = useSubscription();
   const isExempt = EXEMPT.some((p) => pathname?.startsWith(p));
-  console.log(
-    "Subscription is active: ",
-    isActive,
-    " subcription: ",
-    subscription,
-  );
+  // console.log(
+  //   "Subscription is active: ",
+  //   isActive,
+  //   " subcription: ",
+  //   subscription,
+  // );
 
   if (!authed) return null;
   if (subLoading) return <AppSkeleton dark={dark} />;

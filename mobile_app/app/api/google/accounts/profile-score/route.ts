@@ -193,7 +193,7 @@ export async function GET(req: Request) {
     let location: any = null;
     if (locationRes.ok) {
       location = await locationRes.json();
-      console.log("Location fetched:", location?.title);
+      // console.log("Location fetched:", location?.title);
     } else {
       const err = await locationRes.json().catch(() => ({}));
       console.error("Location API error:", JSON.stringify(err));
@@ -209,7 +209,7 @@ export async function GET(req: Request) {
     const acctSvc = google.mybusinessaccountmanagement({ version: "v1", auth: oauth2 });
     const acctRes = await acctSvc.accounts.list();
     const accountName = acctRes.data.accounts?.[0]?.name ?? "";
-    console.log("Account:", accountName);
+    // console.log("Account:", accountName);
 
     const ratingMap: Record<string, number> = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };
 
@@ -231,7 +231,7 @@ export async function GET(req: Request) {
           : reviews.length
           ? parseFloat((reviews.reduce((a: number, r: any) => a + (ratingMap[r.starRating] ?? 0), 0) / reviews.length).toFixed(1))
           : 0;
-        console.log("Reviews:", reviews.length, "avg:", avgRating);
+        // console.log("Reviews:", reviews.length, "avg:", avgRating);
       } else {
         console.error("Reviews error:", rRes.status, await rRes.text().catch(() => ""));
       }
@@ -262,7 +262,7 @@ export async function GET(req: Request) {
           const ct = p.createTime ? new Date(p.createTime) : null;
           return ct && ct >= cutoff30d;
         }).length;
-        console.log("Posts last 30d:", postsLast30d);
+        // console.log("Posts last 30d:", postsLast30d);
       }
     }
 
@@ -299,7 +299,7 @@ export async function GET(req: Request) {
     if (replyRate < 80)          missing.push(`Reply to more reviews (currently ${replyRate}%)`);
     if (postsLast30d < 4)        missing.push(`Post more updates (${postsLast30d}/4 this month)`);
 
-    console.log("Score:", total);
+    // console.log("Score:", total);
 
     return Response.json({
       success:    true,

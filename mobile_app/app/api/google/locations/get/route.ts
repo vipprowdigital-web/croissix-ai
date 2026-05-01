@@ -43,7 +43,7 @@ export async function GET(req: Request) {
     }
 
     const token = req.headers.get("authorization");
-    console.log("Token in next js: ", token);
+    // console.log("Token in next js: ", token);
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -54,10 +54,10 @@ export async function GET(req: Request) {
       `${process.env.NEXT_PUBLIC_API_URL}/users/profile/view`,
       { headers: { Authorization: token } },
     );
-    console.log("Profile Data from next js: ", profileData);
+    // console.log("Profile Data from next js: ", profileData);
     const user = profileData.user;
-    console.log("User from next js: ", user);
-    console.log("User from next js: ", user?.googleAccessToken);
+    // console.log("User from next js: ", user);
+    // console.log("User from next js: ", user?.googleAccessToken);
 
     if (!user?.googleAccessToken) {
       return NextResponse.json(
@@ -95,7 +95,7 @@ export async function GET(req: Request) {
       readMask: READ_MASK,
     });
 
-    console.log("LOCATION DATA:", res.data);
+    // console.log("LOCATION DATA:", res.data);
     return NextResponse.json({ success: true, data: res.data });
   } catch (error: any) {
     const status = error.response?.status ?? 500;

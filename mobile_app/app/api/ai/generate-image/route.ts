@@ -32,7 +32,6 @@
 //   The page tracks a `imageKey` hash to prevent redundant calls.
 //
 
-
 // Deploy to: mobile_app/app/api/ai/generate-image/route.ts
 
 const IMAGE_STYLES: Record<string, string> = {
@@ -124,7 +123,7 @@ async function generateWithPollinations(
   seed: number,
 ): Promise<string> {
   console.log("[pollinations] start");
-  console.log("[pollinations] seed:", seed);
+  // console.log("[pollinations] seed:", seed);
 
   const encoded = encodeURIComponent(prompt);
 
@@ -132,13 +131,13 @@ async function generateWithPollinations(
     `https://gen.pollinations.ai/image/${encoded}` +
     `?model=flux&width=1200&height=675&seed=${seed}&enhance=true`;
 
-  console.log("[pollinations] url:", url.slice(0, 120));
+  // console.log("[pollinations] url:", url.slice(0, 120));
 
   let res: Response | null = null;
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      console.log(`[pollinations] attempt ${attempt}`);
+      // console.log(`[pollinations] attempt ${attempt}`);
 
       res = await fetch(url, {
         headers: {
@@ -148,7 +147,7 @@ async function generateWithPollinations(
         signal: AbortSignal.timeout(90000),
       });
 
-      console.log("[pollinations] status:", res.status);
+      // console.log("[pollinations] status:", res.status);
 
       if (res.ok) break;
 
@@ -166,15 +165,15 @@ async function generateWithPollinations(
 
   const contentType = res.headers.get("content-type") ?? "image/jpeg";
 
-  console.log("[pollinations] content-type:", contentType);
+  // console.log("[pollinations] content-type:", contentType);
 
   const buffer = await res.arrayBuffer();
 
-  console.log("[pollinations] image size:", buffer.byteLength);
+  // console.log("[pollinations] image size:", buffer.byteLength);
 
   const b64 = Buffer.from(buffer).toString("base64");
 
-  console.log("[pollinations] base64 length:", b64.length);
+  // console.log("[pollinations] base64 length:", b64.length);
 
   return `data:${contentType};base64,${b64}`;
 }
@@ -185,9 +184,9 @@ async function generateWithTogether(
   seed: number,
 ): Promise<string> {
   console.log("[together] start");
-  console.log("[together] key exists:", !!process.env.TOGETHER_API_KEY);
-  console.log("[together] seed:", seed);
-  console.log("[together] prompt:", prompt.slice(0, 100));
+  // console.log("[together] key exists:", !!process.env.TOGETHER_API_KEY);
+  // console.log("[together] seed:", seed);
+  // console.log("[together] prompt:", prompt.slice(0, 100));
 
   const key = process.env.TOGETHER_API_KEY;
   if (!key) throw new Error("TOGETHER_API_KEY not set");
@@ -261,7 +260,7 @@ export async function POST(req: Request) {
       businessCategory,
       style,
     });
-    console.log("[generate-image] prompt:", prompt.slice(0, 100));
+    // console.log("[generate-image] prompt:", prompt.slice(0, 100));
 
     let imageUrl: string;
     let provider: string;

@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
   // For mobile app
-  console.log("Search Params: ", searchParams);
+  // console.log("Search Params: ", searchParams);
 
   const stateRaw = searchParams.get("state");
   const state = JSON.parse(stateRaw || "{}");

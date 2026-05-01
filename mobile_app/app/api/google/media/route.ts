@@ -60,8 +60,8 @@ export async function POST(req: Request) {
     const category = formData.get("category") as string;
     const authHeader = req.headers.get("authorization");
 
-    console.log("locationName:", locationName);
-    console.log("file:", file?.name, file?.type, file?.size);
+    // console.log("locationName:", locationName);
+    // console.log("file:", file?.name, file?.type, file?.size);
 
     if (!file || !locationName) {
       return Response.json(
@@ -98,15 +98,15 @@ export async function POST(req: Request) {
     const accountId = `${parts[0]}/${parts[1]}`; // "accounts/123"
     const locationId = parts[3]; // "456"
 
-    console.log("accountId:", accountId);
-    console.log("locationId:", locationId);
+    // console.log("accountId:", accountId);
+    // console.log("locationId:", locationId);
 
     console.log("STEP 1 - Uploading to Cloudinary - Start");
     const buffer = Buffer.from(await file.arrayBuffer());
     const { publicUrl, publicId } = await uploadToCloudinary(buffer, file.type);
     cloudinaryPublicId = publicId;
-    console.log("STEP 1 - Cloudinary public URL:", publicUrl);
-    console.log("STEP 1 - Cloudinary public ID:", publicId);
+    // console.log("STEP 1 - Cloudinary public URL:", publicUrl);
+    // console.log("STEP 1 - Cloudinary public ID:", publicId);
     console.log("STEP 1 - Uploading to Cloudinary - End");
 
     console.log("STEP 2 - Google media.create with sourceUrl - Start");
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
         },
       },
     );
-    console.log("STEP 2 - Google media.create response:", createMedia.data);
+    // console.log("STEP 2 - Google media.create response:", createMedia.data);
     console.log("STEP 2 - Google media.create - End");
 
     return Response.json(createMedia.data);

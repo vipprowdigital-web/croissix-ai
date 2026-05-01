@@ -31,14 +31,14 @@ export async function PATCH(req: Request) {
       payload: Record<string, unknown>;
       fields: string[];
     };
-    console.log(
-      "locationId: ",
-      locationId,
-      " payload: ",
-      payload,
-      " fields: ",
-      fields,
-    );
+    // console.log(
+    //   "locationId: ",
+    //   locationId,
+    //   " payload: ",
+    //   payload,
+    //   " fields: ",
+    //   fields,
+    // );
 
     if (
       !locationId ||
@@ -46,7 +46,7 @@ export async function PATCH(req: Request) {
       !Array.isArray(fields) ||
       fields.length === 0
     ) {
-      console.log("Inside !locationId");
+      // console.log("Inside !locationId");
 
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -185,8 +185,8 @@ export async function PATCH(req: Request) {
       );
     }
 
-    console.log("updateMask:", updateMask);
-    console.log("payload:", JSON.stringify(payload, null, 2));
+    // console.log("updateMask:", updateMask);
+    // console.log("payload:", JSON.stringify(payload, null, 2));
 
     /* ── PATCH ── */
     const service = google.mybusinessbusinessinformation({
@@ -200,7 +200,7 @@ export async function PATCH(req: Request) {
       requestBody: payload as any,
     });
 
-    console.log("✅ Update success:", res.data);
+    // console.log("✅ Update success:", res.data);
     return NextResponse.json({ success: true, data: res.data });
   } catch (error: any) {
     const status = error.response?.status ?? 500;

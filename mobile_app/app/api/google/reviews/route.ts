@@ -92,7 +92,7 @@ export async function GET(req: Request) {
 
     const data = await res.json();
 
-    console.log("FETCHED REVIEWS:", data.reviews?.length);
+    // console.log("FETCHED REVIEWS:", data.reviews?.length);
 
     return Response.json({
       success: true,
