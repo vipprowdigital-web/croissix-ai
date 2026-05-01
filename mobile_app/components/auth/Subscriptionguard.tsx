@@ -344,6 +344,11 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
     // Default plan Id only
     const planId = PLAN.planId ?? "";
     // console.log("Plan id: ", planId);
+    if (!planId) {
+      setFailMsg("Payment configuration error. Please contact support.");
+      setScreen("failed");
+      return;
+    }
 
     let rzSubId: string;
     try {
