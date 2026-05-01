@@ -25,9 +25,8 @@ export async function sendWelcomeEmail({
   const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     const { data, error } = await resend.emails.send({
-      from: "onboarding@resend.dev", // replace with your verified sender
-      //   to: email,
-      to: "arpitahalvi@gmail.com",
+      from: "Croissix <noreply@mail.croissix.com>",
+      to: email,
       subject: `Welcome to Croissix, ${name}! 🎉`,
       html: buildWelcomeTemplate({
         name,
