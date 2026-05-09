@@ -7,7 +7,17 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { KeyRound, Mail, Eye, EyeOff, User, Phone } from "lucide-react";
+import {
+  KeyRound,
+  Mail,
+  Eye,
+  EyeOff,
+  User,
+  Phone,
+  MapPin,
+  Users,
+  Building2,
+} from "lucide-react";
 import { useRegister } from "@/features/auth/hook/useAuth";
 import { useRouter } from "next/navigation";
 
@@ -204,15 +214,42 @@ function InputField({
 }
 
 /* ─── Validation ─────────────────────────────────────────── */
+// function validate(fields: {
+//   name: string;
+//   phone: string;
+//   email: string;
+//   password: string;
+//   confirm: string;
+// }) {
+//   const errs: Record<string, string> = {};
+//   if (!fields.name.trim()) errs.name = "Name is required.";
+//   if (!/^\+?[\d\s\-]{8,}$/.test(fields.phone))
+//     errs.phone = "Enter a valid phone number.";
+//   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email))
+//     errs.email = "Enter a valid email.";
+//   if (fields.password.length < 8) errs.password = "Minimum 8 characters.";
+//   if (fields.confirm !== fields.password)
+//     errs.confirm = "Passwords don't match.";
+//   return errs;
+// }
 function validate(fields: {
   name: string;
   phone: string;
   email: string;
   password: string;
   confirm: string;
+  businessName: string;
+  employeeCount: string;
+  city: string;
+  state: string;
 }) {
   const errs: Record<string, string> = {};
   if (!fields.name.trim()) errs.name = "Name is required.";
+  if (!fields.businessName.trim()) errs.businessName = "Required.";
+  if (!fields.city.trim()) errs.city = "Required.";
+  if (!fields.state.trim()) errs.state = "Required.";
+  if (!fields.employeeCount) errs.employeeCount = "Required.";
+
   if (!/^\+?[\d\s\-]{8,}$/.test(fields.phone))
     errs.phone = "Enter a valid phone number.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email))
@@ -235,6 +272,10 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [employeeCount, setEmployeeCount] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [showConf, setShowConf] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -263,13 +304,32 @@ export default function RegisterPage() {
   );
 
   const handleSubmit = () => {
-    const errs = validate({ name, phone, email, password, confirm });
+    const errs = validate({
+      name,
+      phone,
+      email,
+      password,
+      confirm,
+      businessName,
+      employeeCount,
+      city,
+      state,
+    });
     setErrors(errs);
 
     if (Object.keys(errs).length) return;
 
     registerMutation.mutate(
-      { name, email, phone, password },
+      {
+        name,
+        email,
+        phone,
+        password,
+        businessName,
+        employeeCount: Number(employeeCount),
+        city,
+        state,
+      },
       {
         onSuccess: () => {
           alert("Account created successfully");
@@ -341,6 +401,54 @@ export default function RegisterPage() {
               autoComplete="tel"
               leftIcon={<Phone size={15} strokeWidth={1.8} />}
               error={errors.phone}
+            />
+          </div>
+
+          {/* Business & Employee Count Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputField
+              label="Business Name"
+              type="text"
+              value={businessName}
+              onChange={setBusinessName}
+              placeholder="Company Ltd"
+              isDark={isDark}
+              leftIcon={<Building2 size={15} strokeWidth={1.8} />}
+              error={errors.businessName}
+            />
+            <InputField
+              label="Employee Count"
+              type="number"
+              value={employeeCount}
+              onChange={setEmployeeCount}
+              placeholder="50"
+              isDark={isDark}
+              leftIcon={<Users size={15} strokeWidth={1.8} />}
+              error={errors.employeeCount}
+            />
+          </div>
+
+          {/* City & State Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputField
+              label="City"
+              type="text"
+              value={city}
+              onChange={setCity}
+              placeholder="Mumbai"
+              isDark={isDark}
+              leftIcon={<MapPin size={15} strokeWidth={1.8} />}
+              error={errors.city}
+            />
+            <InputField
+              label="State"
+              type="text"
+              value={state}
+              onChange={setState}
+              placeholder="Maharashtra"
+              isDark={isDark}
+              leftIcon={<MapPin size={15} strokeWidth={1.8} />}
+              error={errors.state}
             />
           </div>
 
@@ -450,7 +558,7 @@ export default function RegisterPage() {
         </div>
 
         {/* divider */}
-        <div className="flex items-center gap-3 my-5">
+        {/* <div className="flex items-center gap-3 my-5">
           <div
             className={`flex-1 h-px ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
           />
@@ -462,10 +570,10 @@ export default function RegisterPage() {
           <div
             className={`flex-1 h-px ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
           />
-        </div>
+        </div> */}
 
         {/* Google */}
-        <button
+        {/* <button
           className={`
             w-full h-[48px] rounded-[13px]
             flex items-center justify-center gap-2.5
@@ -486,7 +594,7 @@ export default function RegisterPage() {
         >
           <GoogleG />
           Sign up with Google
-        </button>
+        </button> */}
 
         {/* sign in link */}
         <p

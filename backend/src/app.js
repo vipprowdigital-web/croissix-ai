@@ -48,7 +48,7 @@ const allowedOrigins = [
   process.env.NEXT_FRONTEND_URL, // Next.js production site
   process.env.ADMIN_FRONTEND_URL, // Admin production site
   process.env.REACT_NATIVE_FRONTEND_URL, // React Native local
-  "https://484b-2405-201-3025-d0bc-6150-bfdb-6bfb-e381.ngrok-free.app",
+  "https://c1de-2405-201-3025-d0bc-ad6d-49cb-75f6-7a83.ngrok-free.app",
   "http://localhost:3000",
   "http://192.168.29.15:3000",
   "http://192.168.29.15:8081",

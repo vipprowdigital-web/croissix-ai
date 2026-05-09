@@ -7,6 +7,11 @@ export interface RegisterPayload {
   email: string;
   phone: string;
   password: string;
+  // Added business details
+  businessName: string;
+  employeeCount: number;
+  city: string;
+  state: string;
 }
 
 export interface LoginPayload {

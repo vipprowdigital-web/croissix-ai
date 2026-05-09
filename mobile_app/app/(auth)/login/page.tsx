@@ -309,7 +309,7 @@ function LoginForm() {
         </div>
 
         {/* divider */}
-        <div className="flex items-center gap-3 my-5">
+        {/* <div className="flex items-center gap-3 my-5">
           <div
             className={`flex-1 h-px ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
           />
@@ -321,10 +321,10 @@ function LoginForm() {
           <div
             className={`flex-1 h-px ${isDark ? "bg-white/[0.07]" : "bg-slate-200"}`}
           />
-        </div>
+        </div> */}
 
         {/* Google */}
-        <button
+        {/* <button
           className={`
             w-full h-[48px] rounded-[13px] flex items-center justify-center gap-2.5
             text-[14px] font-semibold border transition-all duration-150 active:scale-[0.97]
@@ -343,7 +343,7 @@ function LoginForm() {
         >
           <GoogleG />
           Continue with Google
-        </button>
+        </button> */}
 
         <p
           className={`text-center text-[13px] mt-6 ${isDark ? "text-slate-500" : "text-slate-600"}`}
