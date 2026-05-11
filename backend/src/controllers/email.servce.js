@@ -173,29 +173,7 @@ function buildWelcomeTemplate({
                 ${row("State", state)}
               </table>
 
-              <!-- CTA -->
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td align="center">
-                    <a
-                      href="https://app.croissix.com"
-                      style="
-                        display: inline-block;
-                        background: linear-gradient(135deg, #2a0e45, #9f57f5);
-                        color: #ffffff;
-                        text-decoration: none;
-                        font-size: 15px;
-                        font-weight: 700;
-                        padding: 14px 40px;
-                        border-radius: 50px;
-                        letter-spacing: 0.3px;
-                      "
-                    >
-                      Open Croissix →
-                    </a>
-                  </td>
-                </tr>
-              </table>
+           
 
             </td>
           </tr>
@@ -227,3 +205,26 @@ function buildWelcomeTemplate({
 </html>
   `.trim();
 }
+
+// <table width="100%" cellpadding="0" cellspacing="0">
+//   <tr>
+//     <td align="center">
+//       <a
+//         href="https://app.croissix.com"
+//         style="
+//           display: inline-block;
+//           background: linear-gradient(135deg, #2a0e45, #9f57f5);
+//           color: #ffffff;
+//           text-decoration: none;
+//           font-size: 15px;
+//           font-weight: 700;
+//           padding: 14px 40px;
+//           border-radius: 50px;
+//           letter-spacing: 0.3px;
+//         "
+//       >
+//         Open Croissix →
+//       </a>
+//     </td>
+//   </tr>
+// </table>
