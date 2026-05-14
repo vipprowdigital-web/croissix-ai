@@ -2,7 +2,6 @@
 
 import { google } from "googleapis";
 import axios from "axios";
-import { log } from "console";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

@@ -3,6 +3,19 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import Business from "../models/business.model.js";
 import { sendWelcomeEmail } from "./email.servce.js";
+import { google } from "googleapis";
+
+/*
+========================================
+GOOGLE OAUTH CLIENT
+========================================
+*/
+
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI,
+);
 
 // Register a New User
 
@@ -405,3 +418,261 @@ export const logout = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error." });
   }
 };
+
+export const googleAuth = async (req, res) => {
+  const scopes = ["https://www.googleapis.com/auth/business.manage"];
+
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    scope: scopes,
+  });
+
+  res.redirect(authUrl);
+};
+
+export const googleAuthCallback = async (req, res) => {
+  try {
+    const code = req.query.code;
+
+    const { tokens } = await oauth2Client.getToken(code);
+
+    console.log("\n========== TOKENS ==========\n");
+    console.log(tokens);
+
+    /*
+      IMPORTANT:
+      SAVE THIS REFRESH TOKEN
+      INTO YOUR .env FILE
+    */
+
+    res.send(`
+      <h2>Authentication Successful</h2>
+      <p>Check terminal for refresh token.</p>
+    `);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "OAuth failed",
+      error: error.message,
+    });
+  }
+};
+
+export const googleReviews = async (req, res) => {
+  try {
+    /*
+    =========================================
+    QUERY PARAMS
+    =========================================
+    */
+
+    const pageSize = Number(req.query.pageSize) || 5;
+
+    const pageToken = req.query.pageToken || "";
+
+    /*
+    =========================================
+    GOOGLE AUTH
+    =========================================
+    */
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+    });
+
+    /*
+    =========================================
+    ACCESS TOKEN
+    =========================================
+    */
+
+    const accessTokenResponse = await oauth2Client.getAccessToken();
+
+    const access_token = accessTokenResponse.token;
+
+    if (!access_token) {
+      return res.status(401).json({
+        success: false,
+        error: "Failed to generate access token",
+      });
+    }
+
+    /*
+    =========================================
+    ENV VARIABLES
+    =========================================
+    */
+
+    const accountId = process.env.GOOGLE_ACCOUNT_ID;
+
+    const locationId = process.env.GOOGLE_LOCATION_ID;
+
+    /*
+    =========================================
+    GOOGLE REVIEWS URL
+    =========================================
+    */
+
+    const reviewsUrl = new URL(
+      `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/reviews`,
+    );
+
+    /*
+    =========================================
+    PAGINATION
+    =========================================
+    */
+
+    reviewsUrl.searchParams.append("pageSize", pageSize);
+
+    if (pageToken) {
+      reviewsUrl.searchParams.append("pageToken", pageToken);
+    }
+
+    // console.log("\n===== REVIEWS URL =====\n");
+
+    // console.log(reviewsUrl.toString());
+
+    /*
+    =========================================
+    FETCH REVIEWS
+    =========================================
+    */
+
+    const reviewsRes = await fetch(reviewsUrl.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const reviewsText = await reviewsRes.text();
+
+    const reviewsData = JSON.parse(reviewsText);
+
+    /*
+    =========================================
+    HANDLE ERRORS
+    =========================================
+    */
+
+    if (reviewsData.error) {
+      return res.status(400).json({
+        success: false,
+        error: reviewsData.error,
+      });
+    }
+
+    /*
+    =========================================
+    SUCCESS RESPONSE
+    =========================================
+    */
+
+    return res.status(200).json({
+      success: true,
+      reviews: reviewsData.reviews || [],
+
+      averageRating: reviewsData.averageRating || 0,
+
+      totalReviewCount: reviewsData.totalReviewCount || 0,
+
+      nextPageToken: reviewsData.nextPageToken || null,
+    });
+  } catch (error) {
+    console.error("\n===== GOOGLE REVIEWS ERROR =====\n");
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to fetch Google reviews",
+    });
+  }
+};
+
+// export const googleReviews = async (req, res) => {
+//   try {
+//     const oauth2Client = new google.auth.OAuth2(
+//       process.env.GOOGLE_CLIENT_ID,
+//       process.env.GOOGLE_CLIENT_SECRET,
+//     );
+
+//     oauth2Client.setCredentials({
+//       refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+//     });
+
+//     const accessTokenResponse = await oauth2Client.getAccessToken();
+
+//     const access_token = accessTokenResponse.token;
+
+//     if (!access_token) {
+//       return res.status(401).json({
+//         success: false,
+//         error: "Failed to generate access token",
+//       });
+//     }
+
+//     const accountId = process.env.GOOGLE_ACCOUNT_ID;
+
+//     const locationId = process.env.GOOGLE_LOCATION_ID;
+
+//     console.log("\n===== ACCOUNT ID =====\n");
+//     console.log(accountId);
+
+//     console.log("\n===== LOCATION ID =====\n");
+//     console.log(locationId);
+
+//     const reviewsUrl = `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/reviews`;
+
+//     console.log("\n===== REVIEWS URL =====\n");
+//     console.log(reviewsUrl);
+
+//     const reviewsRes = await fetch(reviewsUrl, {
+//       method: "GET",
+//       headers: {
+//         Authorization: `Bearer ${access_token}`,
+//         "Content-Type": "application/json",
+//       },
+//     });
+
+//     const reviewsText = await reviewsRes.text();
+
+//     // console.log("\n===== REVIEWS RAW RESPONSE =====\n");
+//     // console.log(reviewsText);
+
+//     const reviewsData = JSON.parse(reviewsText);
+
+//     if (reviewsData.error) {
+//       return res.status(400).json({
+//         success: false,
+//         error: reviewsData.error,
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       reviews: reviewsData.reviews || [],
+//       averageRating: reviewsData.averageRating || 0,
+//       totalReviewCount: reviewsData.totalReviewCount || 0,
+//     });
+//   } catch (error) {
+//     console.error("\n===== GOOGLE REVIEWS ERROR =====\n");
+
+//     console.error(error);
+
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message || "Failed to fetch Google reviews",
+//     });
+//   }
+// };

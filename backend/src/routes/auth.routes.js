@@ -1,5 +1,8 @@
 import { Router } from "express";
 import {
+  googleAuth,
+  googleAuthCallback,
+  googleReviews,
   linkGoogleAccount,
   login,
   logout,
@@ -15,5 +18,8 @@ router.post("/login", login);
 router.post("/link-google", ensureAuth, linkGoogleAccount);
 router.post("/refresh", refreshToken);
 router.post("/logout", ensureAuth, logout);
+router.get("/google", googleAuth);
+router.get("/google/callback", googleAuthCallback);
+router.get("/google/reviews", googleReviews);
 
 export default router;
