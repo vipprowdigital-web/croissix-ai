@@ -6,6 +6,7 @@ import {
   verifySubscription,
   getMySubscription,
   cancelSubscription,
+  getBillingCycles,
 } from "../controllers/subscription.controller.js";
 
 import { razorpayWebhook } from "../controllers/razorpayWebhook.controller.js";
@@ -17,6 +18,7 @@ const router = express.Router();
 router.post("/create", ensureAuth, createSubscription);
 router.post("/verify", ensureAuth, verifySubscription);
 router.get("/me", ensureAuth, getMySubscription);
+router.get("/billing-cycles/:id", ensureAuth, getBillingCycles);
 router.post("/cancel/:subscriptionId", ensureAuth, cancelSubscription);
 
 // 🔥 webhook (NO auth)

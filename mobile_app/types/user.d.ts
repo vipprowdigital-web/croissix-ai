@@ -1,7 +1,7 @@
 // mobile_app\types\user.d.ts
 
 export interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   phone: string;

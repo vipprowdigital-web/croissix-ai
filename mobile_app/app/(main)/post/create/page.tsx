@@ -1727,10 +1727,18 @@ export default function GooglePostPage() {
         sourceUrl: url,
       }));
     if (postType === "EVENT") payload.event = { title: eventTitle };
+    // if (postType === "OFFER") {
+    //   payload.offer = {
+    //     couponCode,
+    //     redeemOnlineUrl: ctaUrl,
+    //     termsConditions: "",
+    //   };
+    //   payload.event = { title: offerTitle };
+    // }
     if (postType === "OFFER") {
       payload.offer = {
-        couponCode,
-        redeemOnlineUrl: ctaUrl,
+        ...(couponCode ? { couponCode } : {}),
+        ...(ctaUrl ? { redeemOnlineUrl: ctaUrl } : {}),
         termsConditions: "",
       };
       payload.event = { title: offerTitle };

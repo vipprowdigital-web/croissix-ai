@@ -29,6 +29,7 @@ import {
 import { useUser } from "@/features/user/hook/useUser";
 import { useSubscriptionActions } from "@/features/subscription/hook/useSubscriptionActions";
 import { useSubscription } from "@/features/subscription/hook/useSubscription";
+import { getToken } from "@/lib/token";
 
 /* ══════════════════════════════════════════════════
    SINGLE PLAN — Agency ₹5,999
@@ -54,7 +55,9 @@ import { useSubscription } from "@/features/subscription/hook/useSubscription";
 const PLAN = {
   name: "Croissix",
   planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_CROISSIX,
+  // planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_TEST,
   price: 599,
+  // price: 1,
   color: "#f59e0b",
   gradient: "linear-gradient(135deg,#d97706,#f59e0b)",
   features: [
@@ -717,11 +720,13 @@ function SubscriptionDetails({
   subscription,
   onCancel,
   cancelLoading,
+  billingCycles,
 }: {
   dark: boolean;
   subscription: any;
   onCancel: () => void;
   cancelLoading: boolean;
+  billingCycles: number;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const textP = dark ? "#f1f5f9" : "#0f172a";
@@ -733,9 +738,13 @@ function SubscriptionDetails({
   const cfg = STATUS_CFG[status] ?? STATUS_CFG.created;
   const days = daysLeft(subscription?.currentEnd);
   const prog =
-    subscription?.paidCount && subscription?.totalCount
-      ? Math.round((subscription.paidCount / subscription.totalCount) * 100)
+    billingCycles && subscription?.totalCount
+      ? Math.round((billingCycles / subscription.totalCount) * 100)
       : 0;
+  // const prog =
+  //   subscription?.paidCount && subscription?.totalCount
+  //     ? Math.round((subscription.paidCount / subscription.totalCount) * 100)
+  //     : 0;
   const isActive = status === "active";
   const isCancelled = status === "cancelled";
   const isExpired = status === "expired";
@@ -914,7 +923,8 @@ function SubscriptionDetails({
                   className="text-[11px] font-bold"
                   style={{ color: textP }}
                 >
-                  {subscription.paidCount} / {subscription.totalCount} paid
+                  {/* {subscription.paidCount} / {subscription.totalCount} paid */}
+                  {billingCycles} / {subscription.totalCount} paid
                 </span>
               </div>
               <div
@@ -1003,7 +1013,8 @@ function SubscriptionDetails({
           <Row label="Period end" value={fmtDate(subscription?.currentEnd)} />
           <Row
             label="Paid cycles"
-            value={String(subscription?.paidCount ?? 0)}
+            // value={String(subscription?.paidCount ?? 0)}
+            value={String(billingCycles ?? 0)}
           />
           <Row
             label="Total cycles"
@@ -1154,7 +1165,7 @@ function SubscriptionDetails({
               className="text-[11.5px]"
               style={{ color: dark ? "#475569" : "#64748b" }}
             >
-              Contact support to reactivate your Agency plan.
+              Contact support to reactivate your Croissix plan.
             </p>
           </div>
         )}
@@ -1567,6 +1578,32 @@ export default function SubscriptionPage() {
     cancelSubscription,
     loading,
   } = useSubscriptionActions();
+  const [billingCycles, setBillingCycles] = useState(0);
+
+  useEffect(() => {
+    const fetchBillingCycles = async () => {
+      // console.log("Inside fetch billing cycles with user id: ", user?.id);
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/subscription/billing-cycles/${user?.id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${getToken()}`,
+            },
+          },
+        );
+        if (response.ok) {
+          const data = await response.json();
+          // console.log("\nBilling cycles: ", data, "\n");
+          setBillingCycles(data.totalBillingCycles || 0);
+        }
+      } catch (e) {
+        console.error("Error fetching billing cycles: ", e);
+      }
+    };
+    fetchBillingCycles();
+  }, []);
 
   const stepIndex = screen === "plans" ? 0 : screen === "processing" ? 1 : 2;
 
@@ -1798,6 +1835,7 @@ export default function SubscriptionPage() {
                       subscription={subscription}
                       onCancel={handleCancel}
                       cancelLoading={loading}
+                      billingCycles={billingCycles}
                     />
                   </motion.div>
                 ) : (

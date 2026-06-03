@@ -21,11 +21,23 @@ function sanitizePeriods(periods: any[]) {
   }));
 }
 
+// FIX 1: Restore the "categories/" prefix that was stripped on load.
+// Our frontend strips "categories/" when reading (stripCatPrefix), but Google's
+// PATCH endpoint requires the full resource name like "categories/gcid:foo".
+function restoreCatName(name: string): string {
+  if (!name) return name;
+  // If it already has the prefix, leave it alone
+  if (name.startsWith("categories/")) return name;
+  // Otherwise restore it
+  return `categories/${name}`;
+}
+
 export async function PATCH(req: Request) {
   console.log("===== GOOGLE LOCATION UPDATE START =====");
 
   try {
     const body = await req.json();
+    console.log("Received update request with body:", body);
     const { locationId, payload, fields } = body as {
       locationId: string;
       payload: Record<string, unknown>;
@@ -107,14 +119,21 @@ export async function PATCH(req: Request) {
        SANITIZE PAYLOAD
     ══════════════════════════════════════════ */
 
-    /* 1 ── categories: keep only { name } */
+    /* 1 ── categories
+       FIX: Filter out additionalCategories with empty names.
+       When a user types a new category displayName, there's no gcid yet.
+       Google's API requires a valid resource name — empty string causes 400.
+       Only send categories that have a real gcid name. */
     if (payload.categories && typeof payload.categories === "object") {
       const cats = payload.categories as any;
       payload.categories = {
-        primaryCategory: { name: cats.primaryCategory?.name },
-        additionalCategories: (cats.additionalCategories ?? []).map(
-          (c: any) => ({ name: c.name }),
-        ),
+        primaryCategory: {
+          name: restoreCatName(cats.primaryCategory?.name ?? ""),
+        },
+        additionalCategories: (cats.additionalCategories ?? [])
+          // Drop any category that has no valid gcid name
+          .filter((c: any) => c.name && c.name.trim() !== "")
+          .map((c: any) => ({ name: restoreCatName(c.name ?? "") })),
       };
     }
 
@@ -134,7 +153,7 @@ export async function PATCH(req: Request) {
       }));
     }
 
-    /* 4 ── specialHours: convert time strings + keep date objects */
+    /* 4 ── specialHours */
     if (payload.specialHours && typeof payload.specialHours === "object") {
       const sh = payload.specialHours as any;
       payload.specialHours = {
@@ -153,27 +172,119 @@ export async function PATCH(req: Request) {
       };
     }
 
-    /* 5 ── openInfo: remove openingDate if empty */
-    if (payload.openInfo && typeof payload.openInfo === "object") {
-      const oi = payload.openInfo as any;
-      if (!oi.openingDate || !oi.openingDate.year) {
-        delete oi.openingDate;
+    /* 4b ── serviceArea: remove read-only 'name' field from placeInfos */
+    if (payload.serviceArea && typeof payload.serviceArea === "object") {
+      const sa = payload.serviceArea as any;
+      if (Array.isArray(sa.places?.placeInfos)) {
+        sa.places.placeInfos = sa.places.placeInfos
+          .filter((p: any) => p.placeId && p.placeId.trim() !== "")
+          .map((p: any) => ({ placeId: p.placeId }));
       }
     }
 
-    /* 6 ── profile.description: remove if empty string */
+    /* 4c ── serviceItems: only freeForm, drop structured */
+    if (Array.isArray(payload.serviceItems)) {
+      payload.serviceItems = (payload.serviceItems as any[])
+        .filter((item: any) => !!item.freeFormServiceItem)
+        .map((item: any) => {
+          const ffi = item.freeFormServiceItem;
+          const sanitized: any = {
+            label: { displayName: ffi.label?.displayName ?? "" },
+          };
+          if (ffi.category && ffi.category.trim() !== "") {
+            sanitized.category = ffi.category;
+          }
+          return { freeFormServiceItem: sanitized };
+        });
+    }
+
+    /* 5 ── openInfo
+       FIX: When openingDate is absent/cleared, remove it from payload entirely
+       AND remove "openInfo.openingDate" from fields. Google will then only
+       receive the status update without touching the openingDate field.
+       To CLEAR an existing opening date, we need to send openInfo without
+       openingDate — Google treats absence of the field as "clear it". */
+    if (payload.openInfo && typeof payload.openInfo === "object") {
+      const oi = payload.openInfo as any;
+      if (!oi.openingDate?.year || oi.openingDate.year === 0) {
+        delete oi.openingDate;
+        // Also signal to updateMask builder below: exclude openInfo.openingDate
+        // but INCLUDE openInfo.status so the status still gets saved.
+      }
+    }
+
+    /* 6 ── profile.description */
     if (payload.profile && typeof payload.profile === "object") {
       const pr = payload.profile as any;
       if (pr.description === "") delete pr.description;
     }
 
-    /* ── BUILD updateMask (skip openInfo.openingDate if removed) ── */
-    const updateMask = fields
+    /* 6b ── adWordsLocationExtensions */
+    // if (
+    //   payload.adWordsLocationExtensions &&
+    //   typeof payload.adWordsLocationExtensions === "object"
+    // ) {
+    //   const ext = payload.adWordsLocationExtensions as any;
+    //   if (!ext.adPhone || ext.adPhone.trim() === "") {
+    //     // Remove from payload — don't touch this field at all when empty
+    //     delete payload.adWordsLocationExtensions;
+    //     // The mask filter below will also skip it
+    //   }
+    // }
+
+    // Google rejects relationshipData:{} — omit when nothing to set
+    if (
+      payload.relationshipData &&
+      typeof payload.relationshipData === "object" &&
+      Object.keys(payload.relationshipData as object).length === 0
+    ) {
+      delete payload.relationshipData;
+    }
+
+    if (payload.specialHours && typeof payload.specialHours === "object") {
+      const sh = payload.specialHours as any;
+      if (
+        Array.isArray(sh.specialHourPeriods) &&
+        sh.specialHourPeriods.length === 0 &&
+        fields.filter((f) => f !== "specialHours").length > 0
+      ) {
+        delete payload.specialHours;
+        // Will be filtered out of mask below
+      }
+    }
+
+    // Same for moreHours empty array with other fields
+    if (
+      Array.isArray(payload.moreHours) &&
+      (payload.moreHours as any[]).length === 0 &&
+      fields.filter((f) => f !== "moreHours").length > 0
+    ) {
+      delete payload.moreHours;
+    }
+
+    // For categories
+    const normalizedFields = fields.map((f) => {
+      if (
+        f === "categories.primaryCategory" ||
+        f === "categories.additionalCategories"
+      ) {
+        return "categories";
+      }
+      return f;
+    });
+
+    /* ── BUILD updateMask ── */
+    const READONLY_FIELDS = new Set(["languageCode"]);
+    const updateMask = normalizedFields
       .filter((f) => {
-        if (f === "openInfo.openingDate") {
-          const oi = payload.openInfo as any;
-          return !!oi?.openingDate;
-        }
+        if (READONLY_FIELDS.has(f)) return false;
+
+        // Skip any field we deleted from payload above
+        if (f === "relationshipData" && !payload.relationshipData) return false;
+        if (f === "specialHours" && !payload.specialHours) return false;
+        if (f === "moreHours" && !payload.hasOwnProperty("moreHours"))
+          return false;
+
         return true;
       })
       .join(",");
@@ -185,8 +296,8 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // console.log("updateMask:", updateMask);
-    // console.log("payload:", JSON.stringify(payload, null, 2));
+    console.log("updateMask:", updateMask);
+    console.log("payload:", JSON.stringify(payload, null, 2));
 
     /* ── PATCH ── */
     const service = google.mybusinessbusinessinformation({
@@ -194,22 +305,121 @@ export async function PATCH(req: Request) {
       auth: oauth2Client,
     });
 
-    const res = await service.locations.patch({
-      name: `locations/${locationId}`,
-      updateMask,
-      requestBody: payload as any,
-    });
+    // const res = await service.locations.patch({
+    //   name: `locations/${locationId}`,
+    //   updateMask,
+    //   requestBody: payload as any,
+    // });
 
     // console.log("✅ Update success:", res.data);
-    return NextResponse.json({ success: true, data: res.data });
+    // return NextResponse.json({ success: true, data: res.data });
+    try {
+      const res = await service.locations.patch({
+        name: `locations/${locationId}`,
+        updateMask,
+        requestBody: payload as any,
+      });
+
+      console.log("✅ Update success:", res.data);
+
+      return NextResponse.json({
+        success: true,
+        data: res.data,
+      });
+    } catch (patchError: any) {
+      const details = patchError.response?.data?.error?.details ?? [];
+
+      const phoneThrottled = details.some(
+        (d: any) =>
+          d.reason === "THROTTLED" &&
+          (d.metadata?.field_mask === "phone_numbers.primary_phone" ||
+            d.metadata?.field_mask === "phone_numbers.additional_phones"),
+      );
+
+      if (phoneThrottled && (payload as any).phoneNumbers) {
+        console.log(
+          "📞 Phone numbers throttled by Google. Retrying without phoneNumbers...",
+        );
+
+        const retryPayload = { ...(payload as any) };
+
+        console.log("retrypayload: ", retryPayload);
+
+        delete retryPayload.phoneNumbers;
+
+        const retryMask = updateMask
+          .split(",")
+          .filter((f) => f !== "phoneNumbers")
+          .join(",");
+
+        if (!retryMask) {
+          return NextResponse.json(
+            {
+              success: false,
+              phoneSkipped: true,
+              throttledFields: details
+                .filter((d: any) => d.reason === "THROTTLED")
+                .map((d: any) => d.metadata?.field_mask),
+              error: "Google is temporarily restricting phone number updates.",
+            },
+            {
+              status: 200,
+            },
+          );
+        } else {
+          console.log("Retry updateMask:", retryMask);
+
+          console.log("Retry payload:", JSON.stringify(retryPayload, null, 2));
+
+          const retryRes = await service.locations.patch({
+            name: `locations/${locationId}`,
+            updateMask: retryMask,
+            requestBody: retryPayload,
+          });
+
+          return NextResponse.json({
+            success: true,
+            phoneSkipped: true,
+            warning: "Google temporarily restricted phone number updates.",
+            throttledFields: details
+              .filter((d: any) => d.reason === "THROTTLED")
+              .map((d: any) => d.metadata?.field_mask),
+            data: retryRes.data,
+          });
+        }
+      }
+
+      throw patchError;
+    }
   } catch (error: any) {
     const status = error.response?.status ?? 500;
     const message =
       error.response?.data?.error?.message ??
       error.message ??
       "Google API error";
-
+    const details = error.response?.data?.error?.details ?? [];
+    const throttledFields = details
+      .filter((d: any) => d.reason === "THROTTLED")
+      .map((d: any) => d.metadata?.field_mask);
+    console.error("Error while updating location: ", error);
+    console.error(
+      "GOOGLE ERROR BODY:",
+      JSON.stringify(error.response?.data, null, 2),
+    );
+    console.error(
+      "GOOGLE ERROR DETAILS:",
+      JSON.stringify(error.response?.data?.error, null, 2),
+    );
     console.error(`❌ GOOGLE UPDATE ERROR [${status}]:`, message);
-    return NextResponse.json({ error: message }, { status });
+    // return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      {
+        error: message,
+        throttledFields,
+      },
+      {
+        status,
+      },
+    );
   }
 }

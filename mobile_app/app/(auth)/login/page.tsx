@@ -168,6 +168,9 @@ function LoginForm() {
   useEffect(() => setMounted(true), []);
   const isDark = mounted && resolvedTheme === "dark";
 
+  // Grab callback once — it will be present when coming from mobile WebView
+  const callbackParam = searchParams.get("callback");
+
   const handleSubmit = () => {
     setError("");
     if (!email || !password) {
@@ -180,9 +183,11 @@ function LoginForm() {
       {
         onSuccess: () => {
           setTimeout(() => {
-            const callback = searchParams.get("callback");
-            if (callback) {
-              router.replace(`/?callback=${encodeURIComponent(callback)}`);
+            // ── FIX: after login always redirect to / and carry the callback param ──
+            // SubscriptionGuard on / will then read the callback and pass it into
+            // SubscriptionGate, which redirects back to the mobile app on success.
+            if (callbackParam) {
+              router.replace(`/?callback=${encodeURIComponent(callbackParam)}`);
             } else {
               router.replace("/");
             }

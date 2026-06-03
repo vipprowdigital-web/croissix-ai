@@ -151,8 +151,38 @@ export async function POST(req: Request) {
 
     /* ---------------- FIX EVENT POST ---------------- */
 
-    if (payload.topicType === "EVENT" && payload.event) {
+    // if (payload.topicType === "EVENT" && payload.event) {
+    //   const now = new Date();
+
+    //   payload.event.schedule = {
+    //     startDate: {
+    //       year: now.getFullYear(),
+    //       month: now.getMonth() + 1,
+    //       day: now.getDate(),
+    //     },
+    //     startTime: {
+    //       hours: now.getHours(),
+    //       minutes: now.getMinutes(),
+    //     },
+    //     endDate: {
+    //       year: now.getFullYear(),
+    //       month: now.getMonth() + 1,
+    //       day: now.getDate() + 1,
+    //     },
+    //     endTime: {
+    //       hours: now.getHours(),
+    //       minutes: now.getMinutes(),
+    //     },
+    //   };
+    // }
+    // Change this condition from just "EVENT" to cover "OFFER" too
+    if (
+      (payload.topicType === "EVENT" || payload.topicType === "OFFER") &&
+      payload.event
+    ) {
       const now = new Date();
+      const end = new Date(now);
+      end.setDate(end.getDate() + 7);
 
       payload.event.schedule = {
         startDate: {
@@ -160,19 +190,13 @@ export async function POST(req: Request) {
           month: now.getMonth() + 1,
           day: now.getDate(),
         },
-        startTime: {
-          hours: now.getHours(),
-          minutes: now.getMinutes(),
-        },
+        startTime: { hours: now.getHours(), minutes: now.getMinutes() },
         endDate: {
-          year: now.getFullYear(),
-          month: now.getMonth() + 1,
-          day: now.getDate() + 1,
+          year: end.getFullYear(),
+          month: end.getMonth() + 1,
+          day: end.getDate(),
         },
-        endTime: {
-          hours: now.getHours(),
-          minutes: now.getMinutes(),
-        },
+        endTime: { hours: now.getHours(), minutes: now.getMinutes() },
       };
     }
     /* ---------------- ADD REQUIRED FIELD ---------------- */
@@ -211,16 +235,18 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify(payload),
     });
+    console.log("GOOGLE Post API response: ", res);
+    console.log("GOOGLE Post API response status: ", res.status);
 
     const data = await res.json();
 
-    // console.log("Google response:", data);
+    console.log("Google response:", data);
     // console.log("Google response:", data.error.details);
     // console.log("Google response:", data.error.details.errorDetails);
 
     if (!res.ok) {
       const violations = data?.error?.details?.[0]?.fieldViolations;
-      // console.log("Field violations:", JSON.stringify(violations, null, 2));
+      console.log("Field violations:", JSON.stringify(violations, null, 2));
       return Response.json(
         {
           success: false,

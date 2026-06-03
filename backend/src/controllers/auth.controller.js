@@ -4,6 +4,7 @@ import User from "../models/user.model.js";
 import Business from "../models/business.model.js";
 import { sendWelcomeEmail } from "./email.servce.js";
 import { google } from "googleapis";
+import axios from "axios";
 
 /*
 ========================================
@@ -600,79 +601,284 @@ export const googleReviews = async (req, res) => {
   }
 };
 
-// export const googleReviews = async (req, res) => {
-//   try {
-//     const oauth2Client = new google.auth.OAuth2(
-//       process.env.GOOGLE_CLIENT_ID,
-//       process.env.GOOGLE_CLIENT_SECRET,
-//     );
+export const facebookAuthCallback = async (req, res) => {
+  // code = auth code from Meta
+  // state = the user ID we forwarded from the mobile app
+  const { code, state: appUserId } = req.query;
+  // console.log("Query: ", req.query);
 
-//     oauth2Client.setCredentials({
-//       refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-//     });
+  if (!code) {
+    return res.status(400).json({
+      message: "Authorization code missing from Meta redirect callback.",
+    });
+  }
 
-//     const accessTokenResponse = await oauth2Client.getAccessToken();
+  if (!appUserId) {
+    return res.status(400).json({
+      message:
+        "Application context state (User ID) missing from parameter loop.",
+    });
+  }
 
-//     const access_token = accessTokenResponse.token;
+  try {
+    const exactRedirectUri = `https://5bb9-2405-201-3025-d0bc-1d3c-dbcd-fd9-6458.ngrok-free.app/api/v1/auth/facebook`;
+    const tokenExchangeUrl = `https://graph.facebook.com/v25.0/oauth/access_token`;
 
-//     if (!access_token) {
-//       return res.status(401).json({
-//         success: false,
-//         error: "Failed to generate access token",
-//       });
-//     }
+    // 1. Exchange temporary code for short-lived token
+    const tokenResponse = await axios.get(tokenExchangeUrl, {
+      params: {
+        client_id: process.env.FACEBOOK_APP_ID,
+        client_secret: process.env.FACEBOOK_APP_SECRET,
+        redirect_uri: exactRedirectUri,
+        code: code,
+      },
+    });
 
-//     const accountId = process.env.GOOGLE_ACCOUNT_ID;
+    const shortLivedToken = tokenResponse.data.access_token;
 
-//     const locationId = process.env.GOOGLE_LOCATION_ID;
+    // console.log("Short-lived token received from Meta:", shortLivedToken);
 
-//     console.log("\n===== ACCOUNT ID =====\n");
-//     console.log(accountId);
+    // 2. Upgrade short-lived token to a 60-day long-lived User Access Token
+    const longLivedTokenResponse = await axios.get(
+      `https://graph.facebook.com/v25.0/oauth/access_token`,
+      {
+        params: {
+          grant_type: "fb_exchange_token",
+          client_id: process.env.FACEBOOK_APP_ID,
+          client_secret: process.env.FACEBOOK_APP_SECRET,
+          fb_exchange_token: shortLivedToken,
+        },
+      },
+    );
+    console.log("Long-lived token response from Meta:", longLivedTokenResponse);
 
-//     console.log("\n===== LOCATION ID =====\n");
-//     console.log(locationId);
+    const longLivedAccessToken = longLivedTokenResponse.data.access_token;
 
-//     const reviewsUrl = `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/reviews`;
+    // 3. SECURE EXTENSION: Fetch the business pages managed by this token
+    // To read insights or post metrics, we must obtain a Page Access Token
+    // const pagesResponse = await axios.get(
+    //   `https://graph.facebook.com/v25.0/me/accounts`,
+    //   {
+    //     params: { access_token: longLivedAccessToken },
+    //   },
+    // );
 
-//     console.log("\n===== REVIEWS URL =====\n");
-//     console.log(reviewsUrl);
+    // 3. Query all pages this user manages so they can choose one
+    const pagesResponse = await axios.get(
+      `https://graph.facebook.com/v25.0/me/accounts`,
+      {
+        params: {
+          fields: "id,name,access_token,picture,instagram_business_account",
+          access_token: longLivedAccessToken,
+        },
+      },
+    );
+    console.log("Managed Pages Response:", pagesResponse.data);
 
-//     const reviewsRes = await fetch(reviewsUrl, {
-//       method: "GET",
-//       headers: {
-//         Authorization: `Bearer ${access_token}`,
-//         "Content-Type": "application/json",
-//       },
-//     });
+    const rawPagesArray = pagesResponse.data.data || [];
 
-//     const reviewsText = await reviewsRes.text();
+    if (rawPagesArray.length === 0) {
+      return res.redirect(`croissix://FacebookScreen?error=no_pages_found`);
+    }
 
-//     // console.log("\n===== REVIEWS RAW RESPONSE =====\n");
-//     // console.log(reviewsText);
+    // Temporarily stash the long-lived user token so we can use it to verify their choice in Step 3
+    const user = await User.findByIdAndUpdate(appUserId, {
+      $set: {
+        // facebookUserId: pagesResponse.data.id || null,
+        facebookAccessToken: longLivedAccessToken,
+      },
+    });
 
-//     const reviewsData = JSON.parse(reviewsText);
+    console.log("user: ", user);
 
-//     if (reviewsData.error) {
-//       return res.status(400).json({
-//         success: false,
-//         error: reviewsData.error,
-//       });
-//     }
+    // 4. Transform the available choices into a compressed string format payload
+    // Base64 encoding the choices avoids URL query parameter parsing breaking on spaces or special chars
+    const pagesPayload = rawPagesArray.map((p) => ({
+      id: p.id,
+      name: p.name,
+      avatar: p.picture?.data?.url || "",
+      instaId: p.instagram_business_account?.id || "",
+    }));
 
-//     return res.status(200).json({
-//       success: true,
-//       reviews: reviewsData.reviews || [],
-//       averageRating: reviewsData.averageRating || 0,
-//       totalReviewCount: reviewsData.totalReviewCount || 0,
-//     });
-//   } catch (error) {
-//     console.error("\n===== GOOGLE REVIEWS ERROR =====\n");
+    const encodedPagesList = encodeURIComponent(JSON.stringify(pagesPayload));
 
-//     console.error(error);
+    console.log("Encoded Pages Payload:", encodedPagesList);
 
-//     return res.status(500).json({
-//       success: false,
-//       error: error.message || "Failed to fetch Google reviews",
-//     });
-//   }
-// };
+    // 5. Send the full list directly back to the Mobile App interface!
+    return res.redirect(
+      `croissix://FacebookScreen?status=select_page&pages=${encodedPagesList}`,
+    );
+    // const primaryPage = pagesResponse.data.data?.[0]; // Grabbing the first managed page asset
+
+    // const pageId = primaryPage?.id || null;
+    // const pageToken = primaryPage?.access_token || null;
+    // const instagramId = primaryPage?.instagram_business_account?.id || null;
+
+    // // 4. Update the User's Database Document with the fresh credentials
+    // const updatedUser = await User.findByIdAndUpdate(
+    //   appUserId, // The user ID passed securely through Meta's state wrapper parameter
+    //   {
+    //     $set: {
+    //       facebookAccessToken: longLivedAccessToken,
+    //       facebookPageId: pageId,
+    //       facebookPageToken: pageToken,
+    //       instagramBusinessAccountId: instagramId,
+    //     },
+    //   },
+    //   { new: true }, // Returns the modified document object
+    // );
+
+    // if (!updatedUser) {
+    //   console.error(
+    //     `User document with ID ${appUserId} not located during token link sync.`,
+    //   );
+    //   return res.redirect(`croissix://FacebookAnalytics?error=user_not_found`);
+    // }
+
+    // console.log(
+    //   `Successfully mapped Meta credentials to user: ${updatedUser.name}`,
+    // );
+
+    // // 5. Deep link back to the mobile app layout screen
+    // // We pass along a clean validation indicator flag to update the mobile state cleanly
+    // return res.redirect(
+    //   `croissix://FacebookAnalytics?token=saved_successfully`,
+    // );
+  } catch (error) {
+    console.error(
+      "Meta Token Exchange Failure:",
+      error.response?.data || error.message,
+    );
+    return res.redirect(`croissix://?error=exchange_failed`);
+  }
+};
+
+export const connectSingleFacebookPage = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { selectedPageId } = req.body;
+    // console.log("Selected Page ID for connection:", selectedPageId);
+    // console.log(
+    //   "facebookUserAccessToken from DB:",
+    //   req.user.facebookAccessToken,
+    // );
+
+    if (!selectedPageId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No target Page ID was submitted." });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.facebookAccessToken) {
+      return res.status(400).json({
+        success: false,
+        message: "OAuth context session expired. Re-authenticate.",
+      });
+    }
+
+    // Query Meta to get the singular verified live page token for security validation
+    const pagesResponse = await axios.get(
+      `https://graph.facebook.com/v25.0/me/accounts`,
+      {
+        params: {
+          fields: "id,name,access_token,picture,instagram_business_account",
+          access_token: user.facebookAccessToken,
+        },
+      },
+    );
+
+    const targetMetaPage = pagesResponse.data.data?.find(
+      (p) => p.id === selectedPageId,
+    );
+
+    console.log("Meta Page fetched for final selection:", targetMetaPage);
+
+    if (!targetMetaPage) {
+      return res.status(404).json({
+        success: false,
+        message: "Target account asset not found among managed pages.",
+      });
+    }
+
+    // Save ONLY this selected page into your root schema properties layout
+    await User.findByIdAndUpdate(userId, {
+      $set: {
+        facebookPageId: targetMetaPage.id,
+        facebookPageToken: targetMetaPage.access_token,
+        facebookPageName: targetMetaPage.name,
+        facebookPageAvatar: targetMetaPage.picture?.data?.url || null,
+        instagramBusinessAccountId:
+          targetMetaPage.instagram_business_account?.id || null,
+      },
+      $unset: {
+        facebookAccessToken: "", // Wipe the temporary user token cleanly from database storage
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Facebook channel linked successfully.",
+      connectedPageName: targetMetaPage.name,
+    });
+  } catch (error) {
+    console.error(
+      "Failed to commit final single page connection link:",
+      error.message,
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Database linking transaction failure.",
+    });
+  }
+};
+
+export const disconnectFacebookProfile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized application context access.",
+      });
+    }
+
+    // $unset completely deletes the keys from the MongoDB document, keeping the record flat and clean
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        $unset: {
+          facebookUserId: "",
+          facebookUserAccessToken: "",
+          facebookPageId: "",
+          facebookPageToken: "",
+          facebookPageName: "",
+          facebookPageAvatar: "",
+          instagramBusinessAccountId: "",
+        },
+      },
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User account context not located.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Facebook channel profile disconnected and unlinked successfully.",
+    });
+  } catch (error) {
+    console.error("Disconnect Facebook Profile Error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message:
+        "Internal server error while executing profile disconnect transaction.",
+    });
+  }
+};

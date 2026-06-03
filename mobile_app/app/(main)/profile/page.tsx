@@ -799,6 +799,12 @@ function LocationRow({
   const isConnected = user?.googleLocationId === locationId;
 
   const handleLink = async () => {
+    if (user?.googleLocationId) {
+      alert(
+        "Already Linked. You can only connect one Google Business location. Please contact support to change it.",
+      );
+      return;
+    }
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
@@ -987,7 +993,7 @@ function GoogleProfileRow({
                 fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
               }}
             >
-              {user?.googleId ? locations?.length : 0} linked profiles
+              {user?.googleId ? locations?.length : 0} profiles
             </div>
           )}
         </div>
@@ -1138,7 +1144,7 @@ export default function ProfilePage() {
 
   const accountSection = (
     <Section t={t}>
-      <Row icon={<IcoNotif />} iconBg="#f97316" label="Notifications" t={t} />
+      {/* <Row icon={<IcoNotif />} iconBg="#f97316" label="Notifications" t={t} /> */}
       <Row
         icon={<IcoLock />}
         iconBg="#8b5cf6"
@@ -1294,7 +1300,7 @@ export default function ProfilePage() {
             </div>
 
             {/* ── NEW: Edit Google Business Profile tab ── */}
-            {hasProfile && (
+            {/* {hasProfile && (
               <button
                 onClick={() => router.push("/profile/google-profile/edit")}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all active:scale-[0.98]"
@@ -1334,7 +1340,7 @@ export default function ProfilePage() {
                   </span>
                 </div>
               </button>
-            )}
+            )} */}
 
             {/* Update profile box — shows when no linked profile */}
             {!hasProfile && (
@@ -1441,7 +1447,7 @@ export default function ProfilePage() {
           {/* Account section — mobile only */}
           <div className="md:hidden">{accountSection}</div>
 
-          <Section t={t}>
+          {/* <Section t={t}>
             <Row icon={<IcoMsg />} iconBg="#25d366" label="Chats" t={t} />
             <Row
               icon={<IcoDB />}
@@ -1450,7 +1456,7 @@ export default function ProfilePage() {
               value="1.2 GB"
               t={t}
             />
-          </Section>
+          </Section> */}
 
           <Section t={t}>
             <Row
@@ -1460,13 +1466,13 @@ export default function ProfilePage() {
               t={t}
               onClick={() => router.push("/help")}
             />
-            <Row
+            {/* <Row
               icon={<IcoShare />}
               iconBg="#10b981"
               label="Invite a Friend"
               t={t}
               onClick={() => router.push("/invite")}
-            />
+            /> */}
             <Row
               icon={<IcoSun />}
               iconBg={isDark ? "rgb(24,34,54)" : "#1e293b"}

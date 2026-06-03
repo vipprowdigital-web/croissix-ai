@@ -1,3 +1,51 @@
+"use client";
+
+// components/auth/GuestGuard.tsx
+// Redirects already-logged-in users away from guest-only pages (login, register).
+// KEY FIX: if a ?callback= param is present, forward it to the redirect destination
+// so the mobile WebView payment flow isn't broken.
+
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getToken } from "@/lib/token";
+
+function GuestGuardInner({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+    if (token) {
+      // User is already logged in — redirect away from login/register.
+      // If a callback param is present (e.g. from mobile WebView payment flow),
+      // forward it so the subscription redirect chain stays intact.
+      const callbackRaw = searchParams.get("callback");
+      const destination = callbackRaw
+        ? `/?callback=${encodeURIComponent(callbackRaw)}`
+        : "/";
+      router.replace(destination);
+    } else {
+      setChecked(true);
+    }
+  }, [router, searchParams]);
+
+  if (!checked) return null;
+  return <>{children}</>;
+}
+
+export default function GuestGuard({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <GuestGuardInner>{children}</GuestGuardInner>
+    </Suspense>
+  );
+}
+
 // // mobile_app\components\auth\GuestGuard.tsx
 
 // "use client";
@@ -38,40 +86,40 @@
 //   return <>{children}</>;
 // }
 
-"use client";
+// "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // ❌ removed useSearchParams
-import { getToken } from "@/lib/token";
+// import { useEffect, useState } from "react";
+// import { useRouter } from "next/navigation"; // ❌ removed useSearchParams
+// import { getToken } from "@/lib/token";
 
-export default function GuestGuard({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-  const [checking, setChecking] = useState(true);
+// export default function GuestGuard({
+//   children,
+// }: {
+//   children: React.ReactNode;
+// }) {
+//   const router = useRouter();
+//   const [checking, setChecking] = useState(true);
 
-  useEffect(() => {
-    const token = getToken();
+//   useEffect(() => {
+//     const token = getToken();
 
-    // ✅ CHANGE: use window instead of useSearchParams
-    const params = new URLSearchParams(window.location.search); // ✅ added
-    const callback = params.get("callback"); // ✅ added
+//     // ✅ CHANGE: use window instead of useSearchParams
+//     const params = new URLSearchParams(window.location.search); // ✅ added
+//     const callback = params.get("callback"); // ✅ added
 
-    if (token) {
-      if (callback) {
-        router.replace(`/?callback=${encodeURIComponent(callback)}`);
-      } else {
-        router.replace("/dashboard");
-      }
-      return;
-    }
+//     if (token) {
+//       if (callback) {
+//         router.replace(`/?callback=${encodeURIComponent(callback)}`);
+//       } else {
+//         router.replace("/dashboard");
+//       }
+//       return;
+//     }
 
-    setChecking(false);
-  }, [router]); // ✅ removed searchParams
+//     setChecking(false);
+//   }, [router]); // ✅ removed searchParams
 
-  if (checking) return null;
+//   if (checking) return null;
 
-  return <>{children}</>;
-}
+//   return <>{children}</>;
+// }

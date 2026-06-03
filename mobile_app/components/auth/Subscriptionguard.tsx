@@ -2,8 +2,8 @@
 
 // mobile_app/components/auth/SubscriptionGuard.tsx
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import {
@@ -68,6 +68,7 @@ const RZP_KEY =
 const PLAN = {
   name: "Croissix",
   // planId: PLAN_IDS.croissix_payment,
+  // planId: process.env.NEXT_PUBLIC_RAZORPAY_TEST_PLAN_ID,
   // planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_TEST,
   planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_CROISSIX,
   price: 599,
@@ -296,7 +297,13 @@ function CouponInput({
 /* ══════════════════════════════════════════════════
    SUBSCRIPTION GATE
 ══════════════════════════════════════════════════ */
-function SubscriptionGate({ dark }: { dark: boolean }) {
+function SubscriptionGate({
+  dark,
+  callbackUrl,
+}: {
+  dark: boolean;
+  callbackUrl: string | null; // <- receives the mobile callback
+}) {
   const [screen, setScreen] = useState<Screen>("plans");
   const [coupon, setCoupon] = useState<{
     code: string;
@@ -354,7 +361,7 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
     try {
       const data = await createSubscription(planId);
       rzSubId = data.subscriptionId;
-      // console.log("Subscription Ids: ", rzSubId);
+      // console.log("Subscription Id: ", rzSubId);
       if (!rzSubId) throw new Error("No subscription ID returned.");
     } catch (err: any) {
       setFailMsg(
@@ -382,6 +389,7 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
       theme: { color: "#f59e0b" },
       handler: async (resp: any) => {
         try {
+          console.log("resp: ", resp);
           await verifySubscription({
             razorpay_payment_id: resp.razorpay_payment_id,
             razorpay_subscription_id: resp.razorpay_subscription_id,
@@ -389,11 +397,21 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
             planId,
           });
           // console.log("Verified successfullyy..");
-          setScreen("success");
           await refetchSubscription();
+          setScreen("success");
           // ---------------------------
           // FOR THE MOBILE APP
           // Check if came from mobile app
+
+          // ── Redirect back to mobile app if callback present ──
+          if (callbackUrl) {
+            const decoded = decodeURIComponent(callbackUrl);
+            console.log("Redirecting to mobile callback:", decoded);
+            // setTimeout(() => {
+            window.location.href = decoded;
+            // }, 1200);
+          }
+
           // const params = new URLSearchParams(window.location.search);
           // const callback = params.get("callback");
 
@@ -404,7 +422,7 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
           //   setScreen("success");
           // } else {
           //   // Normal web flow
-          // setScreen("success");
+          //   setScreen("success");
           // }
           // FOR THE MOBILE APP
           // ---------------------------
@@ -968,36 +986,60 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
                   </p>
                 </div>
               </div> */}
-              <motion.button
-                // onClick={() => window.location.reload()}
-                onClick={async () => {
-                  await refetchSubscription();
-                  // If still on gate, the isActive check in the guard will now pass
-                  // and render children automatically — no reload needed
-                }}
-                whileTap={{ scale: 0.975 }}
-                className="w-full py-4 rounded-[18px] text-white text-[15px] font-black relative overflow-hidden mt-1"
-                style={{
-                  background: PLAN.gradient,
-                  boxShadow: "0 10px 32px rgba(217,119,6,0.38)",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                <motion.div
-                  className="absolute inset-0"
+              {callbackUrl ? (
+                <div
+                  className="w-full rounded-2xl p-3.5 flex items-center gap-3 text-left"
                   style={{
-                    background:
-                      "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)",
+                    background: dark
+                      ? "rgba(34,197,94,0.07)"
+                      : "rgba(220,252,231,0.6)",
+                    border: `1.5px solid ${dark ? "rgba(34,197,94,0.14)" : "rgba(134,239,172,0.4)"}`,
                   }}
-                  animate={{ x: ["-100%", "100%"] }}
-                  transition={{
-                    duration: 2.2,
-                    repeat: Infinity,
-                    ease: "linear",
+                >
+                  <RefreshCw
+                    size={14}
+                    className="animate-spin"
+                    style={{ color: "#22c55e", flexShrink: 0 }}
+                  />
+                  <p
+                    className="text-[12.5px] font-extrabold m-0"
+                    style={{ color: dark ? "#4ade80" : "#15803d" }}
+                  >
+                    Redirecting you back to the app…
+                  </p>
+                </div>
+              ) : (
+                <motion.button
+                  // onClick={() => window.location.reload()}
+                  onClick={async () => {
+                    await refetchSubscription();
+                    // If still on gate, the isActive check in the guard will now pass
+                    // and render children automatically — no reload needed
                   }}
-                />
-                <span className="relative">Enter Croissix →</span>
-              </motion.button>
+                  whileTap={{ scale: 0.975 }}
+                  className="w-full py-4 rounded-[18px] text-white text-[15px] font-black relative overflow-hidden mt-1"
+                  style={{
+                    background: PLAN.gradient,
+                    boxShadow: "0 10px 32px rgba(217,119,6,0.38)",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  <motion.div
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)",
+                    }}
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{
+                      duration: 2.2,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                  />
+                  <span className="relative">Enter Croissix →</span>
+                </motion.button>
+              )}
             </motion.div>
           )}
 
@@ -1122,15 +1164,12 @@ function SubscriptionGate({ dark }: { dark: boolean }) {
 }
 
 /* ══════════════════════════════════════════════════
-   GUARD
+   INNER GUARD — reads searchParams (must be inside Suspense)
 ══════════════════════════════════════════════════ */
-export default function SubscriptionGuard({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function GuardInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams(); // ← requires Suspense boundary
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [authed, setAuthed] = useState(false);
@@ -1138,26 +1177,100 @@ export default function SubscriptionGuard({
   useEffect(() => setMounted(true), []);
   const dark = mounted && resolvedTheme === "dark";
 
+  // searchParams.get("callback") returns the decoded value, e.g. "croissix://subscription/success"
+  const callbackRaw = searchParams.get("callback");
+
   useEffect(() => {
     const token = getToken();
     if (!token) {
-      router.replace("/login");
+      // ── KEY FIX: forward the callback param to /login ──
+      // Without this the param is lost and the web app never redirects back
+      const loginUrl = callbackRaw
+        ? `/login?callback=${encodeURIComponent(callbackRaw)}`
+        : "/login";
+      router.replace(loginUrl);
       return;
     }
     setAuthed(true);
-  }, [router]);
+  }, [router, callbackRaw]);
 
   const { isActive, isLoading: subLoading } = useSubscription();
   const isExempt = EXEMPT.some((p) => pathname?.startsWith(p));
-  // console.log(
-  //   "Subscription is active: ",
-  //   isActive,
-  //   " subcription: ",
-  //   subscription,
-  // );
 
   if (!authed) return null;
   if (subLoading) return <AppSkeleton dark={dark} />;
   if (isActive || isExempt) return <>{children}</>;
-  return <SubscriptionGate dark={dark} />;
+
+  // Pass callbackRaw so SubscriptionGate can redirect back to the app on success
+  return <SubscriptionGate dark={dark} callbackUrl={callbackRaw} />;
 }
+
+/* ══════════════════════════════════════════════════
+   PUBLIC EXPORT — Suspense wrapper is REQUIRED by
+   Next.js App Router when using useSearchParams()
+══════════════════════════════════════════════════ */
+export default function SubscriptionGuard({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const dark = mounted && resolvedTheme === "dark";
+
+  return (
+    <Suspense fallback={<AppSkeleton dark={dark} />}>
+      <GuardInner>{children}</GuardInner>
+    </Suspense>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   GUARD
+══════════════════════════════════════════════════ */
+// export default function SubscriptionGuard({
+//   children,
+// }: {
+//   children: React.ReactNode;
+// }) {
+//   const router = useRouter();
+//   const pathname = usePathname();
+//   const searchParams = useSearchParams(); // ← read callback from URL
+//   const { resolvedTheme } = useTheme();
+//   const [mounted, setMounted] = useState(false);
+//   const [authed, setAuthed] = useState(false);
+
+//   useEffect(() => setMounted(true), []);
+//   const dark = mounted && resolvedTheme === "dark";
+
+//   // Grab the callback param once — it may be present if coming from mobile WebView
+//   const callbackUrl = searchParams.get("callback");
+
+//   useEffect(() => {
+//     const token = getToken();
+//     if (!token) {
+//       // router.replace("/login");
+//       const loginUrl = callbackUrl
+//         ? `/login?callback=${encodeURIComponent(callbackUrl)}`
+//         : "/login";
+//       router.replace(loginUrl);
+//       return;
+//     }
+//     setAuthed(true);
+//   }, [router, callbackUrl]);
+
+//   const { isActive, isLoading: subLoading } = useSubscription();
+//   const isExempt = EXEMPT.some((p) => pathname?.startsWith(p));
+//   // console.log(
+//   //   "Subscription is active: ",
+//   //   isActive,
+//   //   " subcription: ",
+//   //   subscription,
+//   // );
+
+//   if (!authed) return null;
+//   if (subLoading) return <AppSkeleton dark={dark} />;
+//   if (isActive || isExempt) return <>{children}</>;
+//   return <SubscriptionGate dark={dark} callbackUrl={callbackUrl} />;
+// }

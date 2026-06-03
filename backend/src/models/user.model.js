@@ -57,6 +57,16 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
 
+    // Added for facebook oauth
+    // --- FACEBOOK & INSTAGRAM INTEGRATION ---
+    facebookUserId: { type: String },
+    facebookAccessToken: { type: String },
+    facebookPageId: { type: String },
+    facebookPageToken: { type: String },
+    facebookPageName: { type: String },
+    facebookPageAvatar: { type: String },
+    instagramBusinessAccountId: { type: String },
+
     refreshToken: {
       type: String,
     },

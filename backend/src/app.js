@@ -37,6 +37,7 @@ import policyRoutes from "./routes/policy.routes.js";
 import contatUsRoutes from "./routes/contactus.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
+import facebookRoutes from "./routes/facebook.routes.js";
 
 // ===============================================
 // 🧠 Environment Config
@@ -53,6 +54,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://192.168.29.15:3000",
   "http://192.168.29.15:8081",
+  "http://10.253.118.248:3000",
 ];
 // ===============================================
 // 🔥 WEBHOOK FIRST (VERY IMPORTANT)
@@ -148,6 +150,7 @@ app.use(`${routePrefix}/policy`, policyRoutes);
 app.use(`${routePrefix}/contact`, contatUsRoutes);
 app.use(`${routePrefix}/upload`, uploadRoutes);
 app.use(`${routePrefix}/subscription`, subscriptionRoutes);
+app.use(`${routePrefix}/facebook`, facebookRoutes);
 
 // ===============================================
 // 🩵 Health Check

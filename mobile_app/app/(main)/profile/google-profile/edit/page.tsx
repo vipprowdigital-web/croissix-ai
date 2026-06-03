@@ -735,7 +735,8 @@ function HoursTab({
   const spBorder = dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)";
 
   return (
-    <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}>
+    <motion.div variants={stag} initial="hidden" animate="show">
+      {/* <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}> */}
       {/* ══ REGULAR HOURS ══ */}
       <Card title="Regular Hours" icon={<Clock size={13} />} dark={dark}>
         {DAYS.map((day, idx) => {
@@ -770,9 +771,22 @@ function HoursTab({
                 </span>
                 <Tog
                   value={open}
-                  onChange={(v) =>
-                    setDayMap((m) => ({
-                      ...m,
+                  // onChange={(v) =>
+                  //   setDayMap((m) => ({
+                  //     ...m,
+                  //     [day]: v
+                  //       ? {
+                  //           openDay: day,
+                  //           closeDay: day,
+                  //           openTime: "09:00",
+                  //           closeTime: "18:00",
+                  //         }
+                  //       : null,
+                  //   }))
+                  // }
+                  onChange={(v) => {
+                    const next = {
+                      ...dayMap,
                       [day]: v
                         ? {
                             openDay: day,
@@ -781,8 +795,13 @@ function HoursTab({
                             closeTime: "18:00",
                           }
                         : null,
-                    }))
-                  }
+                    };
+                    const periods = Object.values(next).filter(
+                      Boolean,
+                    ) as TimePeriod[];
+                    setDayMap(next);
+                    upd({ regularHours: { periods } }, ["regularHours"]);
+                  }}
                   dark={dark}
                 />
                 {!open && (
@@ -817,7 +836,7 @@ function HoursTab({
                         paddingLeft: 46,
                       }}
                     >
-                      <TimePicker
+                      {/* <TimePicker
                         value={p!.openTime}
                         onChange={(v) =>
                           setDayMap((m) => ({
@@ -825,6 +844,22 @@ function HoursTab({
                             [day]: { ...m[day]!, openTime: v },
                           }))
                         }
+                        dark={dark}
+                        label="Open"
+                      /> */}
+                      <TimePicker
+                        value={p!.openTime}
+                        onChange={(v) => {
+                          const next = {
+                            ...dayMap,
+                            [day]: { ...dayMap[day]!, openTime: v },
+                          };
+                          const periods = Object.values(next).filter(
+                            Boolean,
+                          ) as TimePeriod[];
+                          setDayMap(next);
+                          upd({ regularHours: { periods } }, ["regularHours"]);
+                        }}
                         dark={dark}
                         label="Open"
                       />
@@ -839,12 +874,23 @@ function HoursTab({
                       </span>
                       <TimePicker
                         value={p!.closeTime}
-                        onChange={(v) =>
-                          setDayMap((m) => ({
-                            ...m,
-                            [day]: { ...m[day]!, closeTime: v },
-                          }))
-                        }
+                        // onChange={(v) =>
+                        //   setDayMap((m) => ({
+                        //     ...m,
+                        //     [day]: { ...m[day]!, closeTime: v },
+                        //   }))
+                        // }
+                        onChange={(v) => {
+                          const next = {
+                            ...dayMap,
+                            [day]: { ...dayMap[day]!, closeTime: v },
+                          };
+                          const periods = Object.values(next).filter(
+                            Boolean,
+                          ) as TimePeriod[];
+                          setDayMap(next);
+                          upd({ regularHours: { periods } }, ["regularHours"]);
+                        }}
                         dark={dark}
                         label="Close"
                       />
@@ -901,7 +947,12 @@ function HoursTab({
               </span>
               <motion.button
                 whileTap={{ scale: 0.92 }}
-                onClick={() => setMore((m) => m.filter((_, j) => j !== i))}
+                // onClick={() => setMore((m) => m.filter((_, j) => j !== i))}
+                onClick={() => {
+                  const next = more.filter((_, j) => j !== i);
+                  setMore(next);
+                  upd({ moreHours: next }, ["moreHours"]);
+                }}
                 style={{
                   width: 26,
                   height: 26,
@@ -941,30 +992,54 @@ function HoursTab({
                     </span>
                     <Tog
                       value={!!p}
-                      onChange={(open) =>
-                        setMore((m) =>
-                          m.map((x, j) =>
-                            j !== i
-                              ? x
-                              : {
-                                  ...x,
-                                  periods: open
-                                    ? [
-                                        ...x.periods,
-                                        {
-                                          openDay: day,
-                                          closeDay: day,
-                                          openTime: "09:00",
-                                          closeTime: "17:00",
-                                        },
-                                      ]
-                                    : x.periods.filter(
-                                        (pp) => pp.openDay !== day,
-                                      ),
-                                },
-                          ),
-                        )
-                      }
+                      // onChange={(open) =>
+                      //   setMore((m) =>
+                      //     m.map((x, j) =>
+                      //       j !== i
+                      //         ? x
+                      //         : {
+                      //             ...x,
+                      //             periods: open
+                      //               ? [
+                      //                   ...x.periods,
+                      //                   {
+                      //                     openDay: day,
+                      //                     closeDay: day,
+                      //                     openTime: "09:00",
+                      //                     closeTime: "17:00",
+                      //                   },
+                      //                 ]
+                      //               : x.periods.filter(
+                      //                   (pp) => pp.openDay !== day,
+                      //                 ),
+                      //           },
+                      //     ),
+                      //   )
+                      // }
+                      onChange={(open) => {
+                        const next = more.map((x, j) =>
+                          j !== i
+                            ? x
+                            : {
+                                ...x,
+                                periods: open
+                                  ? [
+                                      ...x.periods,
+                                      {
+                                        openDay: day,
+                                        closeDay: day,
+                                        openTime: "09:00",
+                                        closeTime: "17:00",
+                                      },
+                                    ]
+                                  : x.periods.filter(
+                                      (pp) => pp.openDay !== day,
+                                    ),
+                              },
+                        );
+                        setMore(next);
+                        upd({ moreHours: next }, ["moreHours"]);
+                      }}
                       dark={dark}
                     />
                     {!p && (
@@ -1099,7 +1174,10 @@ function HoursTab({
                   key={t.id}
                   whileTap={{ scale: 0.94 }}
                   onClick={() => {
-                    setMore((m) => [...m, { hoursTypeId: t.id, periods: [] }]);
+                    // setMore((m) => [...m, { hoursTypeId: t.id, periods: [] }]);
+                    const next = [...more, { hoursTypeId: t.id, periods: [] }];
+                    setMore(next);
+                    upd({ moreHours: next }, ["moreHours"]);
                     setMorePanel(false);
                   }}
                   style={{
@@ -1194,7 +1272,14 @@ function HoursTab({
             </div>
             <motion.button
               whileTap={{ scale: 0.92 }}
-              onClick={() => setSpecial((s) => s.filter((_, j) => j !== i))}
+              // onClick={() => setSpecial((s) => s.filter((_, j) => j !== i))}
+              onClick={() => {
+                const next = special.filter((_, j) => j !== i);
+                setSpecial(next);
+                upd({ specialHours: { specialHourPeriods: next } }, [
+                  "specialHours",
+                ]);
+              }}
               style={{
                 width: 28,
                 height: 28,
@@ -1218,9 +1303,27 @@ function HoursTab({
 
         <motion.button
           whileTap={{ scale: 0.97 }}
-          onClick={() =>
-            setSpecial((s) => [
-              ...s,
+          // onClick={() =>
+          //   setSpecial((s) => [
+          //     ...s,
+          //     {
+          //       startDate: {
+          //         year: new Date().getFullYear(),
+          //         month: new Date().getMonth() + 1,
+          //         day: new Date().getDate(),
+          //       },
+          //       endDate: {
+          //         year: new Date().getFullYear(),
+          //         month: new Date().getMonth() + 1,
+          //         day: new Date().getDate(),
+          //       },
+          //       closed: true,
+          //     },
+          //   ])
+          // }
+          onClick={() => {
+            const next = [
+              ...special,
               {
                 startDate: {
                   year: new Date().getFullYear(),
@@ -1234,8 +1337,12 @@ function HoursTab({
                 },
                 closed: true,
               },
-            ])
-          }
+            ];
+            setSpecial(next);
+            upd({ specialHours: { specialHourPeriods: next } }, [
+              "specialHours",
+            ]);
+          }}
           style={{
             display: "flex",
             alignItems: "center",
@@ -1283,8 +1390,17 @@ function mapApiToDraft(d: any, prev: LocationDraft): LocationDraft {
         }
       : prev.storefrontAddress,
     latlng: d.latlng || prev.latlng,
+    // openInfo: d.openInfo
+    //   ? { status: d.openInfo.status || "OPEN" }
+    //   : prev.openInfo,
     openInfo: d.openInfo
-      ? { status: d.openInfo.status || "OPEN" }
+      ? {
+          status: d.openInfo.status || "OPEN",
+          // Google returns openingDate when it exists — carry it forward
+          ...(d.openInfo.openingDate
+            ? { openingDate: d.openInfo.openingDate }
+            : {}),
+        }
       : prev.openInfo,
     // AFTER (normalizes time format):
     regularHours: {
@@ -1350,8 +1466,8 @@ async function patchLocation(
 
   // Strip empty openingDate
   const filteredFields = fields.filter((f) => {
-    if (f === "openInfo.openingDate" && !payload?.openInfo?.openingDate)
-      return false;
+    // if (f === "openInfo.openingDate" && !payload?.openInfo?.openingDate)
+    //   return false;
     if (f === "profile.description" && !payload?.profile?.description)
       return false;
     return true;
@@ -1988,17 +2104,29 @@ function AboutTab({
   upd: (p: Partial<LocationDraft>, f: string[]) => void;
   dark: boolean;
 }) {
+  const [catWarning, setCatWarning] = useState("");
   const [name, setName] = useState(draft.title);
   const [code, setCode] = useState(draft.storeCode);
   const [desc, setDesc] = useState(draft.profile.description);
   const [primary, setPrimary] = useState(
     draft.categories.primaryCategory.displayName,
   );
-  const [cats, setCats] = useState(
-    draft.categories.additionalCategories.map((c) => c.displayName),
-  );
+  // console.log("contact data: ", draft);
+  // const [cats, setCats] = useState(
+  //   draft.categories.additionalCategories.map((c) => c.displayName),
+  // );
+  const [cats, setCats] = useState(draft.categories.additionalCategories);
   const [status, setStatus] = useState(draft.openInfo.status);
-  const [oDate, setODate] = useState("");
+  // const [oDate, setODate] = useState("");
+  const [oDate, setODate] = useState(() => {
+    const od = draft.openInfo.openingDate;
+    if (!od?.year) return "";
+    const m = String(od.month ?? 1).padStart(2, "0");
+    const d = String(od.day ?? 1).padStart(2, "0");
+    return `${od.year}-${m}-${d}`;
+  });
+  const [catResults, setCatResults] = useState<any[]>([]);
+  const [catLoading, setCatLoading] = useState(false);
 
   // Sync when draft loads from API
   useEffect(() => {
@@ -2013,12 +2141,26 @@ function AboutTab({
   useEffect(() => {
     setPrimary(draft.categories.primaryCategory.displayName);
   }, [draft.categories.primaryCategory.displayName]);
+  // useEffect(() => {
+  //   setCats(draft.categories.additionalCategories.map((c) => c.displayName));
+  // }, [draft.categories.additionalCategories]);
   useEffect(() => {
-    setCats(draft.categories.additionalCategories.map((c) => c.displayName));
+    setCats(draft.categories.additionalCategories);
   }, [draft.categories.additionalCategories]);
   useEffect(() => {
     setStatus(draft.openInfo.status);
   }, [draft.openInfo.status]);
+  // NEW — sync opening date when draft loads from API
+  useEffect(() => {
+    const od = draft.openInfo.openingDate;
+    if (!od?.year) {
+      setODate("");
+      return;
+    }
+    const m = String(od.month ?? 1).padStart(2, "0");
+    const d = String(od.day ?? 1).padStart(2, "0");
+    setODate(`${od.year}-${m}-${d}`);
+  }, [draft.openInfo.openingDate]);
 
   const commit = () =>
     upd(
@@ -2031,10 +2173,11 @@ function AboutTab({
             displayName: primary,
             name: draft.categories.primaryCategory.name,
           },
-          additionalCategories: cats.map((c, i) => ({
-            displayName: c,
-            name: draft.categories.additionalCategories[i]?.name || "",
-          })),
+          additionalCategories: cats,
+          // additionalCategories: cats.map((c, i) => ({
+          //   displayName: c,
+          //   name: draft.categories.additionalCategories[i]?.name || "",
+          // })),
         },
         openInfo: {
           status,
@@ -2063,6 +2206,36 @@ function AboutTab({
     OPEN: { l: "Open", c: "#22c55e" },
     CLOSED_TEMPORARILY: { l: "Temporarily closed", c: "#f59e0b" },
     CLOSED_PERMANENTLY: { l: "Permanently closed", c: "#ef4444" },
+  };
+
+  const searchCategories = async (term: string) => {
+    if (!term.trim()) {
+      setCatResults([]);
+      return;
+    }
+    setCatLoading(true);
+    try {
+      const res = await fetch(
+        `/api/google/categories/search?q=${encodeURIComponent(term)}`,
+        { headers: { Authorization: `Bearer ${getToken()}` } },
+      );
+      if (!res.ok) {
+        console.error("Category search failed:", res.status);
+
+        setCatResults([]);
+        return;
+      }
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        setCatResults(data);
+      } else {
+        console.error("Category API error:", data);
+        setCatResults([]);
+      }
+    } finally {
+      setCatLoading(false);
+    }
   };
 
   return (
@@ -2169,12 +2342,58 @@ function AboutTab({
             ),
           )}
         </FW>
-        <FW
+        {/* <FW
           label="Opening Date"
           dark={dark}
           hint="When your business opened or will open."
         >
           <TI value={oDate} onChange={setODate} type="date" dark={dark} />
+        </FW> */}
+        <FW
+          label="Opening Date"
+          dark={dark}
+          hint="When your business opened or will open."
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <TI value={oDate} onChange={setODate} type="date" dark={dark} />
+            </div>
+            {oDate && (
+              // Clear button — immediately commits with no openingDate so Google clears it
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  setODate("");
+                  upd(
+                    {
+                      openInfo: {
+                        status,
+                      },
+                    },
+                    ["openInfo.status", "openInfo.openingDate"],
+                  );
+                }}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 9,
+                  border: "none",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: dark
+                    ? "rgba(239,68,68,0.12)"
+                    : "rgba(254,226,226,0.7)",
+                  color: "#ef4444",
+                }}
+                title="Clear opening date"
+              >
+                <X size={12} />
+              </motion.button>
+            )}
+          </div>
         </FW>
       </Card>
 
@@ -2206,7 +2425,7 @@ function AboutTab({
                 fontWeight: 600,
               }}
             >
-              gcid: {draft.categories.primaryCategory.name}
+              {draft.categories.primaryCategory.name}
             </p>
           )}
         </FW>
@@ -2220,21 +2439,125 @@ function AboutTab({
             }}
           >
             <AnimatePresence>
-              {cats.map((c, i) => (
+              {/* {cats.map((c, i) => (
                 <Chip
                   key={c + i}
-                  label={c}
+                  label={c} */}
+              {cats.map((c, i) => (
+                <Chip
+                  key={c.displayName + i}
+                  label={c.displayName}
                   dark={dark}
                   onRemove={() => setCats((cs) => cs.filter((_, j) => j !== i))}
                 />
               ))}
             </AnimatePresence>
           </div>
-          <AddI
+          {/* <AddI
             placeholder="Add category…"
             dark={dark}
             onAdd={(c) => setCats((cs) => [...cs, c])}
+          /> */}
+
+          {/* <AddI
+            placeholder="Add category…"
+            dark={dark}
+            onAdd={(c) => {
+              // Check if we have a matching existing category with a gcid
+              const existing = draft.categories.additionalCategories.find(
+                (ac) => ac.displayName.toLowerCase() === c.toLowerCase(),
+              );
+              if (existing) {
+                // Already known category — safe to add
+                setCats((cs) => [
+                  ...cs,
+                  {
+                    displayName: existing.displayName,
+                    name: existing.name,
+                  },
+                ]);
+                // setCats((cs) => [...cs, c]);
+              } else {
+                // New category with unknown gcid — add to UI but warn user
+                setCats((cs) => [
+                  ...cs,
+                  {
+                    displayName: c,
+                    name: "",
+                  },
+                ]);
+                // setCats((cs) => [...cs, c]);
+                setCatWarning(
+                  `"${c}" will only save if it matches an existing Google category name exactly. Check business.google.com/categories for valid names.`,
+                );
+                setTimeout(() => setCatWarning(""), 5000);
+              }
+            }}
+          /> */}
+          <TI
+            value=""
+            placeholder="Search category..."
+            dark={dark}
+            onChange={(value) => {
+              searchCategories(value);
+            }}
           />
+          {catResults.map((cat) => (
+            <button
+              key={cat.name}
+              onClick={() => {
+                setCats((prev) => {
+                  // Prevent duplicates
+                  if (prev.some((p) => p.name === cat.name)) {
+                    return prev;
+                  }
+
+                  return [
+                    ...prev,
+                    {
+                      displayName: cat.displayName,
+                      name: cat.name,
+                    },
+                  ];
+                });
+
+                setCatResults([]);
+              }}
+            >
+              {cat.displayName}
+            </button>
+          ))}
+          {catWarning && (
+            <p
+              style={{
+                fontSize: 10,
+                color: "#f59e0b",
+                marginTop: 4,
+                fontWeight: 600,
+                padding: "6px 8px",
+                borderRadius: 8,
+                background: dark
+                  ? "rgba(245,158,11,0.1)"
+                  : "rgba(254,243,199,0.8)",
+                border: "1px solid rgba(245,158,11,0.3)",
+              }}
+            >
+              ⚠️ {catWarning}
+            </p>
+          )}
+          {!catWarning && (
+            <p
+              style={{
+                fontSize: 10,
+                color: dark ? "#475569" : "#94a3b8",
+                marginTop: 4,
+                fontWeight: 500,
+              }}
+            >
+              Category names must match Google's exact category list to save
+              successfully.
+            </p>
+          )}
         </FW>
       </Card>
 
@@ -2277,6 +2600,8 @@ function ContactTab({
     draft.adWordsLocationExtensions.adPhone,
   );
 
+  // console.log("Contact data: ", draft);
+
   useEffect(() => {
     setPrimary(draft.phoneNumbers.primaryPhone);
   }, [draft.phoneNumbers.primaryPhone]);
@@ -2290,15 +2615,54 @@ function ContactTab({
     setAdPhone(draft.adWordsLocationExtensions.adPhone);
   }, [draft.adWordsLocationExtensions.adPhone]);
 
-  const commit = () =>
-    upd(
-      {
-        phoneNumbers: { primaryPhone: primary, additionalPhones: extra },
-        websiteUri: website,
-        adWordsLocationExtensions: { adPhone },
-      },
-      ["phoneNumbers", "websiteUri", "adWordsLocationExtensions"],
-    );
+  // const commit = () =>
+  //   upd(
+  //     {
+  //       phoneNumbers: { primaryPhone: primary, additionalPhones: extra },
+  //       websiteUri: website,
+  //       adWordsLocationExtensions: { adPhone },
+  //     },
+  //     ["phoneNumbers", "websiteUri", "adWordsLocationExtensions"],
+  //   );
+  // Only send fields that actually changed
+  const commit = () => {
+    const payload: any = {};
+    const fields: string[] = [];
+
+    // Website changed
+    if (website !== draft.websiteUri) {
+      payload.websiteUri = website;
+      fields.push("websiteUri");
+    }
+
+    // Ad phone changed
+    if (adPhone !== draft.adWordsLocationExtensions.adPhone) {
+      payload.adWordsLocationExtensions = {
+        adPhone,
+      };
+      fields.push("adWordsLocationExtensions");
+    }
+
+    // Primary phone or additional phones changed
+    const phonesChanged =
+      primary !== draft.phoneNumbers.primaryPhone ||
+      JSON.stringify(extra) !==
+        JSON.stringify(draft.phoneNumbers.additionalPhones);
+
+    if (phonesChanged) {
+      payload.phoneNumbers = {
+        primaryPhone: primary,
+        additionalPhones: extra,
+      };
+
+      fields.push("phoneNumbers");
+    }
+
+    // Don't send empty updates
+    if (fields.length === 0) return;
+
+    upd(payload, fields);
+  };
 
   return (
     <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}>
@@ -2332,7 +2696,20 @@ function ContactTab({
                 />
                 <motion.button
                   whileTap={{ scale: 0.92 }}
-                  onClick={() => setExtra((a) => a.filter((_, j) => j !== i))}
+                  // onClick={() => setExtra((a) => a.filter((_, j) => j !== i))}
+                  onClick={() => {
+                    const next = extra.filter((_, j) => j !== i);
+                    setExtra(next);
+                    upd(
+                      {
+                        phoneNumbers: {
+                          primaryPhone: primary,
+                          additionalPhones: next,
+                        },
+                      },
+                      ["phoneNumbers"],
+                    );
+                  }}
                   style={{
                     padding: "0 11px",
                     borderRadius: 11,
@@ -2371,7 +2748,7 @@ function ContactTab({
             )}
           </div>
         </FW>
-        <FW
+        {/* <FW
           label="AdWords Call Extension Phone"
           dark={dark}
           hint="Shown in Google Ads."
@@ -2383,6 +2760,59 @@ function ContactTab({
             placeholder="+91 00000 00000"
             type="tel"
           />
+        </FW> */}
+        <FW
+          label="AdWords Call Extension Phone"
+          dark={dark}
+          hint="Shown in Google Ads."
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <TI
+                value={adPhone}
+                onChange={setAdPhone}
+                dark={dark}
+                placeholder="+91 00000 00000"
+                type="tel"
+              />
+            </div>
+            {adPhone && (
+              // Clear button — sets empty, commits without adWordsLocationExtensions
+              // so the API route skips it entirely (safe no-op on Google's side)
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  setAdPhone("");
+                  upd(
+                    {
+                      adWordsLocationExtensions: {
+                        adPhone: "",
+                      },
+                    },
+                    ["adWordsLocationExtensions"],
+                  );
+                }}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 9,
+                  border: "none",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: dark
+                    ? "rgba(239,68,68,0.12)"
+                    : "rgba(254,226,226,0.7)",
+                  color: "#ef4444",
+                }}
+                title="Clear AdWords phone"
+              >
+                <X size={12} />
+              </motion.button>
+            )}
+          </div>
         </FW>
       </Card>
 
@@ -2759,9 +3189,23 @@ function LocationTab({
                     {label}
                   </span>
                   <button
-                    onClick={() =>
-                      setAreas((as) => as.filter((_, j) => j !== i))
-                    }
+                    // onClick={() =>
+                    //   setAreas((as) => as.filter((_, j) => j !== i))
+                    // }
+                    onClick={() => {
+                      const next = areas.filter((_, j) => j !== i);
+                      setAreas(next);
+                      upd(
+                        {
+                          storefrontAddress: addr,
+                          serviceArea: {
+                            businessType: bizType,
+                            places: { placeInfos: next },
+                          },
+                        },
+                        ["storefrontAddress", "serviceArea"],
+                      );
+                    }}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -2790,7 +3234,21 @@ function LocationTab({
         <AddI
           placeholder="Add city or region…"
           dark={dark}
-          onAdd={(v) => setAreas((as) => [...as, { placeId: "", name: v }])}
+          // onAdd={(v) => setAreas((as) => [...as, { placeId: "", name: v }])}
+          onAdd={(v) => {
+            const next = [...areas, { placeId: "", name: v }];
+            setAreas(next);
+            upd(
+              {
+                storefrontAddress: addr,
+                serviceArea: {
+                  businessType: bizType,
+                  places: { placeInfos: next },
+                },
+              },
+              ["storefrontAddress", "serviceArea"],
+            );
+          }}
         />
       </FW>
     </motion.div>
@@ -2928,6 +3386,349 @@ function MoreTab({ dark }: { dark: boolean }) {
 /* ═══════════════════════════════════════════════
    ADVANCED TAB
 ═══════════════════════════════════════════════ */
+// function AdvancedTab({
+//   draft,
+//   upd,
+//   dark,
+//   locationId,
+// }: {
+//   draft: LocationDraft;
+//   upd: (p: Partial<LocationDraft>, f: string[]) => void;
+//   dark: boolean;
+//   locationId: string;
+// }) {
+//   const [svcs, setSvcs] = useState(draft.serviceItems);
+//   const [labels, setLbls] = useState(draft.labels);
+//   const [chain, setChain] = useState(draft.relationshipData.parentChain ?? "");
+//   const [lang, setLang] = useState(draft.languageCode);
+
+//   useEffect(() => {
+//     setSvcs(draft.serviceItems);
+//   }, [draft.serviceItems]);
+//   useEffect(() => {
+//     setLbls(draft.labels);
+//   }, [draft.labels]);
+//   useEffect(() => {
+//     setLang(draft.languageCode);
+//   }, [draft.languageCode]);
+//   useEffect(() => {
+//     setChain(draft.relationshipData.parentChain ?? "");
+//   }, [draft.relationshipData]);
+
+//   const commit = () =>
+//     upd(
+//       {
+//         serviceItems: svcs,
+//         labels,
+//         languageCode: lang,
+//         relationshipData: chain ? { parentChain: chain } : {},
+//       },
+//       ["serviceItems", "labels", "languageCode", "relationshipData"],
+//     );
+
+//   const s = tok(dark);
+
+//   /* ── Deduplicate service items ── */
+//   const dedupedSvcs = svcs.filter((svc, idx, arr) => {
+//     const key =
+//       svc.structuredServiceItem?.serviceTypeId ??
+//       svc.freeFormServiceItem?.label.displayName ??
+//       "";
+//     return (
+//       arr.findIndex(
+//         (x) =>
+//           (x.structuredServiceItem?.serviceTypeId ??
+//             x.freeFormServiceItem?.label.displayName ??
+//             "") === key,
+//       ) === idx
+//     );
+//   });
+
+//   /* ── Format serviceTypeId → readable label ──
+//      "job_type_id:digital_marketing"  →  "Digital Marketing"
+//      "gcid:advertising_agency"        →  "Advertising Agency"  */
+//   function fmtServiceId(raw: string): string {
+//     if (!raw) return raw;
+//     // strip known prefixes
+//     const clean = raw
+//       .replace(/^job_type_id:/i, "")
+//       .replace(/^gcid:/i, "")
+//       .replace(/^service_type_id:/i, "");
+//     // underscores → spaces, title-case each word
+//     return clean
+//       .split("_")
+//       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+//       .join(" ");
+//   }
+
+//   /* borders */
+//   const svcBorder = dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)";
+
+//   return (
+//     <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}>
+//       {/* ── Service Items ── */}
+//       <Card
+//         title="Service Items"
+//         icon={<FileText size={13} />}
+//         dark={dark}
+//         badge={`${dedupedSvcs.length} services`}
+//       >
+//         <p style={{ ...s.muted, marginBottom: 10 }}>
+//           Services your business offers.
+//         </p>
+
+//         <div
+//           style={{
+//             display: "flex",
+//             flexWrap: "wrap",
+//             gap: 7,
+//             marginBottom: 10,
+//           }}
+//         >
+//           <AnimatePresence>
+//             {dedupedSvcs.map((svc, i) => {
+//               const isStructured = !!svc.structuredServiceItem;
+//               const rawId = svc.structuredServiceItem?.serviceTypeId ?? "";
+//               const label = isStructured
+//                 ? fmtServiceId(rawId)
+//                 : (svc.freeFormServiceItem?.label.displayName ?? "");
+//               const desc = svc.freeFormServiceItem?.label.description ?? "";
+
+//               return (
+//                 <motion.div
+//                   key={rawId || label + i}
+//                   initial={{ scale: 0.85, opacity: 0 }}
+//                   animate={{ scale: 1, opacity: 1 }}
+//                   exit={{ scale: 0.85, opacity: 0 }}
+//                   transition={{ duration: 0.15 }}
+//                   style={{
+//                     display: "inline-flex",
+//                     alignItems: "center",
+//                     gap: 6,
+//                     padding: "5px 10px 5px 12px",
+//                     borderRadius: 99,
+//                     border: `1.5px solid ${
+//                       isStructured
+//                         ? dark
+//                           ? "rgba(59,130,246,0.22)"
+//                           : "rgba(147,197,253,0.6)"
+//                         : dark
+//                           ? "rgba(255,255,255,0.08)"
+//                           : "rgba(203,213,225,0.6)"
+//                     }`,
+//                     background: isStructured
+//                       ? dark
+//                         ? "rgba(59,130,246,0.08)"
+//                         : "rgba(219,234,254,0.5)"
+//                       : dark
+//                         ? "rgba(255,255,255,0.04)"
+//                         : "#f8fafc",
+//                   }}
+//                   title={isStructured ? rawId : desc}
+//                 >
+//                   {/* Dot — blue for structured, grey for free-form */}
+//                   <span
+//                     style={{
+//                       width: 6,
+//                       height: 6,
+//                       borderRadius: "50%",
+//                       flexShrink: 0,
+//                       background: isStructured
+//                         ? "#3b82f6"
+//                         : dark
+//                           ? "#475569"
+//                           : "#94a3b8",
+//                     }}
+//                   />
+//                   <span
+//                     style={{
+//                       fontSize: 12,
+//                       fontWeight: 700,
+//                       color: isStructured
+//                         ? dark
+//                           ? "#93c5fd"
+//                           : "#1d4ed8"
+//                         : dark
+//                           ? "#cbd5e1"
+//                           : "#334155",
+//                       maxWidth: 160,
+//                       overflow: "hidden",
+//                       textOverflow: "ellipsis",
+//                       whiteSpace: "nowrap",
+//                     }}
+//                   >
+//                     {label}
+//                   </span>
+//                   {/* Remove button */}
+//                   <button
+//                     onClick={() =>
+//                       setSvcs((arr) =>
+//                         arr.filter((_, j) => {
+//                           const k =
+//                             arr[j].structuredServiceItem?.serviceTypeId ??
+//                             arr[j].freeFormServiceItem?.label.displayName ??
+//                             "";
+//                           return k !== (rawId || label);
+//                         }),
+//                       )
+//                     }
+//                     style={{
+//                       display: "flex",
+//                       alignItems: "center",
+//                       justifyContent: "center",
+//                       width: 16,
+//                       height: 16,
+//                       borderRadius: "50%",
+//                       border: "none",
+//                       cursor: "pointer",
+//                       padding: 0,
+//                       flexShrink: 0,
+//                       background: dark
+//                         ? "rgba(255,255,255,0.1)"
+//                         : "rgba(0,0,0,0.07)",
+//                       color: dark ? "#94a3b8" : "#64748b",
+//                     }}
+//                   >
+//                     <X size={8} strokeWidth={3} />
+//                   </button>
+//                 </motion.div>
+//               );
+//             })}
+//           </AnimatePresence>
+//         </div>
+
+//         <AddI
+//           placeholder="Add free-form service…"
+//           dark={dark}
+//           onAdd={(v) => {
+//             // prevent dupes on manual add
+//             const exists = svcs.some(
+//               (x) => (x.freeFormServiceItem?.label.displayName ?? "") === v,
+//             );
+//             if (!exists)
+//               setSvcs((arr) => [
+//                 ...arr,
+//                 {
+//                   freeFormServiceItem: {
+//                     category: "",
+//                     label: { displayName: v },
+//                   },
+//                 },
+//               ]);
+//           }}
+//         />
+//       </Card>
+
+//       {/* ── Internal Labels ── */}
+//       <Card
+//         title="Internal Labels"
+//         icon={<Hash size={13} />}
+//         dark={dark}
+//         badge="labels"
+//       >
+//         <FW
+//           label="Labels"
+//           dark={dark}
+//           hint="Not shown to customers. For internal organization. Max 10."
+//         >
+//           <div
+//             style={{
+//               display: "flex",
+//               flexWrap: "wrap",
+//               gap: 7,
+//               marginBottom: 4,
+//             }}
+//           >
+//             <AnimatePresence>
+//               {labels.map((l, i) => (
+//                 <Chip
+//                   key={l + i}
+//                   label={l}
+//                   dark={dark}
+//                   onRemove={() => setLbls((ls) => ls.filter((_, j) => j !== i))}
+//                 />
+//               ))}
+//             </AnimatePresence>
+//           </div>
+//           <AddI
+//             placeholder="Add label…"
+//             dark={dark}
+//             onAdd={(v) => setLbls((ls) => [...ls, v])}
+//           />
+//         </FW>
+//       </Card>
+
+//       {/* ── Chain Affiliation ── */}
+//       <Card
+//         title="Chain Affiliation"
+//         icon={<Link2 size={13} />}
+//         dark={dark}
+//         badge="relationshipData"
+//       >
+//         <FW label="Parent Chain" dark={dark} hint="chains/{chainId} format.">
+//           <TI
+//             value={chain}
+//             onChange={setChain}
+//             dark={dark}
+//             placeholder="chains/{chainId}"
+//           />
+//         </FW>
+//       </Card>
+
+//       {/* ── Language ── */}
+//       <Card title="Language" icon={<Globe size={13} />} dark={dark}>
+//         <FW
+//           label="Language Code"
+//           required
+//           dark={dark}
+//           hint="BCP 47 tag (e.g. en, en-IN, hi)."
+//         >
+//           <TI value={lang} onChange={setLang} dark={dark} placeholder="en" />
+//         </FW>
+//       </Card>
+
+//       {/* ── Profile Metadata ── */}
+//       <Card
+//         title="Profile Metadata"
+//         icon={<BarChart2 size={13} />}
+//         dark={dark}
+//         badge="Read-only"
+//       >
+//         {[
+//           { l: "Location Resource Name", v: `locations/${locationId}` },
+//           { l: "Maps URI", v: `https://maps.google.com/?cid=${locationId}` },
+//           {
+//             l: "New Review URI",
+//             v: `https://search.google.com/local/writereview?placeid=...`,
+//           },
+//         ].map((row, i) => (
+//           <div
+//             key={i}
+//             style={{
+//               padding: "8px 0",
+//               borderBottom: i < 2 ? s.div.borderTop : "none",
+//             }}
+//           >
+//             <p style={{ ...s.lbl, marginBottom: 2 }}>{row.l}</p>
+//             <p
+//               style={{
+//                 fontSize: 11,
+//                 fontFamily: "monospace",
+//                 fontWeight: 600,
+//                 margin: 0,
+//                 color: dark ? "#60a5fa" : "#2563eb",
+//                 wordBreak: "break-all",
+//               }}
+//             >
+//               {row.v}
+//             </p>
+//           </div>
+//         ))}
+//       </Card>
+//     </motion.div>
+//   );
+// }
+// FIND the entire AdvancedTab component definition and replace it:
 function AdvancedTab({
   draft,
   upd,
@@ -2957,16 +3758,20 @@ function AdvancedTab({
     setChain(draft.relationshipData.parentChain ?? "");
   }, [draft.relationshipData]);
 
-  const commit = () =>
-    upd(
-      {
-        serviceItems: svcs,
-        labels,
-        languageCode: lang,
-        relationshipData: chain ? { parentChain: chain } : {},
-      },
-      ["serviceItems", "labels", "languageCode", "relationshipData"],
-    );
+  // FIX: Each section commits only its own fields — prevents serviceItems (which
+  // contain structuredServiceItems that Google rejects) from polluting label/chain saves.
+  const commitLabels = (next: string[]) => upd({ labels: next }, ["labels"]);
+
+  const commitChain = (next: string) =>
+    upd({ relationshipData: next ? { parentChain: next } : {} }, [
+      "relationshipData",
+    ]);
+
+  // serviceItems commit: only send freeForm ones — structured are read-only from Google
+  const commitServices = (next: ServiceItem[]) => {
+    const freeFormOnly = next.filter((s) => !!s.freeFormServiceItem);
+    upd({ serviceItems: freeFormOnly }, ["serviceItems"]);
+  };
 
   const s = tok(dark);
 
@@ -2986,28 +3791,22 @@ function AdvancedTab({
     );
   });
 
-  /* ── Format serviceTypeId → readable label ──
-     "job_type_id:digital_marketing"  →  "Digital Marketing"
-     "gcid:advertising_agency"        →  "Advertising Agency"  */
   function fmtServiceId(raw: string): string {
     if (!raw) return raw;
-    // strip known prefixes
     const clean = raw
       .replace(/^job_type_id:/i, "")
       .replace(/^gcid:/i, "")
       .replace(/^service_type_id:/i, "");
-    // underscores → spaces, title-case each word
     return clean
       .split("_")
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
   }
 
-  /* borders */
   const svcBorder = dark ? "rgba(255,255,255,0.06)" : "rgba(203,213,225,0.4)";
 
   return (
-    <motion.div variants={stag} initial="hidden" animate="show" onBlur={commit}>
+    <motion.div variants={stag} initial="hidden" animate="show">
       {/* ── Service Items ── */}
       <Card
         title="Service Items"
@@ -3068,7 +3867,6 @@ function AdvancedTab({
                   }}
                   title={isStructured ? rawId : desc}
                 >
-                  {/* Dot — blue for structured, grey for free-form */}
                   <span
                     style={{
                       width: 6,
@@ -3101,38 +3899,40 @@ function AdvancedTab({
                   >
                     {label}
                   </span>
-                  {/* Remove button */}
-                  <button
-                    onClick={() =>
-                      setSvcs((arr) =>
-                        arr.filter((_, j) => {
+                  {/* Only allow removing freeForm items — structured are Google-managed */}
+                  {!isStructured && (
+                    <button
+                      onClick={() => {
+                        const next = svcs.filter((_, j) => {
                           const k =
-                            arr[j].structuredServiceItem?.serviceTypeId ??
-                            arr[j].freeFormServiceItem?.label.displayName ??
+                            svcs[j].structuredServiceItem?.serviceTypeId ??
+                            svcs[j].freeFormServiceItem?.label.displayName ??
                             "";
                           return k !== (rawId || label);
-                        }),
-                      )
-                    }
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 0,
-                      flexShrink: 0,
-                      background: dark
-                        ? "rgba(255,255,255,0.1)"
-                        : "rgba(0,0,0,0.07)",
-                      color: dark ? "#94a3b8" : "#64748b",
-                    }}
-                  >
-                    <X size={8} strokeWidth={3} />
-                  </button>
+                        });
+                        setSvcs(next);
+                        commitServices(next);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                        flexShrink: 0,
+                        background: dark
+                          ? "rgba(255,255,255,0.1)"
+                          : "rgba(0,0,0,0.07)",
+                        color: dark ? "#94a3b8" : "#64748b",
+                      }}
+                    >
+                      <X size={8} strokeWidth={3} />
+                    </button>
+                  )}
                 </motion.div>
               );
             })}
@@ -3143,20 +3943,22 @@ function AdvancedTab({
           placeholder="Add free-form service…"
           dark={dark}
           onAdd={(v) => {
-            // prevent dupes on manual add
             const exists = svcs.some(
               (x) => (x.freeFormServiceItem?.label.displayName ?? "") === v,
             );
-            if (!exists)
-              setSvcs((arr) => [
-                ...arr,
+            if (!exists) {
+              const next = [
+                ...svcs,
                 {
                   freeFormServiceItem: {
                     category: "",
                     label: { displayName: v },
                   },
                 },
-              ]);
+              ];
+              setSvcs(next);
+              commitServices(next);
+            }
           }}
         />
       </Card>
@@ -3187,7 +3989,11 @@ function AdvancedTab({
                   key={l + i}
                   label={l}
                   dark={dark}
-                  onRemove={() => setLbls((ls) => ls.filter((_, j) => j !== i))}
+                  onRemove={() => {
+                    const next = labels.filter((_, j) => j !== i);
+                    setLbls(next);
+                    commitLabels(next);
+                  }}
                 />
               ))}
             </AnimatePresence>
@@ -3195,7 +4001,11 @@ function AdvancedTab({
           <AddI
             placeholder="Add label…"
             dark={dark}
-            onAdd={(v) => setLbls((ls) => [...ls, v])}
+            onAdd={(v) => {
+              const next = [...labels, v];
+              setLbls(next);
+              commitLabels(next);
+            }}
           />
         </FW>
       </Card>
@@ -3215,17 +4025,34 @@ function AdvancedTab({
             placeholder="chains/{chainId}"
           />
         </FW>
+        {/* FIX: explicit save button since onBlur is unreliable on last field */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => commitChain(chain)}
+          style={{
+            marginTop: 8,
+            padding: "8px 14px",
+            borderRadius: 11,
+            border: "none",
+            cursor: "pointer",
+            background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
+            color: "#fff",
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
+          Save Chain
+        </motion.button>
       </Card>
 
-      {/* ── Language ── */}
+      {/* ── Language (display-only — languageCode is read-only in GBP API) ── */}
       <Card title="Language" icon={<Globe size={13} />} dark={dark}>
         <FW
           label="Language Code"
-          required
           dark={dark}
-          hint="BCP 47 tag (e.g. en, en-IN, hi)."
+          hint="Read-only — set by Google when the profile was created."
         >
-          <TI value={lang} onChange={setLang} dark={dark} placeholder="en" />
+          <TI value={lang} dark={dark} readOnly />
         </FW>
       </Card>
 
@@ -3508,7 +4335,7 @@ function SettingsDrawer({
       </div>
 
       {/* Actions */}
-      <div style={{ padding: "8px 0 4px" }}>
+      {/* <div style={{ padding: "8px 0 4px" }}>
         {acts.map((a, i) => (
           <motion.button
             key={i}
@@ -3563,7 +4390,7 @@ function SettingsDrawer({
             />
           </motion.button>
         ))}
-      </div>
+      </div> */}
 
       <div style={{ padding: "14px 18px 32px" }}>
         <motion.button
@@ -3655,12 +4482,44 @@ export default function GoogleProfileEditPage() {
     { payload: {}, fields: [] },
   );
 
+  // function accumulate(partial: Partial<LocationDraft>, fields: string[]) {
+  //   pending.current.payload = { ...pending.current.payload, ...partial };
+  //   pending.current.fields = [
+  //     ...new Set([...pending.current.fields, ...fields]),
+  //   ];
+  //   setDraft((d) => ({ ...d, ...partial }));
+  // }
   function accumulate(partial: Partial<LocationDraft>, fields: string[]) {
-    pending.current.payload = { ...pending.current.payload, ...partial };
+    const prevPayload = pending.current.payload;
+    // console.log("Accumulate fields: ", fields);
+    const merged: Partial<LocationDraft> = { ...prevPayload, ...partial };
+    // console.log("Merged payload: ", merged);
+
+    if (partial.openInfo && prevPayload.openInfo) {
+      merged.openInfo = {
+        ...(prevPayload.openInfo as any),
+        ...partial.openInfo,
+      };
+      if (!("openingDate" in partial.openInfo)) {
+        delete (merged.openInfo as any).openingDate;
+      }
+    }
+
+    pending.current.payload = merged;
     pending.current.fields = [
       ...new Set([...pending.current.fields, ...fields]),
     ];
-    setDraft((d) => ({ ...d, ...partial }));
+    setDraft((d) => {
+      const next = { ...d, ...partial };
+      // Same deep merge for draft
+      if (partial.openInfo) {
+        next.openInfo = { ...d.openInfo, ...partial.openInfo } as any;
+        if (!("openingDate" in partial.openInfo)) {
+          delete (next.openInfo as any).openingDate;
+        }
+      }
+      return next;
+    });
   }
 
   const saveMut = useMutation({
@@ -3669,10 +4528,24 @@ export default function GoogleProfileEditPage() {
         ...pending.current.fields,
       ]),
     onMutate: () => setSaveStatus("saving"),
-    onSuccess: () => {
+    // onSuccess: () => {
+    //   setSaveStatus("saved");
+    //   pending.current = { payload: {}, fields: [] };
+    //   setTimeout(() => setSaveStatus("idle"), 2800);
+    // },
+    onSuccess: (data) => {
       setSaveStatus("saved");
-      pending.current = { payload: {}, fields: [] };
-      setTimeout(() => setSaveStatus("idle"), 2800);
+
+      if (data.phoneSkipped) {
+        alert(
+          "Updated successfully, but Google temporarily blocked phone number changes.",
+        );
+      }
+
+      pending.current = {
+        payload: {},
+        fields: [],
+      };
     },
     onError: () => {
       setSaveStatus("error");

@@ -23,7 +23,7 @@ export const createSubscription = async (req, res) => {
   try {
     const { planId } = req.body;
     const userId = req.user.id;
-    console.log("Creating subscription for planId: ", planId);
+    // console.log("Creating subscription for planId: ", planId);
 
     if (!planId) {
       return res.status(400).json({ message: "planId is required" });
@@ -35,7 +35,7 @@ export const createSubscription = async (req, res) => {
       status: { $in: ["active", "created"] },
     }).lean();
 
-    console.log("Existing subscription: ", existing);
+    // console.log("Existing subscription: ", existing);
 
     if (existing) {
       return res.status(200).json({
@@ -56,7 +56,7 @@ export const createSubscription = async (req, res) => {
       },
     });
 
-    console.log("Subscription from razorpay: ", rzSub);
+    // console.log("Subscription from razorpay: ", rzSub);
 
     // 🔥 Save
     await Subscription.create({
@@ -99,7 +99,7 @@ export const verifySubscription = async (req, res) => {
     } = req.body;
 
     if (!planId && !razorpay_subscription_id) {
-      console.log("Invalid payload: ", planId, " ", razorpay_subscription_id);
+      // console.log("Invalid payload: ", planId, " ", razorpay_subscription_id);
 
       return res.status(400).json({ message: "Invalid payload" });
     }
@@ -112,14 +112,14 @@ export const verifySubscription = async (req, res) => {
       !razorpay_subscription_id ||
       !razorpay_signature
     ) {
-      console.log(
-        "Missing fields: ",
-        razorpay_payment_id,
-        " ",
-        razorpay_signature,
-        " ",
-        razorpay_subscription_id,
-      );
+      // console.log(
+      //   "Missing fields: ",
+      //   razorpay_payment_id,
+      //   " ",
+      //   razorpay_signature,
+      //   " ",
+      //   razorpay_subscription_id,
+      // );
 
       return res
         .status(400)
@@ -142,7 +142,7 @@ export const verifySubscription = async (req, res) => {
         Buffer.from(razorpay_signature, "hex"),
       )
     ) {
-      console.log("Signature mismatch");
+      // console.log("Signature mismatch");
       return res
         .status(400)
         .json({ success: false, message: "Signature mismatch" });
@@ -169,7 +169,7 @@ export const verifySubscription = async (req, res) => {
       // Non-fatal: fall back to 30-day expiry
       rzSub = null;
     }
-    console.log("Razorpay subs: ", rzSub);
+    // console.log("Razorpay subs: ", rzSub);
 
     const now = new Date();
     const currentEnd = rzSub?.current_end
@@ -293,5 +293,27 @@ export const cancelSubscription = async (req, res) => {
   } catch (err) {
     console.error("[cancelSubscription]", err);
     return res.status(500).json({ message: "Cancel failed" });
+  }
+};
+
+export const getBillingCycles = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const totalBillingCycles = await Subscription.countDocuments({
+      user: id,
+      status: {
+        $in: ["active", "expired"],
+      },
+    });
+
+    return res.status(200).json({
+      totalBillingCycles,
+    });
+  } catch (e) {
+    console.error("[getBillingCycles]", e);
+    return res.status(500).json({
+      message: "Error fetching billing cycles",
+    });
   }
 };
