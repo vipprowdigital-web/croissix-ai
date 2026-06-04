@@ -2260,7 +2260,7 @@ export default function HomePage() {
                   </motion.div>
                 )}
                 {/* Competitor Analysis */}
-                {s && (
+                {/* {s && (
                   <motion.div variants={fadeUp}>
                     <SectionHeader
                       title="Competitor Analysis"
@@ -2325,7 +2325,7 @@ export default function HomePage() {
                       ))}
                     </motion.div>
                   </motion.div>
-                )}
+                )} */}
               </div>
 
               {/* ─── RIGHT COLUMN ─── */}
