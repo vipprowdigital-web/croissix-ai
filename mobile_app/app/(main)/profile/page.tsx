@@ -1343,7 +1343,7 @@ export default function ProfilePage() {
             )} */}
 
             {/* Update profile box — shows when no linked profile */}
-            {!hasProfile && (
+            {/* {!hasProfile && (
               <div
                 style={{
                   width: "100%",
@@ -1394,7 +1394,7 @@ export default function ProfilePage() {
                   </span>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* ── View QR Code button ── */}
             <button

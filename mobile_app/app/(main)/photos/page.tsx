@@ -1,9 +1,1331 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Camera,
+  Plus,
+  Trash2,
+  Eye,
+  Download,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Image as ImgIcon,
+  Star,
+  Users,
+  Package,
+  MapPin,
+  Video,
+  LayoutGrid,
+  List,
+  RefreshCw,
+  Brain,
+  Sparkles,
+  AlertTriangle,
+  Loader2,
+  ZoomIn,
+  Shield,
+  Zap,
+} from "lucide-react";
+import { getToken } from "@/lib/token";
+import { useUser } from "@/features/user/hook/useUser";
+import Image from "next/image";
+
+/* ═══════════════════════════════════════════════════════
+   TYPES
+═══════════════════════════════════════════════════════ */
+type MediaFormat = "PHOTO" | "VIDEO";
+type MediaCategory =
+  | "COVER"
+  | "LOGO"
+  | "EXTERIOR"
+  | "INTERIOR"
+  | "PRODUCT"
+  | "AT_WORK"
+  | "FOOD_AND_DRINK"
+  | "MENU"
+  | "COMMON_AREA"
+  | "ROOMS"
+  | "TEAMS"
+  | "ADDITIONAL";
+
+interface GBPMedia {
+  name: string;
+  mediaFormat: MediaFormat;
+  locationAssociation?: { category: MediaCategory };
+  googleUrl?: string;
+  thumbnailUrl?: string;
+  createTime: string;
+  dimensions?: { widthPixels: number; heightPixels: number };
+  viewCount?: number;
+  description?: string;
+  id: string;
+}
+
+interface MediaResponse {
+  mediaItems: GBPMedia[];
+  totalMediaItemCount: number;
+  nextPageToken?: string;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CATEGORY CONFIG
+═══════════════════════════════════════════════════════ */
+const CAT_CFG: Record<
+  MediaCategory,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  COVER: { label: "Cover", icon: <Star size={11} />, color: "#3b82f6" },
+  LOGO: { label: "Logo", icon: <Shield size={11} />, color: "#8b5cf6" },
+  EXTERIOR: { label: "Exterior", icon: <MapPin size={11} />, color: "#0ea5e9" },
+  INTERIOR: {
+    label: "Interior",
+    icon: <LayoutGrid size={11} />,
+    color: "#a855f7",
+  },
+  PRODUCT: { label: "Product", icon: <Package size={11} />, color: "#06b6d4" },
+  AT_WORK: { label: "At Work", icon: <Users size={11} />, color: "#10b981" },
+  FOOD_AND_DRINK: { label: "Food", icon: <Star size={11} />, color: "#f59e0b" },
+  MENU: { label: "Menu", icon: <List size={11} />, color: "#ef4444" },
+  COMMON_AREA: {
+    label: "Common",
+    icon: <LayoutGrid size={11} />,
+    color: "#14b8a6",
+  },
+  ROOMS: { label: "Rooms", icon: <ImgIcon size={11} />, color: "#a855f7" },
+  TEAMS: { label: "Teams", icon: <Users size={11} />, color: "#f97316" },
+  ADDITIONAL: { label: "Other", icon: <Camera size={11} />, color: "#64748b" },
+};
+
+const COVERAGE_TARGETS: Partial<Record<MediaCategory, number>> = {
+  COVER: 1,
+  LOGO: 1,
+  EXTERIOR: 5,
+  INTERIOR: 8,
+  PRODUCT: 10,
+  AT_WORK: 3,
+};
+
+/* ═══════════════════════════════════════════════════════
+   API
+═══════════════════════════════════════════════════════ */
+async function fetchMedia(locationId: string): Promise<MediaResponse> {
+  const url = `/api/google/media/list?location=locations/${encodeURIComponent(locationId)}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to fetch media");
+  }
+  const data = await res.json();
+  // console.log("Data: ", data);
+  return {
+    mediaItems: data.mediaItems || [],
+    totalMediaItemCount:
+      data.totalMediaItemCount || data.mediaItems?.length || 0,
+    nextPageToken: data.nextPageToken || null,
+  };
+}
+
+async function deleteMedia(mediaName: string) {
+  const res = await fetch(`/api/google/media/delete`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ mediaName }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to delete media");
+  }
+  return res.json();
+}
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════ */
+function timeAgo(iso: string): string {
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (d === 0) return "Today";
+  if (d === 1) return "Yesterday";
+  if (d < 7) return `${d}d ago`;
+  if (d < 30) return `${Math.floor(d / 7)}w ago`;
+  return `${Math.floor(d / 30)}mo ago`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATS STRIP
+═══════════════════════════════════════════════════════ */
+function StatsStrip({ items, dark }: { items: GBPMedia[]; dark: boolean }) {
+  const totalViews = items.reduce((a, i) => a + (i.viewCount ?? 0), 0);
+  const totalPhotos = items.filter((i) => i.mediaFormat === "PHOTO").length;
+  const totalVideos = items.filter((i) => i.mediaFormat === "VIDEO").length;
+  const categories = new Set(items.map((i) => i.locationAssociation?.category))
+    .size;
+
+  const stats = [
+    {
+      label: "Photos",
+      value: totalPhotos,
+      icon: <Camera size={14} />,
+      color: "#3b82f6",
+    },
+    {
+      label: "Videos",
+      value: totalVideos,
+      icon: <Video size={14} />,
+      color: "#ef4444",
+    },
+    {
+      label: "Total Views",
+      value: totalViews.toLocaleString(),
+      icon: <Eye size={14} />,
+      color: "#10b981",
+    },
+    {
+      label: "Categories",
+      value: categories,
+      icon: <LayoutGrid size={14} />,
+      color: "#f59e0b",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-4 gap-2.5 mb-5">
+      {stats.map((s, i) => (
+        <div
+          key={i}
+          className={`rounded-2xl px-3 py-3 border text-center transition-colors
+            ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100/80 shadow-sm"}`}
+        >
+          <div
+            className="flex items-center justify-center mb-1"
+            style={{ color: s.color }}
+          >
+            {s.icon}
+          </div>
+          <p
+            className="text-[15px] font-black leading-none"
+            style={{ color: s.color }}
+          >
+            {s.value}
+          </p>
+          <p
+            className={`text-[9px] font-semibold mt-1 uppercase tracking-wide ${dark ? "text-slate-600" : "text-slate-400"}`}
+          >
+            {s.label}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   SKELETON
+═══════════════════════════════════════════════════════ */
+function GridSkeleton({ dark }: { dark: boolean }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          className={`rounded-2xl animate-pulse ${dark ? "bg-white/[0.05]" : "bg-blue-100/50"}`}
+          style={{ aspectRatio: "1" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════════ */
+function EmptyState({ dark, onAdd }: { dark: boolean; onAdd: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+      <div
+        className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-5 ${dark ? "bg-blue-500/10" : "bg-blue-50"}`}
+        style={{ border: "1px solid rgba(59,130,246,0.2)" }}
+      >
+        <Camera size={32} className="text-blue-400" />
+      </div>
+      <h3
+        className={`text-[17px] font-black mb-2 ${dark ? "text-white" : "text-slate-900"}`}
+        style={{ letterSpacing: "-0.03em" }}
+      >
+        No Photos Yet
+      </h3>
+      <p
+        className={`text-[12px] mb-6 max-w-[220px] leading-relaxed ${dark ? "text-slate-500" : "text-slate-400"}`}
+      >
+        Add photos to your Google Business Profile to attract more customers.
+      </p>
+      <button
+        onClick={onAdd}
+        className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-black text-white"
+        style={{
+          background: "linear-gradient(135deg,#1e40af,#3b82f6)",
+          boxShadow: "0 8px 24px rgba(59,130,246,0.35)",
+        }}
+      >
+        <Plus size={15} /> Add First Photo
+      </button>
+    </div>
+  );
+}
+
+function normalizeImageUrl(url?: string | null) {
+  if (!url) return undefined;
+  if (url.startsWith("//")) {
+    return `${typeof window !== "undefined" ? window.location.protocol : "https:"}${url}`;
+  }
+  if (/^https?:\/\//i.test(url)) return url;
+  return `https://${url}`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PHOTO CARD (grid)
+═══════════════════════════════════════════════════════ */
+function PhotoCard({
+  photo,
+  dark,
+  onPreview,
+  onDelete,
+}: {
+  photo: GBPMedia;
+  dark: boolean;
+  onPreview: () => void;
+  onDelete: () => void;
+}) {
+  const [hover, setHover] = useState(false);
+  const cat = photo.locationAssociation?.category;
+  const cfg = cat ? CAT_CFG[cat] : null;
+  const imgSrc = normalizeImageUrl(photo.thumbnailUrl || photo.googleUrl);
+
+  return (
+    <div
+      className={`relative rounded-2xl overflow-hidden border cursor-pointer group transition-all duration-200
+        ${dark ? "border-blue-900/30" : "border-blue-100/60"}`}
+      style={{
+        aspectRatio: "1",
+        boxShadow: hover
+          ? dark
+            ? "0 8px 32px rgba(37,99,235,0.25)"
+            : "0 8px 24px rgba(37,99,235,0.15)"
+          : "none",
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={onPreview}
+    >
+      <div
+        className={`w-full h-full ${dark ? "bg-blue-900/10" : "bg-blue-50/50"}`}
+      >
+        {imgSrc ? (
+          <Image
+            src={imgSrc}
+            alt="Google Photo"
+            className="w-full h-full object-cover transition-transform duration-500"
+            style={{ transform: hover ? "scale(1.06)" : "scale(1)" }}
+            width={500}
+            height={500}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ImgIcon size={28} className="text-blue-400/30" />
+          </div>
+        )}
+      </div>
+
+      {/* Hover overlay */}
+      <div
+        className="absolute inset-0 transition-opacity duration-200"
+        style={{
+          opacity: hover ? 1 : 0,
+          background:
+            "linear-gradient(to top, rgba(3,7,18,0.8) 0%, rgba(3,7,18,0.15) 50%, transparent 100%)",
+        }}
+      />
+
+      {/* Category badge */}
+      {cfg && (
+        <div className="absolute top-2 left-2">
+          <span
+            className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full text-white"
+            style={{
+              background: `${cfg.color}90`,
+              border: `1px solid ${cfg.color}50`,
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            {cfg.icon} {cfg.label}
+          </span>
+        </div>
+      )}
+
+      {/* Delete btn */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        className="absolute top-2 right-2 w-7 h-7 rounded-xl flex items-center justify-center transition-all active:scale-90"
+        style={{
+          opacity: hover ? 1 : 0,
+          background: "rgba(239,68,68,0.8)",
+          border: "1px solid rgba(239,68,68,0.4)",
+          backdropFilter: "blur(8px)",
+          pointerEvents: hover ? "auto" : "none",
+        }}
+      >
+        <Trash2 size={11} className="text-white" />
+      </button>
+
+      {/* Bottom info */}
+      <div
+        className="absolute bottom-0 left-0 right-0 px-2.5 pb-2.5 flex items-center justify-between transition-opacity duration-200"
+        style={{ opacity: hover ? 1 : 0 }}
+      >
+        {photo.viewCount != null && (
+          <span className="text-[9.5px] font-medium text-white/80 flex items-center gap-0.5">
+            <Eye size={8} /> {photo.viewCount.toLocaleString()}
+          </span>
+        )}
+        <span className="text-[9px] text-white/60 ml-auto">
+          {timeAgo(photo.createTime)}
+        </span>
+      </div>
+
+      {/* Video badge */}
+      {photo.mediaFormat === "VIDEO" && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.55)" }}
+          >
+            <Video size={16} className="text-white ml-0.5" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   LIST ITEM
+═══════════════════════════════════════════════════════ */
+function ListItem({
+  photo,
+  dark,
+  onPreview,
+  onDelete,
+}: {
+  photo: GBPMedia;
+  dark: boolean;
+  onPreview: () => void;
+  onDelete: () => void;
+}) {
+  const cat = photo.locationAssociation?.category;
+  const cfg = cat ? CAT_CFG[cat] : null;
+  const imgSrc = normalizeImageUrl(photo.thumbnailUrl || photo.googleUrl);
+
+  return (
+    <div
+      className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all cursor-pointer
+        ${dark ? "bg-[#0a1020] border-blue-900/30 hover:border-blue-700/40" : "bg-white border-blue-100/80 hover:border-blue-200 shadow-sm"}`}
+      onClick={onPreview}
+    >
+      {/* Thumbnail */}
+      <div
+        className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ${dark ? "bg-blue-900/20" : "bg-blue-50"}`}
+      >
+        {imgSrc ? (
+          <Image
+            src={imgSrc}
+            alt="Google Photo"
+            className="w-full h-full object-cover"
+            width={500}
+            height={500}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ImgIcon size={18} className="text-blue-400/40" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          {cfg && (
+            <span
+              className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+              style={{ background: `${cfg.color}15`, color: cfg.color }}
+            >
+              {cfg.icon} {cfg.label}
+            </span>
+          )}
+          {photo.mediaFormat === "VIDEO" && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-400">
+              VIDEO
+            </span>
+          )}
+        </div>
+        <p
+          className={`text-[11px] font-medium truncate ${dark ? "text-slate-300" : "text-slate-700"}`}
+        >
+          {photo.dimensions?.widthPixels
+            ? `${photo.dimensions.widthPixels} × ${photo.dimensions.heightPixels}px`
+            : photo.mediaFormat}
+        </p>
+        <div
+          className={`flex items-center gap-2.5 mt-0.5 text-[10px] ${dark ? "text-slate-600" : "text-slate-400"}`}
+        >
+          <span>{timeAgo(photo.createTime)}</span>
+          {photo.viewCount != null && (
+            <span className="flex items-center gap-0.5">
+              <Eye size={8} /> {photo.viewCount.toLocaleString()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onPreview();
+          }}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90
+            ${dark ? "bg-white/[0.04] hover:bg-blue-500/15" : "bg-slate-50 hover:bg-blue-50"}`}
+        >
+          <ZoomIn size={13} className="text-blue-400" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90
+            ${dark ? "bg-white/[0.04] hover:bg-red-500/15" : "bg-slate-50 hover:bg-red-50"}`}
+        >
+          <Trash2 size={13} className="text-red-400" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   LIGHTBOX
+═══════════════════════════════════════════════════════ */
+function Lightbox({
+  photos,
+  index,
+  onClose,
+  onDelete,
+}: {
+  photos: GBPMedia[];
+  index: number;
+  onClose: () => void;
+  onDelete: (p: GBPMedia) => void;
+}) {
+  const [cur, setCur] = useState(index);
+  const photo = photos[cur];
+  const cat = photo?.locationAssociation?.category;
+  const cfg = cat ? CAT_CFG[cat] : null;
+  const imgSrc = normalizeImageUrl(photo.googleUrl);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight")
+        setCur((c) => Math.min(c + 1, photos.length - 1));
+      if (e.key === "ArrowLeft") setCur((c) => Math.max(c - 1, 0));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [photos.length, onClose]);
+
+  if (!photo) return null;
+
+  const thumbStart = Math.max(0, cur - 2);
+  const thumbEnd = Math.min(photos.length, cur + 3);
+
+  return (
+    <div
+      className="fixed inset-0 z-[500] flex flex-col"
+      style={{ background: "rgba(3,7,18,0.96)", backdropFilter: "blur(20px)" }}
+    >
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 py-3 shrink-0">
+        <div className="flex items-center gap-2.5">
+          {cfg && (
+            <span
+              className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
+              style={{
+                background: `${cfg.color}20`,
+                color: cfg.color,
+                border: `1px solid ${cfg.color}30`,
+              }}
+            >
+              {cfg.icon} {cfg.label}
+            </span>
+          )}
+          <span className="text-[11px] font-medium text-slate-500">
+            {cur + 1} / {photos.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {photo.googleUrl && (
+            <a
+              href={photo.googleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
+              style={{
+                background: "rgba(59,130,246,0.12)",
+                border: "1px solid rgba(59,130,246,0.2)",
+              }}
+            >
+              <Download size={14} className="text-blue-400" />
+            </a>
+          )}
+          <button
+            onClick={() => onDelete(photo)}
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
+            style={{
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.2)",
+            }}
+          >
+            <Trash2 size={14} className="text-red-400" />
+          </button>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <X size={15} className="text-white" />
+          </button>
+        </div>
+      </div>
+
+      {/* Image area */}
+      <div className="flex-1 flex items-center justify-center relative px-14 min-h-0">
+        {cur > 0 && (
+          <button
+            onClick={() => setCur((c) => c - 1)}
+            className="absolute left-3 w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-10"
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+            }}
+          >
+            <ChevronLeft size={18} className="text-white" />
+          </button>
+        )}
+
+        <img
+          src={imgSrc}
+          alt=""
+          className="max-w-full max-h-full object-contain rounded-2xl"
+          style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.6)" }}
+        />
+
+        {cur < photos.length - 1 && (
+          <button
+            onClick={() => setCur((c) => c + 1)}
+            className="absolute right-3 w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-10"
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+            }}
+          >
+            <ChevronRight size={18} className="text-white" />
+          </button>
+        )}
+      </div>
+
+      {/* Bottom info */}
+      <div className="shrink-0 px-5 py-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          {photo.description && (
+            <p className="text-[12px] text-slate-300 truncate mb-0.5">
+              {photo.description}
+            </p>
+          )}
+          <div className="flex items-center gap-3">
+            {photo.dimensions && (
+              <span className="text-[10px] text-slate-500 font-mono">
+                {photo.dimensions.widthPixels}×{photo.dimensions.heightPixels}
+              </span>
+            )}
+            <span className="text-[10px] text-slate-500">
+              {timeAgo(photo.createTime)}
+            </span>
+            {photo.viewCount != null && (
+              <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                <Eye size={9} /> {photo.viewCount.toLocaleString()} views
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Thumbnail strip */}
+        <div className="flex gap-1.5 shrink-0">
+          {photos.slice(thumbStart, thumbEnd).map((p, i) => {
+            const realIdx = thumbStart + i;
+            const thumbSrc = normalizeImageUrl(p.thumbnailUrl || p.googleUrl);
+            return (
+              <button
+                key={p.name ?? realIdx}
+                onClick={() => setCur(realIdx)}
+                className={`w-10 h-10 rounded-xl overflow-hidden border-2 transition-all ${
+                  realIdx === cur
+                    ? "border-blue-500"
+                    : "border-transparent opacity-50"
+                }`}
+              >
+                {thumbSrc ? (
+                  <img
+                    src={thumbSrc}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   DELETE MODAL
+═══════════════════════════════════════════════════════ */
+function DeleteModal({
+  photo,
+  dark,
+  loading,
+  onConfirm,
+  onCancel,
+}: {
+  photo: GBPMedia;
+  dark: boolean;
+  loading: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const cat = photo.locationAssociation?.category;
+  const cfg = cat ? CAT_CFG[cat] : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div
+        className={`w-full max-w-sm rounded-3xl border overflow-hidden
+          ${dark ? "bg-[#0a1020] border-blue-900/50" : "bg-white border-blue-100"}`}
+        style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}
+      >
+        <div
+          className="h-1 w-full"
+          style={{ background: "linear-gradient(90deg,#ef4444,#f87171)" }}
+        />
+
+        <div className="p-6">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.2)",
+            }}
+          >
+            <Trash2 size={22} className="text-red-400" />
+          </div>
+
+          <h3
+            className={`text-[17px] font-black text-center mb-1 ${dark ? "text-white" : "text-slate-900"}`}
+            style={{ letterSpacing: "-0.03em" }}
+          >
+            Delete Photo?
+          </h3>
+          <p
+            className={`text-[12px] text-center mb-5 ${dark ? "text-slate-400" : "text-slate-500"}`}
+          >
+            This will permanently remove the photo from your Google Business
+            Profile.
+          </p>
+
+          {/* Photo preview */}
+          <div
+            className={`flex items-center gap-3 p-3 rounded-2xl border mb-4
+              ${dark ? "bg-white/[0.03] border-white/[0.06]" : "bg-slate-50 border-slate-100"}`}
+          >
+            <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-blue-900/20">
+              {(photo.thumbnailUrl || photo.googleUrl) && (
+                <img
+                  src={photo.thumbnailUrl || photo.googleUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+            <div className="min-w-0">
+              {cfg && (
+                <span
+                  className="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full mb-1"
+                  style={{
+                    background: `${cfg.color}15`,
+                    color: cfg.color,
+                    border: `1px solid ${cfg.color}30`,
+                  }}
+                >
+                  {cfg.icon} {cfg.label}
+                </span>
+              )}
+              <p
+                className={`text-[11px] font-medium truncate ${dark ? "text-slate-400" : "text-slate-600"}`}
+              >
+                {photo.dimensions
+                  ? `${photo.dimensions.widthPixels} × ${photo.dimensions.heightPixels}px`
+                  : "Photo"}
+              </p>
+              <p
+                className={`text-[10px] ${dark ? "text-slate-600" : "text-slate-400"}`}
+              >
+                {photo.viewCount?.toLocaleString() ?? 0} views
+              </p>
+            </div>
+          </div>
+
+          {/* Warning */}
+          <div
+            className={`flex items-start gap-2 p-3 rounded-xl border mb-5
+              ${dark ? "bg-red-500/[0.06] border-red-500/20" : "bg-red-50 border-red-200/60"}`}
+          >
+            <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-red-400 leading-relaxed">
+              Google may take up to 24 hours to reflect this change across all
+              surfaces.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2.5">
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              className={`flex-1 py-3 rounded-2xl text-[13px] font-bold transition-all active:scale-[0.97] border
+                ${dark ? "bg-white/[0.04] border-white/[0.08] text-slate-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              className="flex-1 py-3 rounded-2xl text-[13px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+              style={{
+                background: "linear-gradient(135deg,#dc2626,#ef4444)",
+                boxShadow: "0 6px 20px rgba(239,68,68,0.35)",
+              }}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" /> Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 size={13} /> Delete
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   COVERAGE GUIDE
+═══════════════════════════════════════════════════════ */
+function CoverageGuide({ items, dark }: { items: GBPMedia[]; dark: boolean }) {
+  return (
+    <div className="mt-8 mb-6">
+      <p
+        className={`text-[10px] font-black uppercase tracking-widest mb-3 ${dark ? "text-slate-600" : "text-slate-400"}`}
+      >
+        Coverage Guide
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+        {(Object.entries(COVERAGE_TARGETS) as [MediaCategory, number][]).map(
+          ([cat, target]) => {
+            const cfg = CAT_CFG[cat];
+            const count = items.filter(
+              (i) => i.locationAssociation?.category === cat,
+            ).length;
+            const pct = Math.min(100, Math.round((count / target) * 100));
+            return (
+              <div
+                key={cat}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border
+                ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100/80 shadow-sm"}`}
+              >
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `${cfg.color}15`, color: cfg.color }}
+                >
+                  {cfg.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between mb-1">
+                    <span
+                      className={`text-[10px] font-bold ${dark ? "text-slate-300" : "text-slate-700"}`}
+                    >
+                      {cfg.label}
+                    </span>
+                    <span
+                      className="text-[9.5px] font-bold"
+                      style={{ color: cfg.color }}
+                    >
+                      {count}/{target}
+                    </span>
+                  </div>
+                  <div
+                    className={`h-1 rounded-full overflow-hidden ${dark ? "bg-white/[0.05]" : "bg-blue-50"}`}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%`, background: cfg.color }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          },
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════ */
+export default function PhotosPage() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const dark = mounted && resolvedTheme === "dark";
+
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const [filter, setFilter] = useState<MediaCategory | "ALL">("ALL");
+  const [lightbox, setLightbox] = useState<{
+    photos: GBPMedia[];
+    index: number;
+  } | null>(null);
+  const [toDelete, setToDelete] = useState<GBPMedia | null>(null);
+
+  const { data: user } = useUser();
+  const locationId = user?.googleLocationId ?? "";
+
+  /* ── Query ── */
+  const { data, isLoading, isError, refetch, isFetching } =
+    useQuery<MediaResponse>({
+      queryKey: ["gbp-media", locationId],
+      queryFn: () => fetchMedia(locationId),
+      staleTime: 5 * 60 * 1000,
+      enabled: !!locationId,
+    });
+
+  /* ── Delete mutation with optimistic update ── */
+  const deleteMut = useMutation({
+    mutationFn: (name: string) => deleteMedia(name),
+    onMutate: async (name) => {
+      await queryClient.cancelQueries({ queryKey: ["gbp-media", locationId] });
+      const prev = queryClient.getQueryData<MediaResponse>([
+        "gbp-media",
+        locationId,
+      ]);
+      queryClient.setQueryData<MediaResponse>(
+        ["gbp-media", locationId],
+        (old) => {
+          if (!old) return old;
+          const mediaItems = old.mediaItems.filter((m) => m.name !== name);
+          return { ...old, mediaItems, totalMediaItemCount: mediaItems.length };
+        },
+      );
+      return { prev };
+    },
+    onError: (_err, _name, ctx) => {
+      if (ctx?.prev)
+        queryClient.setQueryData(["gbp-media", locationId], ctx.prev);
+    },
+    onSettled: () => {
+      setToDelete(null);
+    },
+  });
+
+  const items = data?.mediaItems ?? [];
+
+  /* ── Derived ── */
+  const cats = [
+    ...new Set(
+      items.map((i) => i.locationAssociation?.category).filter(Boolean),
+    ),
+  ] as MediaCategory[];
+
+  const filtered =
+    filter === "ALL"
+      ? items
+      : items.filter((i) => i.locationAssociation?.category === filter);
+
+  function openLightbox(index: number) {
+    setLightbox({ photos: filtered, index });
+  }
+
+  return (
+    <div
+      className={`min-h-screen transition-colors ${dark ? "bg-[#050d1a]" : "bg-[#eef4ff]"}`}
+      style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}
+    >
+      {/* Dot grid background */}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-[0.018] z-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, #3b82f6 1px, transparent 0)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+
+      <div className="relative z-10 max-w-6xl mx-auto px-5 pb-28 pt-6">
+        {/* ── HEADER ── */}
+        <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9.5px] font-black uppercase tracking-widest
+                  ${dark ? "bg-blue-500/10 border-blue-700/60 text-blue-400" : "bg-blue-50 border-blue-300 text-blue-600"}`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                Google Business
+              </div>
+            </div>
+            <h1
+              className={`text-[26px] font-black leading-tight ${dark ? "text-white" : "text-slate-900"}`}
+              style={{ letterSpacing: "-0.04em" }}
+            >
+              Profile Photos
+            </h1>
+            <p
+              className={`text-[12px] mt-0.5 ${dark ? "text-slate-500" : "text-blue-500/80"}`}
+            >
+              {isLoading
+                ? "Loading…"
+                : `${items.length} media · ${data?.totalMediaItemCount ?? 0} total`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90 border
+                ${dark ? "bg-white/[0.04] border-white/[0.06] text-slate-400" : "bg-white border-blue-100 text-slate-500"}`}
+            >
+              <RefreshCw
+                size={14}
+                className={isFetching ? "animate-spin" : ""}
+              />
+            </button>
+            <button
+              onClick={() => router.push("/photos/create")}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[13px] font-black text-white transition-all active:scale-95"
+              style={{
+                background: "linear-gradient(135deg,#1e40af,#3b82f6)",
+                boxShadow: "0 6px 20px rgba(59,130,246,0.38)",
+              }}
+            >
+              <Plus size={14} /> Add Photo
+            </button>
+          </div>
+        </div>
+
+        {/* ── STATS ── */}
+        {!isLoading && items.length > 0 && (
+          <StatsStrip items={items} dark={dark} />
+        )}
+
+        {/* ── AI BANNER ── */}
+        {!isLoading && items.length > 0 && (
+          <button
+            onClick={() => router.push("/photos/create")}
+            className="w-full mb-5 relative overflow-hidden rounded-[22px] text-left transition-all active:scale-[0.99]"
+            style={{
+              background:
+                "linear-gradient(118deg,#0d1f45 0%,#1a3a8f 45%,#2563eb 100%)",
+              border: "1px solid rgba(96,165,250,0.25)",
+              boxShadow: "0 6px 24px rgba(37,99,235,0.4)",
+            }}
+          >
+            {/* shimmer */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "linear-gradient(108deg,transparent 0%,rgba(147,197,253,0.07) 45%,rgba(219,234,254,0.04) 55%,transparent 100%)",
+                animation: "shimmer 3s ease-in-out infinite",
+              }}
+            />
+            <div className="relative flex items-center justify-center px-6 py-3.5">
+              <div className="flex items-center gap-3">
+                <Brain size={22} style={{ color: "#93c5fd", opacity: 0.9 }} />
+                <span
+                  className="text-white text-[15px] font-black"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
+                  Add Photos
+                </span>
+              </div>
+              {/* <div
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black"
+                style={{
+                  background: "rgba(37,99,235,0.45)",
+                  border: "1px solid rgba(96,165,250,0.35)",
+                  color: "#93c5fd",
+                }}
+              >
+                <Zap size={9} style={{ color: "#fbbf24" }} /> AI
+              </div> */}
+            </div>
+          </button>
+        )}
+
+        {/* ── FILTER + VIEW TOGGLE ── */}
+        {!isLoading && items.length > 0 && (
+          <div className="flex items-center gap-3 mb-5">
+            <div
+              className="flex-1 flex gap-1.5 overflow-x-auto pb-0.5"
+              style={{ scrollbarWidth: "none" }}
+            >
+              <button
+                onClick={() => setFilter("ALL")}
+                className="shrink-0 px-3 py-1.5 rounded-full text-[10.5px] font-bold transition-all border"
+                style={
+                  filter === "ALL"
+                    ? {
+                        background: "rgba(59,130,246,0.15)",
+                        color: "#60a5fa",
+                        borderColor: "rgba(59,130,246,0.3)",
+                      }
+                    : {
+                        background: "transparent",
+                        color: dark ? "#475569" : "#94a3b8",
+                        borderColor: "transparent",
+                      }
+                }
+              >
+                All ({items.length})
+              </button>
+              {cats.map((c) => {
+                const cfg = CAT_CFG[c] ?? {
+                  color: "#60a5fa",
+                  icon: null,
+                  label: c,
+                };
+                const count = items.filter(
+                  (i) => i.locationAssociation?.category === c,
+                ).length;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setFilter(c)}
+                    className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[10.5px] font-bold transition-all border"
+                    style={
+                      filter === c
+                        ? {
+                            background: `${cfg.color}18`,
+                            color: cfg.color,
+                            borderColor: `${cfg.color}35`,
+                          }
+                        : {
+                            background: "transparent",
+                            color: dark ? "#475569" : "#94a3b8",
+                            borderColor: "transparent",
+                          }
+                    }
+                  >
+                    {cfg.icon && cfg.icon}
+                    {cfg.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            <div
+              className={`flex gap-0.5 p-1 rounded-xl border shrink-0
+                ${dark ? "bg-white/[0.03] border-white/[0.06]" : "bg-white border-blue-100"}`}
+            >
+              {(["grid", "list"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                  style={
+                    view === v
+                      ? { background: "rgba(59,130,246,0.2)", color: "#60a5fa" }
+                      : { color: dark ? "#475569" : "#94a3b8" }
+                  }
+                >
+                  {v === "grid" ? <LayoutGrid size={14} /> : <List size={14} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── CONTENT ── */}
+        {isLoading ? (
+          <GridSkeleton dark={dark} />
+        ) : isError ? (
+          <div
+            className={`rounded-2xl border p-8 text-center
+              ${dark ? "bg-red-500/[0.06] border-red-500/20" : "bg-red-50 border-red-200/60"}`}
+          >
+            <AlertTriangle size={28} className="text-red-400 mx-auto mb-3" />
+            <p
+              className={`text-[14px] font-bold mb-1 ${dark ? "text-white" : "text-slate-900"}`}
+            >
+              Failed to load photos
+            </p>
+            <p className="text-[11px] text-red-400 mb-4">
+              Could not connect to Google Business API
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="text-[12px] font-bold text-blue-400 flex items-center gap-1.5 mx-auto"
+            >
+              <RefreshCw size={12} /> Try Again
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          filter === "ALL" ? (
+            <EmptyState
+              dark={dark}
+              onAdd={() => router.push("/photos/create")}
+            />
+          ) : (
+            <div
+              className={`rounded-2xl border p-10 text-center
+                ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100"}`}
+            >
+              <Camera size={28} className="text-blue-400/40 mx-auto mb-2" />
+              <p
+                className={`text-[12px] ${dark ? "text-slate-500" : "text-slate-400"}`}
+              >
+                No {CAT_CFG[filter]?.label ?? ""} photos yet
+              </p>
+            </div>
+          )
+        ) : view === "grid" ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+            {filtered.map((p, i) => (
+              <PhotoCard
+                key={p.name}
+                photo={p}
+                dark={dark}
+                onPreview={() => openLightbox(i)}
+                onDelete={() => setToDelete(p)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {filtered.map((p, i) => (
+              <ListItem
+                key={p.name}
+                photo={p}
+                dark={dark}
+                onPreview={() => openLightbox(i)}
+                onDelete={() => setToDelete(p)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* ── COVERAGE GUIDE ── */}
+        {!isLoading && items.length > 0 && (
+          <CoverageGuide items={items} dark={dark} />
+        )}
+      </div>
+
+      {/* ── LIGHTBOX ── */}
+      {lightbox && (
+        <Lightbox
+          photos={lightbox.photos}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onDelete={(p) => {
+            setLightbox(null);
+            setToDelete(p);
+          }}
+        />
+      )}
+
+      {/* ── DELETE MODAL ── */}
+      {toDelete && (
+        <DeleteModal
+          photo={toDelete}
+          dark={dark}
+          loading={deleteMut.isPending}
+          onCancel={() => setToDelete(null)}
+          onConfirm={() => deleteMut.mutate(toDelete.name)}
+        />
+      )}
+
+      <style>{`
+        @keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:1} }
+      `}</style>
+    </div>
+  );
+}
+
+// mobile_app\app\(main)\photos\page.tsx
+
 // "use client";
 
 // import { useState, useEffect, useCallback, useRef } from "react";
 // import { useTheme } from "next-themes";
 // import { useRouter } from "next/navigation";
 // import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+// import Image from "next/image";
 // import {
 //   Camera,
 //   Plus,
@@ -21,21 +1343,31 @@
 //   Video,
 //   LayoutGrid,
 //   List,
+//   Filter,
+//   SortAsc,
 //   RefreshCw,
 //   Brain,
 //   Sparkles,
 //   AlertTriangle,
+//   Check,
 //   Loader2,
 //   ZoomIn,
+//   Share2,
+//   MoreVertical,
+//   TrendingUp,
+//   BarChart2,
+//   Clock,
+//   ArrowUpRight,
 //   Shield,
+//   Lock,
 //   Zap,
 // } from "lucide-react";
 // import { getToken } from "@/lib/token";
 // import { useUser } from "@/features/user/hook/useUser";
 
-// /* ═══════════════════════════════════════════════════════
+// /* ════════════════════════════════════════════════════════
 //    TYPES
-// ═══════════════════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════ */
 // type MediaFormat = "PHOTO" | "VIDEO";
 // type MediaCategory =
 //   | "COVER"
@@ -52,7 +1384,7 @@
 //   | "ADDITIONAL";
 
 // interface GBPMedia {
-//   name: string;
+//   name: string; // e.g. accounts/{id}/locations/{id}/media/{id}
 //   mediaFormat: MediaFormat;
 //   locationAssociation?: { category: MediaCategory };
 //   googleUrl?: string;
@@ -61,6 +1393,7 @@
 //   dimensions?: { widthPixels: number; heightPixels: number };
 //   viewCount?: number;
 //   description?: string;
+//   // derived
 //   id: string;
 // }
 
@@ -70,91 +1403,214 @@
 //   nextPageToken?: string;
 // }
 
-// /* ═══════════════════════════════════════════════════════
+// /* ════════════════════════════════════════════════════════
 //    CATEGORY CONFIG
-// ═══════════════════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════ */
 // const CAT_CFG: Record<
 //   MediaCategory,
-//   { label: string; icon: React.ReactNode; color: string }
+//   { label: string; icon: React.ReactNode; color: string; tip: string }
 // > = {
-//   COVER: { label: "Cover", icon: <Star size={11} />, color: "#3b82f6" },
-//   LOGO: { label: "Logo", icon: <Shield size={11} />, color: "#8b5cf6" },
-//   EXTERIOR: { label: "Exterior", icon: <MapPin size={11} />, color: "#0ea5e9" },
+//   COVER: {
+//     label: "Cover",
+//     icon: <Star size={11} />,
+//     color: "#3b82f6",
+//     tip: "Banner shown at top of your profile",
+//   },
+//   LOGO: {
+//     label: "Logo",
+//     icon: <Shield size={11} />,
+//     color: "#6366f1",
+//     tip: "Square logo for Knowledge Panel",
+//   },
+//   EXTERIOR: {
+//     label: "Exterior",
+//     icon: <MapPin size={11} />,
+//     color: "#0ea5e9",
+//     tip: "Outside your building",
+//   },
 //   INTERIOR: {
 //     label: "Interior",
 //     icon: <LayoutGrid size={11} />,
-//     color: "#a855f7",
+//     color: "#8b5cf6",
+//     tip: "Inside your business",
 //   },
-//   PRODUCT: { label: "Product", icon: <Package size={11} />, color: "#06b6d4" },
-//   AT_WORK: { label: "At Work", icon: <Users size={11} />, color: "#10b981" },
-//   FOOD_AND_DRINK: { label: "Food", icon: <Star size={11} />, color: "#f59e0b" },
-//   MENU: { label: "Menu", icon: <List size={11} />, color: "#ef4444" },
+//   PRODUCT: {
+//     label: "Product",
+//     icon: <Package size={11} />,
+//     color: "#06b6d4",
+//     tip: "Products you sell",
+//   },
+//   AT_WORK: {
+//     label: "At Work",
+//     icon: <Users size={11} />,
+//     color: "#10b981",
+//     tip: "Your team in action",
+//   },
+//   FOOD_AND_DRINK: {
+//     label: "Food",
+//     icon: <Star size={11} />,
+//     color: "#f59e0b",
+//     tip: "Food and drinks",
+//   },
+//   MENU: {
+//     label: "Menu",
+//     icon: <List size={11} />,
+//     color: "#ef4444",
+//     tip: "Menu items",
+//   },
 //   COMMON_AREA: {
 //     label: "Common",
 //     icon: <LayoutGrid size={11} />,
 //     color: "#14b8a6",
+//     tip: "Common areas",
 //   },
-//   ROOMS: { label: "Rooms", icon: <ImgIcon size={11} />, color: "#a855f7" },
-//   TEAMS: { label: "Teams", icon: <Users size={11} />, color: "#f97316" },
-//   ADDITIONAL: { label: "Other", icon: <Camera size={11} />, color: "#64748b" },
+//   ROOMS: {
+//     label: "Rooms",
+//     icon: <ImgIcon size={11} />,
+//     color: "#a855f7",
+//     tip: "Rooms",
+//   },
+//   TEAMS: {
+//     label: "Teams",
+//     icon: <Users size={11} />,
+//     color: "#f97316",
+//     tip: "Your team",
+//   },
+//   ADDITIONAL: {
+//     label: "Other",
+//     icon: <Camera size={11} />,
+//     color: "#64748b",
+//     tip: "Other photos",
+//   },
 // };
 
-// const COVERAGE_TARGETS: Partial<Record<MediaCategory, number>> = {
-//   COVER: 1,
-//   LOGO: 1,
-//   EXTERIOR: 5,
-//   INTERIOR: 8,
-//   PRODUCT: 10,
-//   AT_WORK: 3,
-// };
+// /* ════════════════════════════════════════════════════════
+//    MOCK DATA (replace with real API call)
+// ════════════════════════════════════════════════════════ */
+// const MOCK: GBPMedia[] = [
+//   ...Array.from({ length: 18 }, (_, i) => {
+//     const cats: MediaCategory[] = [
+//       "COVER",
+//       "LOGO",
+//       "EXTERIOR",
+//       "INTERIOR",
+//       "PRODUCT",
+//       "AT_WORK",
+//       "EXTERIOR",
+//       "PRODUCT",
+//       "INTERIOR",
+//       "PRODUCT",
+//       "AT_WORK",
+//       "EXTERIOR",
+//       "PRODUCT",
+//       "INTERIOR",
+//       "PRODUCT",
+//       "ADDITIONAL",
+//       "EXTERIOR",
+//       "INTERIOR",
+//     ];
+//     const dims = [
+//       [1920, 1080],
+//       [800, 800],
+//       [1280, 960],
+//       [1080, 1080],
+//       [720, 720],
+//       [1920, 1080],
+//       [1280, 720],
+//       [800, 600],
+//       [1080, 1080],
+//       [900, 675],
+//       [1200, 900],
+//       [1280, 960],
+//       [1080, 1080],
+//       [720, 720],
+//       [1920, 1080],
+//       [1280, 720],
+//       [800, 600],
+//       [1080, 1080],
+//     ];
+//     const cat = cats[i] as MediaCategory;
+//     return {
+//       id: `media_${i + 1}`,
+//       name: `accounts/123/locations/456/media/media_${i + 1}`,
+//       mediaFormat: "PHOTO" as MediaFormat,
+//       locationAssociation: { category: cat },
+//       googleUrl: `https://picsum.photos/seed/${i + 10}/800/600`,
+//       thumbnailUrl: `https://picsum.photos/seed/${i + 10}/400/300`,
+//       createTime: new Date(
+//         Date.now() - i * 7 * 24 * 60 * 60 * 1000,
+//       ).toISOString(),
+//       dimensions: { widthPixels: dims[i][0], heightPixels: dims[i][1] },
+//       viewCount: Math.floor(Math.random() * 800 + 50),
+//       description:
+//         i % 3 === 0
+//           ? "Our beautiful store interior showcasing premium products"
+//           : undefined,
+//     };
+//   }),
+// ];
 
-// /* ═══════════════════════════════════════════════════════
+// /* ════════════════════════════════════════════════════════
 //    API
-// ═══════════════════════════════════════════════════════ */
-// async function fetchMedia(locationId: string): Promise<MediaResponse> {
-//   const url = `/api/google/media/list?location=locations/${encodeURIComponent(locationId)}`;
-//   const res = await fetch(url, {
-//     method: "GET",
-//     headers: {
-//       Authorization: `Bearer ${getToken()}`,
-//       "Content-Type": "application/json",
-//     },
-//   });
-//   if (!res.ok) {
-//     const errorData = await res.json().catch(() => ({}));
-//     throw new Error(errorData.error || "Failed to fetch media");
-//   }
-//   const data = await res.json();
-//   console.log("Data: ", data);
-//   return {
-//     mediaItems: data.mediaItems || [],
-//     totalMediaItemCount:
-//       data.totalMediaItemCount || data.mediaItems?.length || 0,
-//     nextPageToken: data.nextPageToken || null,
-//   };
-// }
-
-// async function deleteMedia(mediaName: string) {
-//   const res = await fetch(`/api/google/media/delete`, {
-//     method: "DELETE",
-//     headers: {
-//       Authorization: `Bearer ${getToken()}`,
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({ mediaName }),
-//   });
-//   if (!res.ok) {
-//     const errorData = await res.json().catch(() => ({}));
-//     throw new Error(errorData.error || "Failed to delete media");
-//   }
+// ════════════════════════════════════════════════════════ */
+// async function fetchMedia(): Promise<MediaResponse> {
+//   const res = await fetch("/api/google/media/list");
+//   if (!res.ok) throw new Error("Failed to fetch media");
 //   return res.json();
+//   // await new Promise((r) => setTimeout(r, 900));
+//   // return { mediaItems: MOCK, totalMediaItemCount: MOCK.length };
+// }
+// // async function fetchMedia(locationId: string): Promise<MediaResponse> {
+// //   const url = `/api/google/media/list?location=locations/${encodeURIComponent(locationId)}`;
+// //   const res = await fetch(url, {
+// //     method: "GET",
+// //     headers: {
+// //       Authorization: `Bearer ${getToken()}`,
+// //       "Content-Type": "application/json",
+// //     },
+// //   });
+// //   if (!res.ok) {
+// //     const errorData = await res.json().catch(() => ({}));
+// //     throw new Error(errorData.error || "Failed to fetch media");
+// //   }
+// //   const data = await res.json();
+// //   return {
+// //     mediaItems: data.mediaItems || [],
+// //     totalMediaItemCount:
+// //       data.totalMediaItemCount || data.mediaItems?.length || 0,
+// //     nextPageToken: data.nextPageToken || null,
+// //   };
+// // }
+
+// async function deleteMedia(mediaName: string): Promise<void> {
+//   // const res = await fetch("/api/google/media/delete", { method: "POST", body: JSON.stringify({ mediaName }) });
+//   // if (!res.ok) throw new Error("Delete failed");
+//   await new Promise((r) => setTimeout(r, 700));
 // }
 
-// /* ═══════════════════════════════════════════════════════
+// // async function deleteMedia(mediaName: string) {
+// //   const url = `/api/google/media/delete`;
+// //   const res = await fetch(url, {
+// //     method: "DELETE",
+// //     headers: {
+// //       Authorization: `Bearer ${getToken()}`,
+// //       "Content-Type": "application/json",
+// //     },
+// //     body: JSON.stringify({ mediaName }),
+// //   });
+// //   if (!res.ok) {
+// //     const errorData = await res.json().catch(() => ({}));
+// //     throw new Error(errorData.error || "Failed to delete media");
+// //   }
+// //   return res.json();
+// // }
+
+// /* ════════════════════════════════════════════════════════
 //    HELPERS
-// ═══════════════════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════ */
 // function timeAgo(iso: string): string {
-//   const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+//   const diff = Date.now() - new Date(iso).getTime();
+//   const d = Math.floor(diff / 86400000);
 //   if (d === 0) return "Today";
 //   if (d === 1) return "Yesterday";
 //   if (d < 7) return `${d}d ago`;
@@ -162,409 +1618,216 @@
 //   return `${Math.floor(d / 30)}mo ago`;
 // }
 
-// /* ═══════════════════════════════════════════════════════
-//    STATS STRIP
-// ═══════════════════════════════════════════════════════ */
-// function StatsStrip({ items, dark }: { items: GBPMedia[]; dark: boolean }) {
-//   const totalViews = items.reduce((a, i) => a + (i.viewCount ?? 0), 0);
-//   const totalPhotos = items.filter((i) => i.mediaFormat === "PHOTO").length;
-//   const totalVideos = items.filter((i) => i.mediaFormat === "VIDEO").length;
-//   const categories = new Set(items.map((i) => i.locationAssociation?.category))
-//     .size;
-
-//   const stats = [
-//     {
-//       label: "Photos",
-//       value: totalPhotos,
-//       icon: <Camera size={14} />,
-//       color: "#3b82f6",
-//     },
-//     {
-//       label: "Videos",
-//       value: totalVideos,
-//       icon: <Video size={14} />,
-//       color: "#ef4444",
-//     },
-//     {
-//       label: "Total Views",
-//       value: totalViews.toLocaleString(),
-//       icon: <Eye size={14} />,
-//       color: "#10b981",
-//     },
-//     {
-//       label: "Categories",
-//       value: categories,
-//       icon: <LayoutGrid size={14} />,
-//       color: "#f59e0b",
-//     },
-//   ];
-
-//   return (
-//     <div className="grid grid-cols-4 gap-2.5 mb-5">
-//       {stats.map((s, i) => (
-//         <div
-//           key={i}
-//           className={`rounded-2xl px-3 py-3 border text-center transition-colors
-//             ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100/80 shadow-sm"}`}
-//         >
-//           <div
-//             className="flex items-center justify-center mb-1"
-//             style={{ color: s.color }}
-//           >
-//             {s.icon}
-//           </div>
-//           <p
-//             className="text-[15px] font-black leading-none"
-//             style={{ color: s.color }}
-//           >
-//             {s.value}
-//           </p>
-//           <p
-//             className={`text-[9px] font-semibold mt-1 uppercase tracking-wide ${dark ? "text-slate-600" : "text-slate-400"}`}
-//           >
-//             {s.label}
-//           </p>
-//         </div>
-//       ))}
-//     </div>
-//   );
-// }
-
-// /* ═══════════════════════════════════════════════════════
-//    SKELETON
-// ═══════════════════════════════════════════════════════ */
-// function GridSkeleton({ dark }: { dark: boolean }) {
-//   return (
-//     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-//       {Array.from({ length: 10 }).map((_, i) => (
-//         <div
-//           key={i}
-//           className={`rounded-2xl animate-pulse ${dark ? "bg-white/[0.05]" : "bg-blue-100/50"}`}
-//           style={{ aspectRatio: "1" }}
-//         />
-//       ))}
-//     </div>
-//   );
-// }
-
-// /* ═══════════════════════════════════════════════════════
-//    EMPTY STATE
-// ═══════════════════════════════════════════════════════ */
-// function EmptyState({ dark, onAdd }: { dark: boolean; onAdd: () => void }) {
-//   return (
-//     <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-//       <div
-//         className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-5 ${dark ? "bg-blue-500/10" : "bg-blue-50"}`}
-//         style={{ border: "1px solid rgba(59,130,246,0.2)" }}
-//       >
-//         <Camera size={32} className="text-blue-400" />
-//       </div>
-//       <h3
-//         className={`text-[17px] font-black mb-2 ${dark ? "text-white" : "text-slate-900"}`}
-//         style={{ letterSpacing: "-0.03em" }}
-//       >
-//         No Photos Yet
-//       </h3>
-//       <p
-//         className={`text-[12px] mb-6 max-w-[220px] leading-relaxed ${dark ? "text-slate-500" : "text-slate-400"}`}
-//       >
-//         Add photos to your Google Business Profile to attract more customers.
-//       </p>
-//       <button
-//         onClick={onAdd}
-//         className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-black text-white"
-//         style={{
-//           background: "linear-gradient(135deg,#1e40af,#3b82f6)",
-//           boxShadow: "0 8px 24px rgba(59,130,246,0.35)",
-//         }}
-//       >
-//         <Plus size={15} /> Add First Photo
-//       </button>
-//     </div>
-//   );
-// }
-
-// /* ═══════════════════════════════════════════════════════
-//    PHOTO CARD (grid)
-// ═══════════════════════════════════════════════════════ */
-// function PhotoCard({
+// /* ════════════════════════════════════════════════════════
+//    DELETE MODAL
+// ════════════════════════════════════════════════════════ */
+// function DeleteModal({
 //   photo,
 //   dark,
-//   onPreview,
-//   onDelete,
+//   onConfirm,
+//   onCancel,
+//   loading,
 // }: {
 //   photo: GBPMedia;
 //   dark: boolean;
-//   onPreview: () => void;
-//   onDelete: () => void;
+//   onConfirm: () => void;
+//   onCancel: () => void;
+//   loading: boolean;
 // }) {
-//   const [hover, setHover] = useState(false);
-//   const cat = photo.locationAssociation?.category;
-//   const cfg = cat ? CAT_CFG[cat] : null;
+//   const cat = photo.locationAssociation?.category
+//     ? CAT_CFG[photo.locationAssociation.category]
+//     : null;
 
 //   return (
 //     <div
-//       className={`relative rounded-2xl overflow-hidden border cursor-pointer group transition-all duration-200
-//         ${dark ? "border-blue-900/30" : "border-blue-100/60"}`}
-//       style={{
-//         aspectRatio: "1",
-//         boxShadow: hover
-//           ? dark
-//             ? "0 8px 32px rgba(37,99,235,0.25)"
-//             : "0 8px 24px rgba(37,99,235,0.15)"
-//           : "none",
-//       }}
-//       onMouseEnter={() => setHover(true)}
-//       onMouseLeave={() => setHover(false)}
-//       onClick={onPreview}
+//       className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center p-4"
+//       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
 //     >
 //       <div
-//         className={`w-full h-full ${dark ? "bg-blue-900/10" : "bg-blue-50/50"}`}
+//         className={`w-full max-w-sm rounded-3xl border overflow-hidden
+//         ${dark ? "bg-[#0a1020] border-blue-900/50" : "bg-white border-blue-100"}`}
+//         style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}
 //       >
-//         {photo.thumbnailUrl ? (
-//           <img
-//             src={photo.thumbnailUrl}
-//             alt=""
-//             className="w-full h-full object-cover transition-transform duration-500"
-//             style={{ transform: hover ? "scale(1.06)" : "scale(1)" }}
-//           />
-//         ) : (
-//           <div className="w-full h-full flex items-center justify-center">
-//             <ImgIcon size={28} className="text-blue-400/30" />
-//           </div>
-//         )}
-//       </div>
+//         {/* header stripe */}
+//         <div
+//           className="h-1 w-full"
+//           style={{ background: "linear-gradient(90deg,#ef4444,#f87171)" }}
+//         />
 
-//       {/* Hover overlay */}
-//       <div
-//         className="absolute inset-0 transition-opacity duration-200"
-//         style={{
-//           opacity: hover ? 1 : 0,
-//           background:
-//             "linear-gradient(to top, rgba(3,7,18,0.8) 0%, rgba(3,7,18,0.15) 50%, transparent 100%)",
-//         }}
-//       />
-
-//       {/* Category badge */}
-//       {cfg && (
-//         <div className="absolute top-2 left-2">
-//           <span
-//             className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full text-white"
+//         <div className="p-5">
+//           {/* icon */}
+//           <div
+//             className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
 //             style={{
-//               background: `${cfg.color}90`,
-//               border: `1px solid ${cfg.color}50`,
-//               backdropFilter: "blur(8px)",
+//               background: "rgba(239,68,68,0.1)",
+//               border: "1px solid rgba(239,68,68,0.2)",
 //             }}
 //           >
-//             {cfg.icon} {cfg.label}
-//           </span>
-//         </div>
-//       )}
+//             <Trash2 size={22} className="text-red-400" />
+//           </div>
 
-//       {/* Delete btn */}
-//       <button
-//         onClick={(e) => {
-//           e.stopPropagation();
-//           onDelete();
-//         }}
-//         className="absolute top-2 right-2 w-7 h-7 rounded-xl flex items-center justify-center transition-all active:scale-90"
-//         style={{
-//           opacity: hover ? 1 : 0,
-//           background: "rgba(239,68,68,0.8)",
-//           border: "1px solid rgba(239,68,68,0.4)",
-//           backdropFilter: "blur(8px)",
-//           pointerEvents: hover ? "auto" : "none",
-//         }}
-//       >
-//         <Trash2 size={11} className="text-white" />
-//       </button>
-
-//       {/* Bottom info */}
-//       <div
-//         className="absolute bottom-0 left-0 right-0 px-2.5 pb-2.5 flex items-center justify-between transition-opacity duration-200"
-//         style={{ opacity: hover ? 1 : 0 }}
-//       >
-//         {photo.viewCount != null && (
-//           <span className="text-[9.5px] font-medium text-white/80 flex items-center gap-0.5">
-//             <Eye size={8} /> {photo.viewCount.toLocaleString()}
-//           </span>
-//         )}
-//         <span className="text-[9px] text-white/60 ml-auto">
-//           {timeAgo(photo.createTime)}
-//         </span>
-//       </div>
-
-//       {/* Video badge */}
-//       {photo.mediaFormat === "VIDEO" && (
-//         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-//           <div
-//             className="w-10 h-10 rounded-full flex items-center justify-center"
-//             style={{ background: "rgba(0,0,0,0.55)" }}
+//           <h3
+//             className={`text-[17px] font-black text-center mb-1 ${dark ? "text-white" : "text-slate-900"}`}
+//             style={{ letterSpacing: "-0.03em" }}
 //           >
-//             <Video size={16} className="text-white ml-0.5" />
+//             Delete Photo?
+//           </h3>
+//           <p
+//             className={`text-[12px] text-center mb-4 ${dark ? "text-slate-400" : "text-slate-500"}`}
+//           >
+//             This will permanently remove the photo from your Google Business
+//             Profile. This action cannot be undone.
+//           </p>
+
+//           {/* photo preview */}
+//           <div
+//             className={`flex items-center gap-3 p-3 rounded-2xl border mb-5
+//             ${dark ? "bg-white/[0.03] border-white/[0.06]" : "bg-slate-50 border-slate-100"}`}
+//           >
+//             <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-blue-900/20">
+//               {photo.thumbnailUrl && (
+//                 <img
+//                   src={photo.thumbnailUrl}
+//                   alt=""
+//                   className="w-full h-full object-cover"
+//                 />
+//               )}
+//             </div>
+//             <div className="min-w-0">
+//               {cat && (
+//                 <span
+//                   className="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full mb-1"
+//                   style={{
+//                     background: `${cat.color}15`,
+//                     color: cat.color,
+//                     border: `1px solid ${cat.color}30`,
+//                   }}
+//                 >
+//                   {cat.icon} {cat.label}
+//                 </span>
+//               )}
+//               <p
+//                 className={`text-[11px] font-medium truncate ${dark ? "text-slate-400" : "text-slate-600"}`}
+//               >
+//                 {photo.dimensions
+//                   ? `${photo.dimensions.widthPixels} × ${photo.dimensions.heightPixels}px`
+//                   : "Photo"}
+//               </p>
+//               <p
+//                 className={`text-[10px] ${dark ? "text-slate-600" : "text-slate-400"}`}
+//               >
+//                 {timeAgo(photo.createTime)} ·{" "}
+//                 {photo.viewCount?.toLocaleString()} views
+//               </p>
+//             </div>
 //           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
 
-// /* ═══════════════════════════════════════════════════════
-//    LIST ITEM
-// ═══════════════════════════════════════════════════════ */
-// function ListItem({
-//   photo,
-//   dark,
-//   onPreview,
-//   onDelete,
-// }: {
-//   photo: GBPMedia;
-//   dark: boolean;
-//   onPreview: () => void;
-//   onDelete: () => void;
-// }) {
-//   const cat = photo.locationAssociation?.category;
-//   const cfg = cat ? CAT_CFG[cat] : null;
-
-//   return (
-//     <div
-//       className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all cursor-pointer
-//         ${dark ? "bg-[#0a1020] border-blue-900/30 hover:border-blue-700/40" : "bg-white border-blue-100/80 hover:border-blue-200 shadow-sm"}`}
-//       onClick={onPreview}
-//     >
-//       {/* Thumbnail */}
-//       <div
-//         className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ${dark ? "bg-blue-900/20" : "bg-blue-50"}`}
-//       >
-//         {photo.thumbnailUrl ? (
-//           <img
-//             src={photo.thumbnailUrl}
-//             alt=""
-//             className="w-full h-full object-cover"
-//           />
-//         ) : (
-//           <div className="w-full h-full flex items-center justify-center">
-//             <ImgIcon size={18} className="text-blue-400/40" />
+//           {/* warning */}
+//           <div
+//             className={`flex items-start gap-2 p-3 rounded-xl border mb-5
+//             ${dark ? "bg-red-500/[0.06] border-red-500/20" : "bg-red-50 border-red-200/60"}`}
+//           >
+//             <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
+//             <p className="text-[11px] text-red-400 leading-relaxed">
+//               Google may take up to 24 hours to reflect this change across all
+//               surfaces.
+//             </p>
 //           </div>
-//         )}
-//       </div>
 
-//       {/* Info */}
-//       <div className="flex-1 min-w-0">
-//         <div className="flex items-center gap-2 mb-0.5">
-//           {cfg && (
-//             <span
-//               className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md"
-//               style={{ background: `${cfg.color}15`, color: cfg.color }}
+//           {/* actions */}
+//           <div className="flex gap-2.5">
+//             <button
+//               onClick={onCancel}
+//               disabled={loading}
+//               className={`flex-1 py-3 rounded-2xl text-[13px] font-bold transition-all active:scale-[0.97] border
+//                 ${dark ? "bg-white/[0.04] border-white/[0.08] text-slate-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
 //             >
-//               {cfg.icon} {cfg.label}
-//             </span>
-//           )}
-//           {photo.mediaFormat === "VIDEO" && (
-//             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-400">
-//               VIDEO
-//             </span>
-//           )}
-//         </div>
-//         <p
-//           className={`text-[11px] font-medium truncate ${dark ? "text-slate-300" : "text-slate-700"}`}
-//         >
-//           {photo.dimensions
-//             ? `${photo.dimensions.widthPixels} × ${photo.dimensions.heightPixels}px`
-//             : photo.mediaFormat}
-//         </p>
-//         <div
-//           className={`flex items-center gap-2.5 mt-0.5 text-[10px] ${dark ? "text-slate-600" : "text-slate-400"}`}
-//         >
-//           <span>{timeAgo(photo.createTime)}</span>
-//           {photo.viewCount != null && (
-//             <span className="flex items-center gap-0.5">
-//               <Eye size={8} /> {photo.viewCount.toLocaleString()}
-//             </span>
-//           )}
+//               Cancel
+//             </button>
+//             <button
+//               onClick={onConfirm}
+//               disabled={loading}
+//               className="flex-1 py-3 rounded-2xl text-[13px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+//               style={{
+//                 background: "linear-gradient(135deg,#dc2626,#ef4444)",
+//                 boxShadow: "0 6px 20px rgba(239,68,68,0.35)",
+//               }}
+//             >
+//               {loading ? (
+//                 <>
+//                   <Loader2
+//                     size={13}
+//                     style={{ animation: "spin .6s linear infinite" }}
+//                   />{" "}
+//                   Deleting…
+//                 </>
+//               ) : (
+//                 <>
+//                   <Trash2 size={13} /> Delete
+//                 </>
+//               )}
+//             </button>
+//           </div>
 //         </div>
 //       </div>
-
-//       {/* Actions */}
-//       <div className="flex items-center gap-1.5 shrink-0">
-//         <button
-//           onClick={(e) => {
-//             e.stopPropagation();
-//             onPreview();
-//           }}
-//           className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90
-//             ${dark ? "bg-white/[0.04] hover:bg-blue-500/15" : "bg-slate-50 hover:bg-blue-50"}`}
-//         >
-//           <ZoomIn size={13} className="text-blue-400" />
-//         </button>
-//         <button
-//           onClick={(e) => {
-//             e.stopPropagation();
-//             onDelete();
-//           }}
-//           className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90
-//             ${dark ? "bg-white/[0.04] hover:bg-red-500/15" : "bg-slate-50 hover:bg-red-50"}`}
-//         >
-//           <Trash2 size={13} className="text-red-400" />
-//         </button>
-//       </div>
+//       <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
 //     </div>
 //   );
 // }
 
-// /* ═══════════════════════════════════════════════════════
-//    LIGHTBOX
-// ═══════════════════════════════════════════════════════ */
+// /* ════════════════════════════════════════════════════════
+//    LIGHTBOX / PREVIEW
+// ════════════════════════════════════════════════════════ */
 // function Lightbox({
 //   photos,
 //   index,
+//   dark,
 //   onClose,
 //   onDelete,
 // }: {
 //   photos: GBPMedia[];
 //   index: number;
+//   dark: boolean;
 //   onClose: () => void;
 //   onDelete: (p: GBPMedia) => void;
 // }) {
 //   const [cur, setCur] = useState(index);
 //   const photo = photos[cur];
-//   const cat = photo?.locationAssociation?.category;
-//   const cfg = cat ? CAT_CFG[cat] : null;
+//   const cat = photo?.locationAssociation?.category
+//     ? CAT_CFG[photo.locationAssociation.category]
+//     : null;
 
 //   useEffect(() => {
-//     const onKey = (e: KeyboardEvent) => {
+//     function onKey(e: KeyboardEvent) {
 //       if (e.key === "Escape") onClose();
 //       if (e.key === "ArrowRight")
 //         setCur((c) => Math.min(c + 1, photos.length - 1));
 //       if (e.key === "ArrowLeft") setCur((c) => Math.max(c - 1, 0));
-//     };
+//     }
 //     window.addEventListener("keydown", onKey);
 //     return () => window.removeEventListener("keydown", onKey);
 //   }, [photos.length, onClose]);
 
 //   if (!photo) return null;
 
-//   const thumbStart = Math.max(0, cur - 2);
-//   const thumbEnd = Math.min(photos.length, cur + 3);
-
 //   return (
 //     <div
 //       className="fixed inset-0 z-[500] flex flex-col"
-//       style={{ background: "rgba(3,7,18,0.96)", backdropFilter: "blur(20px)" }}
+//       style={{ background: "rgba(3,7,18,0.95)", backdropFilter: "blur(20px)" }}
 //     >
-//       {/* Top bar */}
-//       <div className="flex items-center justify-between px-5 py-3 shrink-0">
+//       {/* top bar */}
+//       <div className="flex items-center justify-between px-4 py-3 shrink-0">
 //         <div className="flex items-center gap-2.5">
-//           {cfg && (
+//           {cat && (
 //             <span
 //               className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
 //               style={{
-//                 background: `${cfg.color}20`,
-//                 color: cfg.color,
-//                 border: `1px solid ${cfg.color}30`,
+//                 background: `${cat.color}20`,
+//                 color: cat.color,
+//                 border: `1px solid ${cat.color}30`,
 //               }}
 //             >
-//               {cfg.icon} {cfg.label}
+//               {cat.icon} {cat.label}
 //             </span>
 //           )}
 //           <span className="text-[11px] font-medium text-slate-500">
@@ -576,7 +1839,7 @@
 //             <a
 //               href={photo.googleUrl}
 //               target="_blank"
-//               rel="noopener noreferrer"
+//               rel="noopener"
 //               className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
 //               style={{
 //                 background: "rgba(59,130,246,0.12)",
@@ -609,12 +1872,13 @@
 //         </div>
 //       </div>
 
-//       {/* Image area */}
-//       <div className="flex-1 flex items-center justify-center relative px-14 min-h-0">
+//       {/* image area */}
+//       <div className="flex-1 flex items-center justify-center relative px-12 min-h-0">
+//         {/* prev */}
 //         {cur > 0 && (
 //           <button
 //             onClick={() => setCur((c) => c - 1)}
-//             className="absolute left-3 w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-10"
+//             className="absolute left-2 w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-10"
 //             style={{
 //               background: "rgba(255,255,255,0.08)",
 //               border: "1px solid rgba(255,255,255,0.12)",
@@ -624,17 +1888,20 @@
 //           </button>
 //         )}
 
-//         <img
-//           src={photo.googleUrl || photo.thumbnailUrl}
-//           alt=""
-//           className="max-w-full max-h-full object-contain rounded-2xl"
-//           style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.6)" }}
-//         />
+//         <div className="w-full h-full flex items-center justify-center">
+//           <img
+//             src={photo.googleUrl || photo.thumbnailUrl}
+//             alt=""
+//             className="max-w-full max-h-full object-contain rounded-2xl"
+//             style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.6)" }}
+//           />
+//         </div>
 
+//         {/* next */}
 //         {cur < photos.length - 1 && (
 //           <button
 //             onClick={() => setCur((c) => c + 1)}
-//             className="absolute right-3 w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-10"
+//             className="absolute right-2 w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-10"
 //             style={{
 //               background: "rgba(255,255,255,0.08)",
 //               border: "1px solid rgba(255,255,255,0.12)",
@@ -645,8 +1912,8 @@
 //         )}
 //       </div>
 
-//       {/* Bottom info */}
-//       <div className="shrink-0 px-5 py-4 flex items-center justify-between gap-3">
+//       {/* bottom info */}
+//       <div className="shrink-0 px-4 py-4 flex items-center justify-between gap-3">
 //         <div className="min-w-0">
 //           {photo.description && (
 //             <p className="text-[12px] text-slate-300 truncate mb-0.5">
@@ -670,10 +1937,10 @@
 //           </div>
 //         </div>
 
-//         {/* Thumbnail strip */}
+//         {/* thumbnail strip */}
 //         <div className="flex gap-1.5 shrink-0">
-//           {photos.slice(thumbStart, thumbEnd).map((p, i) => {
-//             const realIdx = thumbStart + i;
+//           {photos.slice(Math.max(0, cur - 2), cur + 3).map((p, i) => {
+//             const realIdx = Math.max(0, cur - 2) + i;
 //             return (
 //               <button
 //                 key={p.id}
@@ -698,223 +1965,647 @@
 //   );
 // }
 
-// /* ═══════════════════════════════════════════════════════
-//    DELETE MODAL
-// ═══════════════════════════════════════════════════════ */
-// function DeleteModal({
+// /* ════════════════════════════════════════════════════════
+//    PHOTO CARD
+// ════════════════════════════════════════════════════════ */
+// function PhotoCard({
 //   photo,
 //   dark,
-//   loading,
-//   onConfirm,
-//   onCancel,
+//   onPreview,
+//   onDelete,
+//   view,
 // }: {
 //   photo: GBPMedia;
 //   dark: boolean;
-//   loading: boolean;
-//   onConfirm: () => void;
-//   onCancel: () => void;
+//   onPreview: () => void;
+//   onDelete: () => void;
+//   view: "grid" | "list";
 // }) {
-//   const cat = photo.locationAssociation?.category;
-//   const cfg = cat ? CAT_CFG[cat] : null;
+//   const [hover, setHover] = useState(false);
+//   const cat = photo.locationAssociation?.category
+//     ? CAT_CFG[photo.locationAssociation.category]
+//     : null;
+
+//   if (view === "list") {
+//     return (
+//       <div
+//         className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all
+//         ${
+//           dark
+//             ? "bg-[#0a1020] border-blue-900/30 hover:border-blue-700/40"
+//             : "bg-white border-blue-100/80 hover:border-blue-200"
+//         }`}
+//         style={{ boxShadow: dark ? "none" : "0 2px 8px rgba(59,130,246,0.04)" }}
+//       >
+//         {/* thumb */}
+//         <div
+//           className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-blue-900/20 cursor-pointer"
+//           onClick={onPreview}
+//         >
+//           {photo.thumbnailUrl ? (
+//             <img
+//               src={photo.thumbnailUrl}
+//               alt=""
+//               className="w-full h-full object-cover"
+//             />
+//           ) : (
+//             <div className="w-full h-full flex items-center justify-center">
+//               <ImgIcon size={18} className="text-blue-400/40" />
+//             </div>
+//           )}
+//         </div>
+
+//         <div className="flex-1 min-w-0">
+//           <div className="flex items-center gap-2 mb-0.5">
+//             {cat && (
+//               <span
+//                 className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+//                 style={{ background: `${cat.color}15`, color: cat.color }}
+//               >
+//                 {cat.icon} {cat.label}
+//               </span>
+//             )}
+//             {photo.mediaFormat === "VIDEO" && (
+//               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-400">
+//                 VIDEO
+//               </span>
+//             )}
+//           </div>
+//           <p
+//             className={`text-[11px] font-medium truncate ${dark ? "text-slate-300" : "text-slate-700"}`}
+//           >
+//             {photo.dimensions
+//               ? `${photo.dimensions.widthPixels} × ${photo.dimensions.heightPixels}px`
+//               : photo.mediaFormat}
+//           </p>
+//           <div className="flex items-center gap-2.5 mt-0.5">
+//             <span
+//               className={`text-[10px] ${dark ? "text-slate-600" : "text-slate-400"}`}
+//             >
+//               {timeAgo(photo.createTime)}
+//             </span>
+//             {photo.viewCount != null && (
+//               <span
+//                 className={`text-[10px] flex items-center gap-0.5 ${dark ? "text-slate-600" : "text-slate-400"}`}
+//               >
+//                 <Eye size={8} /> {photo.viewCount.toLocaleString()}
+//               </span>
+//             )}
+//           </div>
+//         </div>
+
+//         <div className="flex items-center gap-1.5 shrink-0">
+//           <button
+//             onClick={onPreview}
+//             className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90
+//               ${dark ? "bg-white/[0.04] hover:bg-blue-500/15" : "bg-slate-50 hover:bg-blue-50"}`}
+//           >
+//             <ZoomIn size={13} className="text-blue-400" />
+//           </button>
+//           <button
+//             onClick={onDelete}
+//             className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90
+//               ${dark ? "bg-white/[0.04] hover:bg-red-500/15" : "bg-slate-50 hover:bg-red-50"}`}
+//           >
+//             <Trash2 size={13} className="text-red-400" />
+//           </button>
+//         </div>
+//       </div>
+//     );
+//   }
 
 //   return (
 //     <div
-//       className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-//       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
-//       onClick={(e) => {
-//         if (e.target === e.currentTarget) onCancel();
+//       className={`relative rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer group
+//       ${dark ? "border-blue-900/30" : "border-blue-100/60"}`}
+//       style={{
+//         aspectRatio: "1",
+//         boxShadow: hover
+//           ? dark
+//             ? "0 8px 32px rgba(37,99,235,0.25)"
+//             : "0 8px 24px rgba(37,99,235,0.15)"
+//           : "none",
 //       }}
+//       onMouseEnter={() => setHover(true)}
+//       onMouseLeave={() => setHover(false)}
+//       onClick={onPreview}
 //     >
-//       <div
-//         className={`w-full max-w-sm rounded-3xl border overflow-hidden
-//           ${dark ? "bg-[#0a1020] border-blue-900/50" : "bg-white border-blue-100"}`}
-//         style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}
-//       >
-//         <div
-//           className="h-1 w-full"
-//           style={{ background: "linear-gradient(90deg,#ef4444,#f87171)" }}
-//         />
+//       {/* image */}
+//       <div className="w-full h-full bg-blue-900/10">
+//         {photo.thumbnailUrl ? (
+//           <img
+//             src={photo.thumbnailUrl}
+//             alt=""
+//             className="w-full h-full object-cover transition-transform duration-500"
+//             style={{ transform: hover ? "scale(1.06)" : "scale(1)" }}
+//           />
+//         ) : (
+//           <div className="w-full h-full flex items-center justify-center">
+//             <ImgIcon size={28} className="text-blue-400/30" />
+//           </div>
+//         )}
+//       </div>
 
-//         <div className="p-6">
-//           <div
-//             className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+//       {/* hover overlay */}
+//       <div
+//         className="absolute inset-0 transition-opacity duration-200"
+//         style={{
+//           opacity: hover ? 1 : 0,
+//           background:
+//             "linear-gradient(to top, rgba(3,7,18,0.85) 0%, rgba(3,7,18,0.2) 50%, transparent 100%)",
+//         }}
+//       />
+
+//       {/* top: category badge */}
+//       {cat && (
+//         <div className="absolute top-2 left-2">
+//           <span
+//             className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full"
 //             style={{
-//               background: "rgba(239,68,68,0.1)",
-//               border: "1px solid rgba(239,68,68,0.2)",
+//               background: `${cat.color}90`,
+//               color: "#fff",
+//               backdropFilter: "blur(8px)",
+//               border: `1px solid ${cat.color}50`,
 //             }}
 //           >
-//             <Trash2 size={22} className="text-red-400" />
-//           </div>
+//             {cat.icon} {cat.label}
+//           </span>
+//         </div>
+//       )}
 
-//           <h3
-//             className={`text-[17px] font-black text-center mb-1 ${dark ? "text-white" : "text-slate-900"}`}
-//             style={{ letterSpacing: "-0.03em" }}
-//           >
-//             Delete Photo?
-//           </h3>
-//           <p
-//             className={`text-[12px] text-center mb-5 ${dark ? "text-slate-400" : "text-slate-500"}`}
-//           >
-//             This will permanently remove the photo from your Google Business
-//             Profile.
-//           </p>
+//       {/* top-right: delete */}
+//       <button
+//         onClick={(e) => {
+//           e.stopPropagation();
+//           onDelete();
+//         }}
+//         className="absolute top-2 right-2 w-7 h-7 rounded-xl flex items-center justify-center transition-all active:scale-90"
+//         style={{
+//           opacity: hover ? 1 : 0,
+//           background: "rgba(239,68,68,0.75)",
+//           backdropFilter: "blur(8px)",
+//           border: "1px solid rgba(239,68,68,0.4)",
+//         }}
+//       >
+//         <Trash2 size={11} className="text-white" />
+//       </button>
 
-//           {/* Photo preview */}
-//           <div
-//             className={`flex items-center gap-3 p-3 rounded-2xl border mb-4
-//               ${dark ? "bg-white/[0.03] border-white/[0.06]" : "bg-slate-50 border-slate-100"}`}
-//           >
-//             <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-blue-900/20">
-//               {photo.thumbnailUrl && (
-//                 <img
-//                   src={photo.thumbnailUrl}
-//                   alt=""
-//                   className="w-full h-full object-cover"
-//                 />
-//               )}
-//             </div>
-//             <div className="min-w-0">
-//               {cfg && (
-//                 <span
-//                   className="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full mb-1"
-//                   style={{
-//                     background: `${cfg.color}15`,
-//                     color: cfg.color,
-//                     border: `1px solid ${cfg.color}30`,
-//                   }}
-//                 >
-//                   {cfg.icon} {cfg.label}
-//                 </span>
-//               )}
-//               <p
-//                 className={`text-[11px] font-medium truncate ${dark ? "text-slate-400" : "text-slate-600"}`}
-//               >
-//                 {photo.dimensions
-//                   ? `${photo.dimensions.widthPixels} × ${photo.dimensions.heightPixels}px`
-//                   : "Photo"}
-//               </p>
-//               <p
-//                 className={`text-[10px] ${dark ? "text-slate-600" : "text-slate-400"}`}
-//               >
-//                 {photo.viewCount?.toLocaleString() ?? 0} views
-//               </p>
-//             </div>
+//       {/* bottom info */}
+//       <div
+//         className="absolute bottom-0 left-0 right-0 px-2.5 pb-2.5 pt-6 transition-opacity duration-200"
+//         style={{ opacity: hover ? 1 : 0 }}
+//       >
+//         <div className="flex items-center justify-between">
+//           <div className="flex items-center gap-1.5">
+//             {photo.viewCount != null && (
+//               <span className="text-[9.5px] font-medium text-white/80 flex items-center gap-0.5">
+//                 <Eye size={8} /> {photo.viewCount.toLocaleString()}
+//               </span>
+//             )}
 //           </div>
-
-//           {/* Warning */}
-//           <div
-//             className={`flex items-start gap-2 p-3 rounded-xl border mb-5
-//               ${dark ? "bg-red-500/[0.06] border-red-500/20" : "bg-red-50 border-red-200/60"}`}
-//           >
-//             <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
-//             <p className="text-[11px] text-red-400 leading-relaxed">
-//               Google may take up to 24 hours to reflect this change across all
-//               surfaces.
-//             </p>
-//           </div>
-
-//           {/* Actions */}
-//           <div className="flex gap-2.5">
-//             <button
-//               onClick={onCancel}
-//               disabled={loading}
-//               className={`flex-1 py-3 rounded-2xl text-[13px] font-bold transition-all active:scale-[0.97] border
-//                 ${dark ? "bg-white/[0.04] border-white/[0.08] text-slate-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-//             >
-//               Cancel
-//             </button>
-//             <button
-//               onClick={onConfirm}
-//               disabled={loading}
-//               className="flex-1 py-3 rounded-2xl text-[13px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
-//               style={{
-//                 background: "linear-gradient(135deg,#dc2626,#ef4444)",
-//                 boxShadow: "0 6px 20px rgba(239,68,68,0.35)",
-//               }}
-//             >
-//               {loading ? (
-//                 <>
-//                   <Loader2 size={13} className="animate-spin" /> Deleting…
-//                 </>
-//               ) : (
-//                 <>
-//                   <Trash2 size={13} /> Delete
-//                 </>
-//               )}
-//             </button>
-//           </div>
+//           <span className="text-[9px] text-white/60">
+//             {timeAgo(photo.createTime)}
+//           </span>
 //         </div>
 //       </div>
+
+//       {/* video badge */}
+//       {photo.mediaFormat === "VIDEO" && (
+//         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+//           <div
+//             className="w-10 h-10 rounded-full flex items-center justify-center"
+//             style={{
+//               background: "rgba(0,0,0,0.55)",
+//               backdropFilter: "blur(4px)",
+//             }}
+//           >
+//             <Video size={16} className="text-white ml-0.5" />
+//           </div>
+//         </div>
+//       )}
 //     </div>
 //   );
 // }
 
-// /* ═══════════════════════════════════════════════════════
-//    COVERAGE GUIDE
-// ═══════════════════════════════════════════════════════ */
-// function CoverageGuide({ items, dark }: { items: GBPMedia[]; dark: boolean }) {
+// /* ════════════════════════════════════════════════════════
+//    STATS STRIP
+// ════════════════════════════════════════════════════════ */
+// function StatsStrip({ items, dark }: { items: GBPMedia[]; dark: boolean }) {
+//   const totalViews = items.reduce((a, i) => a + (i.viewCount ?? 0), 0);
+//   const totalPhotos = items.filter((i) => i.mediaFormat === "PHOTO").length;
+//   const totalVideos = items.filter((i) => i.mediaFormat === "VIDEO").length;
+//   const categories = new Set(items.map((i) => i.locationAssociation?.category))
+//     .size;
+//   const hasCover = items.some(
+//     (i) => i.locationAssociation?.category === "COVER",
+//   );
+//   const hasLogo = items.some((i) => i.locationAssociation?.category === "LOGO");
+
+//   const stats = [
+//     {
+//       label: "Photos",
+//       value: totalPhotos,
+//       icon: <Camera size={12} />,
+//       color: "#3b82f6",
+//     },
+//     {
+//       label: "Videos",
+//       value: totalVideos,
+//       icon: <Video size={12} />,
+//       color: "#8b5cf6",
+//     },
+//     {
+//       label: "Total Views",
+//       value: totalViews.toLocaleString(),
+//       icon: <Eye size={12} />,
+//       color: "#06b6d4",
+//     },
+//     {
+//       label: "Categories",
+//       value: categories,
+//       icon: <LayoutGrid size={12} />,
+//       color: "#10b981",
+//     },
+//   ];
+
 //   return (
-//     <div className="mt-8 mb-6">
-//       <p
-//         className={`text-[10px] font-black uppercase tracking-widest mb-3 ${dark ? "text-slate-600" : "text-slate-400"}`}
+//     <div className="grid grid-cols-4 gap-2 mb-4">
+//       {stats.map((s, i) => (
+//         <div
+//           key={i}
+//           className={`rounded-2xl px-3 py-2.5 border text-center
+//           ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100/80 shadow-sm"}`}
+//         >
+//           <div
+//             className="flex items-center justify-center mb-1"
+//             style={{ color: s.color }}
+//           >
+//             {s.icon}
+//           </div>
+//           <p
+//             className="text-[13px] font-black leading-none"
+//             style={{
+//               color: s.color,
+//               fontFamily: "-apple-system,'SF Pro Display',sans-serif",
+//             }}
+//           >
+//             {s.value}
+//           </p>
+//           <p
+//             className={`text-[8.5px] font-semibold mt-0.5 ${dark ? "text-slate-600" : "text-slate-400"}`}
+//           >
+//             {s.label}
+//           </p>
+//         </div>
+//       ))}
+//     </div>
+//   );
+// }
+
+// /* ════════════════════════════════════════════════════════
+//    SKELETON
+// ════════════════════════════════════════════════════════ */
+// function GridSkeleton({ dark }: { dark: boolean }) {
+//   return (
+//     <div className="grid grid-cols-3 gap-2">
+//       {Array.from({ length: 9 }).map((_, i) => (
+//         <div
+//           key={i}
+//           className={`rounded-2xl animate-pulse ${dark ? "bg-white/[0.05]" : "bg-blue-100/50"}`}
+//           style={{ aspectRatio: "1" }}
+//         />
+//       ))}
+//     </div>
+//   );
+// }
+
+// /* ════════════════════════════════════════════════════════
+//    EMPTY STATE
+// ════════════════════════════════════════════════════════ */
+// function EmptyState({ dark, onAdd }: { dark: boolean; onAdd: () => void }) {
+//   return (
+//     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+//       <div
+//         className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-5
+//         ${dark ? "bg-blue-500/10" : "bg-blue-50"}`}
+//         style={{ border: "1px solid rgba(59,130,246,0.2)" }}
 //       >
-//         Coverage Guide
+//         <Camera size={32} className="text-blue-400" />
+//       </div>
+//       <h3
+//         className={`text-[17px] font-black mb-2 ${dark ? "text-white" : "text-slate-900"}`}
+//         style={{ letterSpacing: "-0.03em" }}
+//       >
+//         No Photos Yet
+//       </h3>
+//       <p
+//         className={`text-[12px] mb-6 max-w-[220px] leading-relaxed ${dark ? "text-slate-500" : "text-slate-400"}`}
+//       >
+//         Add photos to your Google Business Profile to attract more customers.
 //       </p>
-//       <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
-//         {(Object.entries(COVERAGE_TARGETS) as [MediaCategory, number][]).map(
-//           ([cat, target]) => {
-//             const cfg = CAT_CFG[cat];
-//             const count = items.filter(
-//               (i) => i.locationAssociation?.category === cat,
-//             ).length;
-//             const pct = Math.min(100, Math.round((count / target) * 100));
-//             return (
-//               <div
-//                 key={cat}
-//                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border
-//                 ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100/80 shadow-sm"}`}
-//               >
-//                 <div
-//                   className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-//                   style={{ background: `${cfg.color}15`, color: cfg.color }}
-//                 >
-//                   {cfg.icon}
-//                 </div>
-//                 <div className="flex-1 min-w-0">
-//                   <div className="flex justify-between mb-1">
-//                     <span
-//                       className={`text-[10px] font-bold ${dark ? "text-slate-300" : "text-slate-700"}`}
-//                     >
-//                       {cfg.label}
-//                     </span>
-//                     <span
-//                       className="text-[9.5px] font-bold"
-//                       style={{ color: cfg.color }}
-//                     >
-//                       {count}/{target}
-//                     </span>
-//                   </div>
-//                   <div
-//                     className={`h-1 rounded-full overflow-hidden ${dark ? "bg-white/[0.05]" : "bg-blue-50"}`}
-//                   >
-//                     <div
-//                       className="h-full rounded-full transition-all duration-700"
-//                       style={{ width: `${pct}%`, background: cfg.color }}
-//                     />
-//                   </div>
-//                 </div>
-//               </div>
-//             );
-//           },
+//       <button
+//         onClick={onAdd}
+//         className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-black text-white"
+//         style={{
+//           background: "linear-gradient(135deg,#1e40af,#3b82f6)",
+//           boxShadow: "0 8px 24px rgba(59,130,246,0.35)",
+//         }}
+//       >
+//         <Plus size={15} /> Add First Photo
+//       </button>
+//     </div>
+//   );
+// }
+
+// /* ════════════════════════════════════════════════════════
+//    AI INSIGHT BANNER
+// ════════════════════════════════════════════════════════ */
+// function AIBanner({ items, dark }: { items: GBPMedia[]; dark: boolean }) {
+//   const hasCover = items.some(
+//     (i) => i.locationAssociation?.category === "COVER",
+//   );
+//   const interiors = items.filter(
+//     (i) => i.locationAssociation?.category === "INTERIOR",
+//   ).length;
+//   const products = items.filter(
+//     (i) => i.locationAssociation?.category === "PRODUCT",
+//   ).length;
+
+//   const tips = [
+//     !hasCover && {
+//       msg: "No cover photo detected — this is the most-viewed element of your profile. Add one to increase clicks by 42%.",
+//       icon: <Star size={11} />,
+//     },
+//     interiors < 3 && {
+//       msg: `You have ${interiors} interior photo${interiors === 1 ? "" : "s"}. Businesses with 5+ interiors see 29% more walk-ins.`,
+//       icon: <ImgIcon size={11} />,
+//     },
+//     products < 5 && {
+//       msg: `Only ${products} product photo${products === 1 ? "" : "s"} — add at least 10 to unlock 94% more profile views.`,
+//       icon: <Package size={11} />,
+//     },
+//   ].filter(Boolean) as { msg: string; icon: React.ReactNode }[];
+
+//   if (!tips.length) return null;
+
+//   return (
+//     <div
+//       className={`rounded-2xl border px-4 py-3 mb-4 flex items-start gap-3
+//       ${dark ? "bg-[#080f1e] border-blue-900/40" : "bg-blue-50/80 border-blue-200/60"}`}
+//     >
+//       <div
+//         className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5
+//         ${dark ? "bg-blue-500/15" : "bg-blue-100"}`}
+//       >
+//         <Brain size={13} style={{ color: "#60a5fa" }} />
+//       </div>
+//       <div className="flex-1 min-w-0">
+//         <div className="flex items-center gap-1.5 mb-1">
+//           <Sparkles size={9} className="text-blue-400" />
+//           <span
+//             className={`text-[9.5px] font-black uppercase tracking-widest ${dark ? "text-blue-400" : "text-blue-600"}`}
+//           >
+//             AI Insight
+//           </span>
+//         </div>
+//         <p
+//           className={`text-[11.5px] leading-relaxed ${dark ? "text-blue-200/70" : "text-blue-800"}`}
+//         >
+//           {tips[0].msg}
+//         </p>
+//         {tips.length > 1 && (
+//           <p
+//             className={`text-[10px] mt-1 ${dark ? "text-blue-400/50" : "text-blue-500/70"}`}
+//           >
+//             +{tips.length - 1} more insight{tips.length > 2 ? "s" : ""}
+//           </p>
 //         )}
 //       </div>
 //     </div>
 //   );
 // }
 
-// /* ═══════════════════════════════════════════════════════
+// /* ════════════════════════════════════════════════════════
+//    AI ADD PHOTO BUTTON (full-width, animated)
+// ════════════════════════════════════════════════════════ */
+// function AIAddPhotoButton({
+//   dark,
+//   onClick,
+// }: {
+//   dark: boolean;
+//   onClick: () => void;
+// }) {
+//   const [pressed, setPressed] = useState(false);
+//   const [tick, setTick] = useState(0);
+//   const [sparkle, setSparkle] = useState(false);
+
+//   useEffect(() => {
+//     const id = setInterval(() => setTick((t) => (t + 1) % 100), 40);
+//     return () => clearInterval(id);
+//   }, []);
+
+//   useEffect(() => {
+//     const id = setInterval(() => {
+//       setSparkle(true);
+//       setTimeout(() => setSparkle(false), 500);
+//     }, 3200);
+//     return () => clearInterval(id);
+//   }, []);
+
+//   const dots = [
+//     { left: "8%", top: "30%", delay: "0s", r: 2 },
+//     { left: "18%", top: "65%", delay: "0.7s", r: 1.5 },
+//     { left: "75%", top: "25%", delay: "0.35s", r: 2 },
+//     { left: "88%", top: "60%", delay: "1.1s", r: 1.5 },
+//     { left: "50%", top: "20%", delay: "0.55s", r: 1.5 },
+//     { left: "62%", top: "75%", delay: "0.9s", r: 2 },
+//   ];
+
+//   return (
+//     <button
+//       onClick={onClick}
+//       onPointerDown={() => setPressed(true)}
+//       onPointerUp={() => setPressed(false)}
+//       onPointerLeave={() => setPressed(false)}
+//       className="w-full mb-4 relative overflow-hidden"
+//       style={{
+//         height: 56,
+//         borderRadius: 18,
+//         border: "1px solid rgba(96,165,250,0.25)",
+//         background:
+//           "linear-gradient(118deg,#0d1f45 0%,#1a3a8f 45%,#2563eb 100%)",
+//         transform: pressed ? "scale(0.978)" : "scale(1)",
+//         transition:
+//           "transform 0.13s cubic-bezier(0.4,0,0.2,1), box-shadow 0.13s",
+//         boxShadow: pressed
+//           ? "0 2px 8px rgba(37,99,235,0.2)"
+//           : "0 6px 24px rgba(37,99,235,0.4), inset 0 1px 0 rgba(255,255,255,0.07)",
+//         WebkitTapHighlightColor: "transparent",
+//         cursor: "pointer",
+//         display: "flex",
+//         alignItems: "center",
+//         justifyContent: "center",
+//         gap: 10,
+//         color: "#fff",
+//         fontFamily: "-apple-system,'SF Pro Display',sans-serif",
+//         fontSize: 14,
+//         fontWeight: 800,
+//         letterSpacing: "-0.02em",
+//       }}
+//     >
+//       {/* shimmer */}
+//       <span
+//         style={{
+//           position: "absolute",
+//           inset: 0,
+//           pointerEvents: "none",
+//           background: `linear-gradient(108deg,
+//           transparent ${tick - 5}%,
+//           rgba(147,197,253,0.1) ${tick + 5}%,
+//           rgba(219,234,254,0.07) ${tick + 12}%,
+//           transparent ${tick + 22}%)`,
+//         }}
+//       />
+
+//       {/* dot grid */}
+//       <span
+//         style={{
+//           position: "absolute",
+//           inset: 0,
+//           pointerEvents: "none",
+//           opacity: 0.04,
+//           backgroundImage:
+//             "repeating-linear-gradient(0deg,#93c5fd 0,#93c5fd 1px,transparent 1px,transparent 24px)," +
+//             "repeating-linear-gradient(90deg,#93c5fd 0,#93c5fd 1px,transparent 1px,transparent 24px)",
+//         }}
+//       />
+
+//       {/* top highlight */}
+//       <span
+//         style={{
+//           position: "absolute",
+//           top: 0,
+//           left: "8%",
+//           right: "8%",
+//           height: 1,
+//           pointerEvents: "none",
+//           background:
+//             "linear-gradient(90deg,transparent,rgba(147,197,253,0.5),transparent)",
+//         }}
+//       />
+
+//       {/* bottom accent */}
+//       <span
+//         style={{
+//           position: "absolute",
+//           bottom: 0,
+//           left: "20%",
+//           right: "20%",
+//           height: 1,
+//           pointerEvents: "none",
+//           background:
+//             "linear-gradient(90deg,transparent,rgba(96,165,250,0.4),transparent)",
+//         }}
+//       />
+
+//       {/* left bloom */}
+//       <span
+//         style={{
+//           position: "absolute",
+//           left: -20,
+//           top: "50%",
+//           transform: "translateY(-50%)",
+//           width: 80,
+//           height: 80,
+//           borderRadius: "50%",
+//           background:
+//             "radial-gradient(circle,rgba(59,130,246,0.2) 0%,transparent 70%)",
+//           pointerEvents: "none",
+//         }}
+//       />
+
+//       {/* floating dots */}
+//       {dots.map((d, i) => (
+//         <span
+//           key={i}
+//           style={{
+//             position: "absolute",
+//             left: d.left,
+//             top: d.top,
+//             width: d.r,
+//             height: d.r,
+//             borderRadius: "50%",
+//             background: "rgba(147,197,253,0.6)",
+//             pointerEvents: "none",
+//             animation: `aibtn-dot ${2.2 + i * 0.18}s ease-in-out ${d.delay} infinite`,
+//           }}
+//         />
+//       ))}
+
+//       {/* Brain + sparkle */}
+//       <span
+//         style={{
+//           position: "relative",
+//           display: "flex",
+//           alignItems: "center",
+//           justifyContent: "center",
+//           flexShrink: 0,
+//         }}
+//       >
+//         <Brain size={17} style={{ color: "#93c5fd" }} />
+//         <Sparkles
+//           size={8}
+//           style={{
+//             position: "absolute",
+//             top: -5,
+//             right: -5,
+//             color: "#fbbf24",
+//             opacity: sparkle ? 1 : 0.45,
+//             transform: sparkle ? "scale(1.4) rotate(15deg)" : "scale(1)",
+//             transition: "opacity 0.2s, transform 0.2s",
+//           }}
+//         />
+//       </span>
+
+//       <span>Add Photos with AI</span>
+
+//       {/* AI pill */}
+//       <span
+//         style={{
+//           display: "flex",
+//           alignItems: "center",
+//           gap: 3,
+//           padding: "2px 8px",
+//           borderRadius: 999,
+//           background: "rgba(37,99,235,0.45)",
+//           border: "1px solid rgba(96,165,250,0.35)",
+//           fontSize: 10,
+//           fontWeight: 800,
+//           color: "#93c5fd",
+//           letterSpacing: "0.04em",
+//         }}
+//       >
+//         <Zap size={8} style={{ color: "#fbbf24" }} /> AI
+//       </span>
+
+//       <Plus
+//         size={13}
+//         style={{ color: "rgba(147,197,253,0.7)", flexShrink: 0 }}
+//       />
+
+//       <style>{`
+//         @keyframes aibtn-dot {
+//           0%,100% { opacity:.4; transform:scale(1); }
+//           50%      { opacity:1; transform:scale(2); }
+//         }
+//       `}</style>
+//     </button>
+//   );
+// }
+
+// /* ════════════════════════════════════════════════════════
 //    MAIN PAGE
-// ═══════════════════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════ */
 // export default function PhotosPage() {
 //   const { resolvedTheme } = useTheme();
 //   const [mounted, setMounted] = useState(false);
@@ -935,57 +2626,35 @@
 //   const { data: user } = useUser();
 //   const locationId = user?.googleLocationId ?? "";
 
-//   /* ── Query ── */
+//   /* ── data ── */
 //   const { data, isLoading, isError, refetch, isFetching } =
 //     useQuery<MediaResponse>({
-//       queryKey: ["gbp-media", locationId],
-//       queryFn: () => fetchMedia(locationId),
+//       queryKey: ["gbp-media"],
+//       queryFn: () => fetchMedia(),
 //       staleTime: 5 * 60 * 1000,
-//       enabled: !!locationId,
+//       // enabled: !!locationId,
 //     });
 
-//   /* ── Delete mutation with optimistic update ── */
 //   const deleteMut = useMutation({
 //     mutationFn: (name: string) => deleteMedia(name),
-//     onMutate: async (name) => {
-//       await queryClient.cancelQueries({ queryKey: ["gbp-media", locationId] });
-//       const prev = queryClient.getQueryData<MediaResponse>([
-//         "gbp-media",
-//         locationId,
-//       ]);
-//       queryClient.setQueryData<MediaResponse>(
-//         ["gbp-media", locationId],
-//         (old) => {
-//           if (!old) return old;
-//           const mediaItems = old.mediaItems.filter((m) => m.name !== name);
-//           return { ...old, mediaItems, totalMediaItemCount: mediaItems.length };
-//         },
-//       );
-//       return { prev };
-//     },
-//     onError: (_err, _name, ctx) => {
-//       if (ctx?.prev)
-//         queryClient.setQueryData(["gbp-media", locationId], ctx.prev);
-//     },
-//     onSettled: () => {
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: ["gbp-media"] });
 //       setToDelete(null);
 //     },
 //   });
 
 //   const items = data?.mediaItems ?? [];
 
-//   /* ── Derived ── */
-//   const cats = [
-//     ...new Set(
-//       items.map((i) => i.locationAssociation?.category).filter(Boolean),
-//     ),
-//   ] as MediaCategory[];
-
+//   /* ── filter ── */
+//   const cats = Array.from(
+//     new Set(items.map((i) => i.locationAssociation?.category).filter(Boolean)),
+//   ) as MediaCategory[];
 //   const filtered =
 //     filter === "ALL"
 //       ? items
 //       : items.filter((i) => i.locationAssociation?.category === filter);
 
+//   /* ── open lightbox only on filtered set ── */
 //   function openLightbox(index: number) {
 //     setLightbox({ photos: filtered, index });
 //   }
@@ -995,66 +2664,71 @@
 //       className={`min-h-screen transition-colors ${dark ? "bg-[#050d1a]" : "bg-[#eef4ff]"}`}
 //       style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}
 //     >
-//       {/* Dot grid background */}
+//       {/* dot grid bg */}
 //       <div
-//         className="fixed inset-0 pointer-events-none opacity-[0.018] z-0"
+//         className="fixed inset-0 pointer-events-none opacity-[0.015]"
 //         style={{
 //           backgroundImage:
-//             "radial-gradient(circle at 1px 1px, #3b82f6 1px, transparent 0)",
+//             "radial-gradient(circle at 1px 1px,#3b82f6 1px,transparent 0)",
 //           backgroundSize: "32px 32px",
 //         }}
 //       />
 
-//       <div className="relative z-10 max-w-6xl mx-auto px-5 pb-28 pt-6">
+//       <div className="relative max-w-lg mx-auto px-4 pb-28">
 //         {/* ── HEADER ── */}
-//         <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
-//           <div>
-//             <div className="flex items-center gap-2 mb-1">
-//               <div
-//                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9.5px] font-black uppercase tracking-widest
+//         <div className="pt-5 pb-4">
+//           <div className="flex items-start justify-between">
+//             <div>
+//               <div className="flex items-center gap-2 mb-1">
+//                 <div
+//                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9.5px] font-black uppercase tracking-widest
 //                   ${dark ? "bg-blue-500/10 border-blue-700/60 text-blue-400" : "bg-blue-50 border-blue-300 text-blue-600"}`}
-//               >
-//                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-//                 Google Business
+//                 >
+//                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+//                   Google Business
+//                 </div>
 //               </div>
+//               <h1
+//                 className={`text-[22px] font-black leading-tight ${dark ? "text-white" : "text-slate-900"}`}
+//                 style={{ letterSpacing: "-0.04em" }}
+//               >
+//                 Profile Photos
+//               </h1>
+//               <p
+//                 className={`text-[12px] mt-0.5 ${dark ? "text-slate-500" : "text-blue-500/80"}`}
+//               >
+//                 {isLoading
+//                   ? "Loading…"
+//                   : `${items.length} media · ${data?.totalMediaItemCount ?? 0} total`}
+//               </p>
 //             </div>
-//             <h1
-//               className={`text-[26px] font-black leading-tight ${dark ? "text-white" : "text-slate-900"}`}
-//               style={{ letterSpacing: "-0.04em" }}
-//             >
-//               Profile Photos
-//             </h1>
-//             <p
-//               className={`text-[12px] mt-0.5 ${dark ? "text-slate-500" : "text-blue-500/80"}`}
-//             >
-//               {isLoading
-//                 ? "Loading…"
-//                 : `${items.length} media · ${data?.totalMediaItemCount ?? 0} total`}
-//             </p>
-//           </div>
 
-//           <div className="flex items-center gap-2.5">
-//             <button
-//               onClick={() => refetch()}
-//               disabled={isFetching}
-//               className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90 border
-//                 ${dark ? "bg-white/[0.04] border-white/[0.06] text-slate-400" : "bg-white border-blue-100 text-slate-500"}`}
-//             >
-//               <RefreshCw
-//                 size={14}
-//                 className={isFetching ? "animate-spin" : ""}
-//               />
-//             </button>
-//             <button
-//               onClick={() => router.push("/photos/create")}
-//               className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[13px] font-black text-white transition-all active:scale-95"
-//               style={{
-//                 background: "linear-gradient(135deg,#1e40af,#3b82f6)",
-//                 boxShadow: "0 6px 20px rgba(59,130,246,0.38)",
-//               }}
-//             >
-//               <Plus size={14} /> Add Photo
-//             </button>
+//             {/* actions */}
+//             <div className="flex items-center gap-2">
+//               <button
+//                 onClick={() => refetch()}
+//                 disabled={isFetching}
+//                 className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90 border
+//                   ${dark ? "bg-white/[0.04] border-white/[0.06] text-slate-400" : "bg-white border-blue-100 text-slate-500"}`}
+//               >
+//                 <RefreshCw
+//                   size={14}
+//                   style={{
+//                     animation: isFetching ? "spin .8s linear infinite" : "none",
+//                   }}
+//                 />
+//               </button>
+//               <button
+//                 onClick={() => router.push("/photos/create")}
+//                 className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[12px] font-black text-white transition-all active:scale-95"
+//                 style={{
+//                   background: "linear-gradient(135deg,#1e40af,#3b82f6)",
+//                   boxShadow: "0 6px 20px rgba(59,130,246,0.38)",
+//                 }}
+//               >
+//                 <Plus size={14} /> Add Photo
+//               </button>
+//             </div>
 //           </div>
 //         </div>
 
@@ -1065,56 +2739,14 @@
 
 //         {/* ── AI BANNER ── */}
 //         {!isLoading && items.length > 0 && (
-//           <button
-//             onClick={() => router.push("/photos/create")}
-//             className="w-full mb-5 relative overflow-hidden rounded-[22px] text-left transition-all active:scale-[0.99]"
-//             style={{
-//               background:
-//                 "linear-gradient(118deg,#0d1f45 0%,#1a3a8f 45%,#2563eb 100%)",
-//               border: "1px solid rgba(96,165,250,0.25)",
-//               boxShadow: "0 6px 24px rgba(37,99,235,0.4)",
-//             }}
-//           >
-//             {/* shimmer */}
-//             <div
-//               className="absolute inset-0 pointer-events-none"
-//               style={{
-//                 background:
-//                   "linear-gradient(108deg,transparent 0%,rgba(147,197,253,0.07) 45%,rgba(219,234,254,0.04) 55%,transparent 100%)",
-//                 animation: "shimmer 3s ease-in-out infinite",
-//               }}
-//             />
-//             <div className="relative flex items-center justify-between px-6 py-3.5">
-//               <div className="flex items-center gap-3">
-//                 <Brain size={22} style={{ color: "#93c5fd", opacity: 0.9 }} />
-//                 <span
-//                   className="text-white text-[15px] font-black"
-//                   style={{ letterSpacing: "-0.02em" }}
-//                 >
-//                   Add Photos with AI
-//                 </span>
-//               </div>
-//               <div
-//                 className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black"
-//                 style={{
-//                   background: "rgba(37,99,235,0.45)",
-//                   border: "1px solid rgba(96,165,250,0.35)",
-//                   color: "#93c5fd",
-//                 }}
-//               >
-//                 <Zap size={9} style={{ color: "#fbbf24" }} /> AI
-//               </div>
-//             </div>
-//           </button>
+//           <AIBanner items={items} dark={dark} />
 //         )}
 
 //         {/* ── FILTER + VIEW TOGGLE ── */}
 //         {!isLoading && items.length > 0 && (
-//           <div className="flex items-center gap-3 mb-5">
-//             <div
-//               className="flex-1 flex gap-1.5 overflow-x-auto pb-0.5"
-//               style={{ scrollbarWidth: "none" }}
-//             >
+//           <div className="flex items-center gap-2 mb-4">
+//             {/* filter tabs */}
+//             <div className="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
 //               <button
 //                 onClick={() => setFilter("ALL")}
 //                 className="shrink-0 px-3 py-1.5 rounded-full text-[10.5px] font-bold transition-all border"
@@ -1158,29 +2790,29 @@
 //                           }
 //                     }
 //                   >
-//                     {cfg.icon}
-//                     {cfg.label} ({count})
+//                     {cfg.icon} {cfg.label} ({count})
 //                   </button>
 //                 );
 //               })}
 //             </div>
 
+//             {/* view toggle */}
 //             <div
 //               className={`flex gap-0.5 p-1 rounded-xl border shrink-0
-//                 ${dark ? "bg-white/[0.03] border-white/[0.06]" : "bg-white border-blue-100"}`}
+//               ${dark ? "bg-white/[0.03] border-white/[0.06]" : "bg-white border-blue-100"}`}
 //             >
 //               {(["grid", "list"] as const).map((v) => (
 //                 <button
 //                   key={v}
 //                   onClick={() => setView(v)}
-//                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+//                   className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
 //                   style={
 //                     view === v
 //                       ? { background: "rgba(59,130,246,0.2)", color: "#60a5fa" }
 //                       : { color: dark ? "#475569" : "#94a3b8" }
 //                   }
 //                 >
-//                   {v === "grid" ? <LayoutGrid size={14} /> : <List size={14} />}
+//                   {v === "grid" ? <LayoutGrid size={12} /> : <List size={12} />}
 //                 </button>
 //               ))}
 //             </div>
@@ -1192,23 +2824,23 @@
 //           <GridSkeleton dark={dark} />
 //         ) : isError ? (
 //           <div
-//             className={`rounded-2xl border p-8 text-center
-//               ${dark ? "bg-red-500/[0.06] border-red-500/20" : "bg-red-50 border-red-200/60"}`}
+//             className={`rounded-2xl border p-6 text-center
+//     ${dark ? "bg-red-500/[0.06] border-red-500/20" : "bg-red-50 border-red-200/60"}`}
 //           >
-//             <AlertTriangle size={28} className="text-red-400 mx-auto mb-3" />
+//             <AlertTriangle size={24} className="text-red-400 mx-auto mb-2" />
 //             <p
-//               className={`text-[14px] font-bold mb-1 ${dark ? "text-white" : "text-slate-900"}`}
+//               className={`text-[13px] font-bold mb-1 ${dark ? "text-white" : "text-slate-900"}`}
 //             >
 //               Failed to load photos
 //             </p>
-//             <p className="text-[11px] text-red-400 mb-4">
+//             <p className="text-[11px] text-red-400 mb-3">
 //               Could not connect to Google Business API
 //             </p>
 //             <button
 //               onClick={() => refetch()}
-//               className="text-[12px] font-bold text-blue-400 flex items-center gap-1.5 mx-auto"
+//               className="text-[11px] font-bold text-blue-400 flex items-center gap-1 mx-auto"
 //             >
-//               <RefreshCw size={12} /> Try Again
+//               <RefreshCw size={11} /> Try Again
 //             </button>
 //           </div>
 //         ) : filtered.length === 0 ? (
@@ -1219,46 +2851,146 @@
 //             />
 //           ) : (
 //             <div
-//               className={`rounded-2xl border p-10 text-center
-//                 ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100"}`}
+//               className={`rounded-2xl border p-8 text-center
+//         ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100"}`}
 //             >
 //               <Camera size={28} className="text-blue-400/40 mx-auto mb-2" />
 //               <p
 //                 className={`text-[12px] ${dark ? "text-slate-500" : "text-slate-400"}`}
 //               >
-//                 No {filter !== "ALL" ? CAT_CFG[filter]?.label : ""} photos yet
+//                 No {CAT_CFG[filter as MediaCategory]?.label} photos yet
 //               </p>
 //             </div>
 //           )
-//         ) : view === "grid" ? (
-//           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-//             {filtered.map((p, i) => (
-//               <PhotoCard
-//                 key={p.id}
-//                 photo={p}
-//                 dark={dark}
-//                 onPreview={() => openLightbox(i)}
-//                 onDelete={() => setToDelete(p)}
-//               />
-//             ))}
-//           </div>
 //         ) : (
-//           <div className="flex flex-col gap-2">
-//             {filtered.map((p, i) => (
-//               <ListItem
-//                 key={p.id}
-//                 photo={p}
-//                 dark={dark}
-//                 onPreview={() => openLightbox(i)}
-//                 onDelete={() => setToDelete(p)}
-//               />
-//             ))}
-//           </div>
+//           <>
+//             {/* ── AI ADD BUTTON — always visible above grid/list ── */}
+//             <AIAddPhotoButton
+//               dark={dark}
+//               onClick={() => router.push("/photos/create")}
+//             />
+
+//             {view === "grid" ? (
+//               <div
+//                 className="grid grid-cols-3 gap-2"
+//                 style={{
+//                   animation:
+//                     "pgrid-in 0.35s cubic-bezier(0.34,1.56,0.64,1) both",
+//                 }}
+//               >
+//                 {filtered.map((p, i) => (
+//                   <div
+//                     key={p.id}
+//                     style={{
+//                       animation: `pcard-in 0.3s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s both`,
+//                     }}
+//                   >
+//                     <PhotoCard
+//                       photo={p}
+//                       dark={dark}
+//                       view="grid"
+//                       onPreview={() => openLightbox(i)}
+//                       onDelete={() => setToDelete(p)}
+//                     />
+//                   </div>
+//                 ))}
+//               </div>
+//             ) : (
+//               <div className="flex flex-col gap-2">
+//                 {filtered.map((p, i) => (
+//                   <div
+//                     key={p.id}
+//                     style={{
+//                       animation: `plist-in 0.28s ease-out ${i * 0.05}s both`,
+//                     }}
+//                   >
+//                     <PhotoCard
+//                       photo={p}
+//                       dark={dark}
+//                       view="list"
+//                       onPreview={() => openLightbox(i)}
+//                       onDelete={() => setToDelete(p)}
+//                     />
+//                   </div>
+//                 ))}
+//               </div>
+//             )}
+//           </>
 //         )}
 
-//         {/* ── COVERAGE GUIDE ── */}
+//         {/* ── CATEGORY GUIDE ── */}
 //         {!isLoading && items.length > 0 && (
-//           <CoverageGuide items={items} dark={dark} />
+//           <div className="mt-6">
+//             <p
+//               className={`text-[10px] font-black uppercase tracking-widest mb-3 ${dark ? "text-slate-600" : "text-slate-400"}`}
+//             >
+//               Coverage Guide
+//             </p>
+//             <div className="grid grid-cols-2 gap-2">
+//               {(
+//                 [
+//                   "COVER",
+//                   "LOGO",
+//                   "EXTERIOR",
+//                   "INTERIOR",
+//                   "PRODUCT",
+//                   "AT_WORK",
+//                 ] as MediaCategory[]
+//               ).map((c) => {
+//                 const cfg = CAT_CFG[c];
+//                 const count = items.filter(
+//                   (i) => i.locationAssociation?.category === c,
+//                 ).length;
+//                 const targets: Record<string, number> = {
+//                   COVER: 1,
+//                   LOGO: 1,
+//                   EXTERIOR: 5,
+//                   INTERIOR: 8,
+//                   PRODUCT: 10,
+//                   AT_WORK: 3,
+//                 };
+//                 const target = targets[c] ?? 3;
+//                 const pct = Math.min(100, Math.round((count / target) * 100));
+//                 return (
+//                   <div
+//                     key={c}
+//                     className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border
+//                     ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100/80"}`}
+//                   >
+//                     <div
+//                       className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+//                       style={{ background: `${cfg.color}15`, color: cfg.color }}
+//                     >
+//                       {cfg.icon}
+//                     </div>
+//                     <div className="flex-1 min-w-0">
+//                       <div className="flex justify-between mb-0.5">
+//                         <span
+//                           className={`text-[10px] font-bold ${dark ? "text-slate-300" : "text-slate-700"}`}
+//                         >
+//                           {cfg.label}
+//                         </span>
+//                         <span
+//                           className="text-[9.5px] font-bold"
+//                           style={{ color: cfg.color }}
+//                         >
+//                           {count}/{target}
+//                         </span>
+//                       </div>
+//                       <div
+//                         className={`h-1 rounded-full overflow-hidden ${dark ? "bg-white/[0.05]" : "bg-blue-50"}`}
+//                       >
+//                         <div
+//                           className="h-full rounded-full transition-all duration-700"
+//                           style={{ width: `${pct}%`, background: cfg.color }}
+//                         />
+//                       </div>
+//                     </div>
+//                   </div>
+//                 );
+//               })}
+//             </div>
+//           </div>
 //         )}
 //       </div>
 
@@ -1267,6 +2999,7 @@
 //         <Lightbox
 //           photos={lightbox.photos}
 //           index={lightbox.index}
+//           dark={dark}
 //           onClose={() => setLightbox(null)}
 //           onDelete={(p) => {
 //             setLightbox(null);
@@ -1287,1728 +3020,19 @@
 //       )}
 
 //       <style>{`
-//         @keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:1} }
+//         @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+//         .no-scrollbar::-webkit-scrollbar { display:none }
+//         .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none }
 //       `}</style>
+
+//       <style>{`
+//         @keyframes spin     { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+//         @keyframes pgrid-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+//         @keyframes pcard-in { from{opacity:0;transform:scale(0.88)} to{opacity:1;transform:scale(1)} }
+//         @keyframes plist-in { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:none} }
+//         .no-scrollbar::-webkit-scrollbar { display:none }
+//         .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none }
+//         `}</style>
 //     </div>
 //   );
 // }
-
-// mobile_app\app\(main)\photos\page.tsx
-
-"use client";
-
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
-import {
-  Camera,
-  Plus,
-  Trash2,
-  Eye,
-  Download,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Image as ImgIcon,
-  Star,
-  Users,
-  Package,
-  MapPin,
-  Video,
-  LayoutGrid,
-  List,
-  Filter,
-  SortAsc,
-  RefreshCw,
-  Brain,
-  Sparkles,
-  AlertTriangle,
-  Check,
-  Loader2,
-  ZoomIn,
-  Share2,
-  MoreVertical,
-  TrendingUp,
-  BarChart2,
-  Clock,
-  ArrowUpRight,
-  Shield,
-  Lock,
-  Zap,
-} from "lucide-react";
-import { getToken } from "@/lib/token";
-import { useUser } from "@/features/user/hook/useUser";
-
-/* ════════════════════════════════════════════════════════
-   TYPES
-════════════════════════════════════════════════════════ */
-type MediaFormat = "PHOTO" | "VIDEO";
-type MediaCategory =
-  | "COVER"
-  | "LOGO"
-  | "EXTERIOR"
-  | "INTERIOR"
-  | "PRODUCT"
-  | "AT_WORK"
-  | "FOOD_AND_DRINK"
-  | "MENU"
-  | "COMMON_AREA"
-  | "ROOMS"
-  | "TEAMS"
-  | "ADDITIONAL";
-
-interface GBPMedia {
-  name: string; // e.g. accounts/{id}/locations/{id}/media/{id}
-  mediaFormat: MediaFormat;
-  locationAssociation?: { category: MediaCategory };
-  googleUrl?: string;
-  thumbnailUrl?: string;
-  createTime: string;
-  dimensions?: { widthPixels: number; heightPixels: number };
-  viewCount?: number;
-  description?: string;
-  // derived
-  id: string;
-}
-
-interface MediaResponse {
-  mediaItems: GBPMedia[];
-  totalMediaItemCount: number;
-  nextPageToken?: string;
-}
-
-/* ════════════════════════════════════════════════════════
-   CATEGORY CONFIG
-════════════════════════════════════════════════════════ */
-const CAT_CFG: Record<
-  MediaCategory,
-  { label: string; icon: React.ReactNode; color: string; tip: string }
-> = {
-  COVER: {
-    label: "Cover",
-    icon: <Star size={11} />,
-    color: "#3b82f6",
-    tip: "Banner shown at top of your profile",
-  },
-  LOGO: {
-    label: "Logo",
-    icon: <Shield size={11} />,
-    color: "#6366f1",
-    tip: "Square logo for Knowledge Panel",
-  },
-  EXTERIOR: {
-    label: "Exterior",
-    icon: <MapPin size={11} />,
-    color: "#0ea5e9",
-    tip: "Outside your building",
-  },
-  INTERIOR: {
-    label: "Interior",
-    icon: <LayoutGrid size={11} />,
-    color: "#8b5cf6",
-    tip: "Inside your business",
-  },
-  PRODUCT: {
-    label: "Product",
-    icon: <Package size={11} />,
-    color: "#06b6d4",
-    tip: "Products you sell",
-  },
-  AT_WORK: {
-    label: "At Work",
-    icon: <Users size={11} />,
-    color: "#10b981",
-    tip: "Your team in action",
-  },
-  FOOD_AND_DRINK: {
-    label: "Food",
-    icon: <Star size={11} />,
-    color: "#f59e0b",
-    tip: "Food and drinks",
-  },
-  MENU: {
-    label: "Menu",
-    icon: <List size={11} />,
-    color: "#ef4444",
-    tip: "Menu items",
-  },
-  COMMON_AREA: {
-    label: "Common",
-    icon: <LayoutGrid size={11} />,
-    color: "#14b8a6",
-    tip: "Common areas",
-  },
-  ROOMS: {
-    label: "Rooms",
-    icon: <ImgIcon size={11} />,
-    color: "#a855f7",
-    tip: "Rooms",
-  },
-  TEAMS: {
-    label: "Teams",
-    icon: <Users size={11} />,
-    color: "#f97316",
-    tip: "Your team",
-  },
-  ADDITIONAL: {
-    label: "Other",
-    icon: <Camera size={11} />,
-    color: "#64748b",
-    tip: "Other photos",
-  },
-};
-
-/* ════════════════════════════════════════════════════════
-   MOCK DATA (replace with real API call)
-════════════════════════════════════════════════════════ */
-const MOCK: GBPMedia[] = [
-  ...Array.from({ length: 18 }, (_, i) => {
-    const cats: MediaCategory[] = [
-      "COVER",
-      "LOGO",
-      "EXTERIOR",
-      "INTERIOR",
-      "PRODUCT",
-      "AT_WORK",
-      "EXTERIOR",
-      "PRODUCT",
-      "INTERIOR",
-      "PRODUCT",
-      "AT_WORK",
-      "EXTERIOR",
-      "PRODUCT",
-      "INTERIOR",
-      "PRODUCT",
-      "ADDITIONAL",
-      "EXTERIOR",
-      "INTERIOR",
-    ];
-    const dims = [
-      [1920, 1080],
-      [800, 800],
-      [1280, 960],
-      [1080, 1080],
-      [720, 720],
-      [1920, 1080],
-      [1280, 720],
-      [800, 600],
-      [1080, 1080],
-      [900, 675],
-      [1200, 900],
-      [1280, 960],
-      [1080, 1080],
-      [720, 720],
-      [1920, 1080],
-      [1280, 720],
-      [800, 600],
-      [1080, 1080],
-    ];
-    const cat = cats[i] as MediaCategory;
-    return {
-      id: `media_${i + 1}`,
-      name: `accounts/123/locations/456/media/media_${i + 1}`,
-      mediaFormat: "PHOTO" as MediaFormat,
-      locationAssociation: { category: cat },
-      googleUrl: `https://picsum.photos/seed/${i + 10}/800/600`,
-      thumbnailUrl: `https://picsum.photos/seed/${i + 10}/400/300`,
-      createTime: new Date(
-        Date.now() - i * 7 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      dimensions: { widthPixels: dims[i][0], heightPixels: dims[i][1] },
-      viewCount: Math.floor(Math.random() * 800 + 50),
-      description:
-        i % 3 === 0
-          ? "Our beautiful store interior showcasing premium products"
-          : undefined,
-    };
-  }),
-];
-
-/* ════════════════════════════════════════════════════════
-   API
-════════════════════════════════════════════════════════ */
-async function fetchMedia(): Promise<MediaResponse> {
-  const res = await fetch("/api/google/media/list");
-  if (!res.ok) throw new Error("Failed to fetch media");
-  return res.json();
-  // await new Promise((r) => setTimeout(r, 900));
-  // return { mediaItems: MOCK, totalMediaItemCount: MOCK.length };
-}
-// async function fetchMedia(locationId: string): Promise<MediaResponse> {
-//   const url = `/api/google/media/list?location=locations/${encodeURIComponent(locationId)}`;
-//   const res = await fetch(url, {
-//     method: "GET",
-//     headers: {
-//       Authorization: `Bearer ${getToken()}`,
-//       "Content-Type": "application/json",
-//     },
-//   });
-//   if (!res.ok) {
-//     const errorData = await res.json().catch(() => ({}));
-//     throw new Error(errorData.error || "Failed to fetch media");
-//   }
-//   const data = await res.json();
-//   return {
-//     mediaItems: data.mediaItems || [],
-//     totalMediaItemCount:
-//       data.totalMediaItemCount || data.mediaItems?.length || 0,
-//     nextPageToken: data.nextPageToken || null,
-//   };
-// }
-
-async function deleteMedia(mediaName: string): Promise<void> {
-  // const res = await fetch("/api/google/media/delete", { method: "POST", body: JSON.stringify({ mediaName }) });
-  // if (!res.ok) throw new Error("Delete failed");
-  await new Promise((r) => setTimeout(r, 700));
-}
-
-// async function deleteMedia(mediaName: string) {
-//   const url = `/api/google/media/delete`;
-//   const res = await fetch(url, {
-//     method: "DELETE",
-//     headers: {
-//       Authorization: `Bearer ${getToken()}`,
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({ mediaName }),
-//   });
-//   if (!res.ok) {
-//     const errorData = await res.json().catch(() => ({}));
-//     throw new Error(errorData.error || "Failed to delete media");
-//   }
-//   return res.json();
-// }
-
-/* ════════════════════════════════════════════════════════
-   HELPERS
-════════════════════════════════════════════════════════ */
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const d = Math.floor(diff / 86400000);
-  if (d === 0) return "Today";
-  if (d === 1) return "Yesterday";
-  if (d < 7) return `${d}d ago`;
-  if (d < 30) return `${Math.floor(d / 7)}w ago`;
-  return `${Math.floor(d / 30)}mo ago`;
-}
-
-/* ════════════════════════════════════════════════════════
-   DELETE MODAL
-════════════════════════════════════════════════════════ */
-function DeleteModal({
-  photo,
-  dark,
-  onConfirm,
-  onCancel,
-  loading,
-}: {
-  photo: GBPMedia;
-  dark: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-  loading: boolean;
-}) {
-  const cat = photo.locationAssociation?.category
-    ? CAT_CFG[photo.locationAssociation.category]
-    : null;
-
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
-    >
-      <div
-        className={`w-full max-w-sm rounded-3xl border overflow-hidden
-        ${dark ? "bg-[#0a1020] border-blue-900/50" : "bg-white border-blue-100"}`}
-        style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}
-      >
-        {/* header stripe */}
-        <div
-          className="h-1 w-full"
-          style={{ background: "linear-gradient(90deg,#ef4444,#f87171)" }}
-        />
-
-        <div className="p-5">
-          {/* icon */}
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{
-              background: "rgba(239,68,68,0.1)",
-              border: "1px solid rgba(239,68,68,0.2)",
-            }}
-          >
-            <Trash2 size={22} className="text-red-400" />
-          </div>
-
-          <h3
-            className={`text-[17px] font-black text-center mb-1 ${dark ? "text-white" : "text-slate-900"}`}
-            style={{ letterSpacing: "-0.03em" }}
-          >
-            Delete Photo?
-          </h3>
-          <p
-            className={`text-[12px] text-center mb-4 ${dark ? "text-slate-400" : "text-slate-500"}`}
-          >
-            This will permanently remove the photo from your Google Business
-            Profile. This action cannot be undone.
-          </p>
-
-          {/* photo preview */}
-          <div
-            className={`flex items-center gap-3 p-3 rounded-2xl border mb-5
-            ${dark ? "bg-white/[0.03] border-white/[0.06]" : "bg-slate-50 border-slate-100"}`}
-          >
-            <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-blue-900/20">
-              {photo.thumbnailUrl && (
-                <img
-                  src={photo.thumbnailUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
-            <div className="min-w-0">
-              {cat && (
-                <span
-                  className="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full mb-1"
-                  style={{
-                    background: `${cat.color}15`,
-                    color: cat.color,
-                    border: `1px solid ${cat.color}30`,
-                  }}
-                >
-                  {cat.icon} {cat.label}
-                </span>
-              )}
-              <p
-                className={`text-[11px] font-medium truncate ${dark ? "text-slate-400" : "text-slate-600"}`}
-              >
-                {photo.dimensions
-                  ? `${photo.dimensions.widthPixels} × ${photo.dimensions.heightPixels}px`
-                  : "Photo"}
-              </p>
-              <p
-                className={`text-[10px] ${dark ? "text-slate-600" : "text-slate-400"}`}
-              >
-                {timeAgo(photo.createTime)} ·{" "}
-                {photo.viewCount?.toLocaleString()} views
-              </p>
-            </div>
-          </div>
-
-          {/* warning */}
-          <div
-            className={`flex items-start gap-2 p-3 rounded-xl border mb-5
-            ${dark ? "bg-red-500/[0.06] border-red-500/20" : "bg-red-50 border-red-200/60"}`}
-          >
-            <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-red-400 leading-relaxed">
-              Google may take up to 24 hours to reflect this change across all
-              surfaces.
-            </p>
-          </div>
-
-          {/* actions */}
-          <div className="flex gap-2.5">
-            <button
-              onClick={onCancel}
-              disabled={loading}
-              className={`flex-1 py-3 rounded-2xl text-[13px] font-bold transition-all active:scale-[0.97] border
-                ${dark ? "bg-white/[0.04] border-white/[0.08] text-slate-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={loading}
-              className="flex-1 py-3 rounded-2xl text-[13px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
-              style={{
-                background: "linear-gradient(135deg,#dc2626,#ef4444)",
-                boxShadow: "0 6px 20px rgba(239,68,68,0.35)",
-              }}
-            >
-              {loading ? (
-                <>
-                  <Loader2
-                    size={13}
-                    style={{ animation: "spin .6s linear infinite" }}
-                  />{" "}
-                  Deleting…
-                </>
-              ) : (
-                <>
-                  <Trash2 size={13} /> Delete
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   LIGHTBOX / PREVIEW
-════════════════════════════════════════════════════════ */
-function Lightbox({
-  photos,
-  index,
-  dark,
-  onClose,
-  onDelete,
-}: {
-  photos: GBPMedia[];
-  index: number;
-  dark: boolean;
-  onClose: () => void;
-  onDelete: (p: GBPMedia) => void;
-}) {
-  const [cur, setCur] = useState(index);
-  const photo = photos[cur];
-  const cat = photo?.locationAssociation?.category
-    ? CAT_CFG[photo.locationAssociation.category]
-    : null;
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight")
-        setCur((c) => Math.min(c + 1, photos.length - 1));
-      if (e.key === "ArrowLeft") setCur((c) => Math.max(c - 1, 0));
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [photos.length, onClose]);
-
-  if (!photo) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-[500] flex flex-col"
-      style={{ background: "rgba(3,7,18,0.95)", backdropFilter: "blur(20px)" }}
-    >
-      {/* top bar */}
-      <div className="flex items-center justify-between px-4 py-3 shrink-0">
-        <div className="flex items-center gap-2.5">
-          {cat && (
-            <span
-              className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
-              style={{
-                background: `${cat.color}20`,
-                color: cat.color,
-                border: `1px solid ${cat.color}30`,
-              }}
-            >
-              {cat.icon} {cat.label}
-            </span>
-          )}
-          <span className="text-[11px] font-medium text-slate-500">
-            {cur + 1} / {photos.length}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {photo.googleUrl && (
-            <a
-              href={photo.googleUrl}
-              target="_blank"
-              rel="noopener"
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
-              style={{
-                background: "rgba(59,130,246,0.12)",
-                border: "1px solid rgba(59,130,246,0.2)",
-              }}
-            >
-              <Download size={14} className="text-blue-400" />
-            </a>
-          )}
-          <button
-            onClick={() => onDelete(photo)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
-            style={{
-              background: "rgba(239,68,68,0.1)",
-              border: "1px solid rgba(239,68,68,0.2)",
-            }}
-          >
-            <Trash2 size={14} className="text-red-400" />
-          </button>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-            }}
-          >
-            <X size={15} className="text-white" />
-          </button>
-        </div>
-      </div>
-
-      {/* image area */}
-      <div className="flex-1 flex items-center justify-center relative px-12 min-h-0">
-        {/* prev */}
-        {cur > 0 && (
-          <button
-            onClick={() => setCur((c) => c - 1)}
-            className="absolute left-2 w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-10"
-            style={{
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.12)",
-            }}
-          >
-            <ChevronLeft size={18} className="text-white" />
-          </button>
-        )}
-
-        <div className="w-full h-full flex items-center justify-center">
-          <img
-            src={photo.googleUrl || photo.thumbnailUrl}
-            alt=""
-            className="max-w-full max-h-full object-contain rounded-2xl"
-            style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.6)" }}
-          />
-        </div>
-
-        {/* next */}
-        {cur < photos.length - 1 && (
-          <button
-            onClick={() => setCur((c) => c + 1)}
-            className="absolute right-2 w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-10"
-            style={{
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.12)",
-            }}
-          >
-            <ChevronRight size={18} className="text-white" />
-          </button>
-        )}
-      </div>
-
-      {/* bottom info */}
-      <div className="shrink-0 px-4 py-4 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          {photo.description && (
-            <p className="text-[12px] text-slate-300 truncate mb-0.5">
-              {photo.description}
-            </p>
-          )}
-          <div className="flex items-center gap-3">
-            {photo.dimensions && (
-              <span className="text-[10px] text-slate-500 font-mono">
-                {photo.dimensions.widthPixels}×{photo.dimensions.heightPixels}
-              </span>
-            )}
-            <span className="text-[10px] text-slate-500">
-              {timeAgo(photo.createTime)}
-            </span>
-            {photo.viewCount != null && (
-              <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                <Eye size={9} /> {photo.viewCount.toLocaleString()} views
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* thumbnail strip */}
-        <div className="flex gap-1.5 shrink-0">
-          {photos.slice(Math.max(0, cur - 2), cur + 3).map((p, i) => {
-            const realIdx = Math.max(0, cur - 2) + i;
-            return (
-              <button
-                key={p.id}
-                onClick={() => setCur(realIdx)}
-                className={`w-10 h-10 rounded-xl overflow-hidden border-2 transition-all ${
-                  realIdx === cur
-                    ? "border-blue-500"
-                    : "border-transparent opacity-50"
-                }`}
-              >
-                <img
-                  src={p.thumbnailUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   PHOTO CARD
-════════════════════════════════════════════════════════ */
-function PhotoCard({
-  photo,
-  dark,
-  onPreview,
-  onDelete,
-  view,
-}: {
-  photo: GBPMedia;
-  dark: boolean;
-  onPreview: () => void;
-  onDelete: () => void;
-  view: "grid" | "list";
-}) {
-  const [hover, setHover] = useState(false);
-  const cat = photo.locationAssociation?.category
-    ? CAT_CFG[photo.locationAssociation.category]
-    : null;
-
-  if (view === "list") {
-    return (
-      <div
-        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all
-        ${
-          dark
-            ? "bg-[#0a1020] border-blue-900/30 hover:border-blue-700/40"
-            : "bg-white border-blue-100/80 hover:border-blue-200"
-        }`}
-        style={{ boxShadow: dark ? "none" : "0 2px 8px rgba(59,130,246,0.04)" }}
-      >
-        {/* thumb */}
-        <div
-          className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-blue-900/20 cursor-pointer"
-          onClick={onPreview}
-        >
-          {photo.thumbnailUrl ? (
-            <img
-              src={photo.thumbnailUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ImgIcon size={18} className="text-blue-400/40" />
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            {cat && (
-              <span
-                className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md"
-                style={{ background: `${cat.color}15`, color: cat.color }}
-              >
-                {cat.icon} {cat.label}
-              </span>
-            )}
-            {photo.mediaFormat === "VIDEO" && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-400">
-                VIDEO
-              </span>
-            )}
-          </div>
-          <p
-            className={`text-[11px] font-medium truncate ${dark ? "text-slate-300" : "text-slate-700"}`}
-          >
-            {photo.dimensions
-              ? `${photo.dimensions.widthPixels} × ${photo.dimensions.heightPixels}px`
-              : photo.mediaFormat}
-          </p>
-          <div className="flex items-center gap-2.5 mt-0.5">
-            <span
-              className={`text-[10px] ${dark ? "text-slate-600" : "text-slate-400"}`}
-            >
-              {timeAgo(photo.createTime)}
-            </span>
-            {photo.viewCount != null && (
-              <span
-                className={`text-[10px] flex items-center gap-0.5 ${dark ? "text-slate-600" : "text-slate-400"}`}
-              >
-                <Eye size={8} /> {photo.viewCount.toLocaleString()}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={onPreview}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90
-              ${dark ? "bg-white/[0.04] hover:bg-blue-500/15" : "bg-slate-50 hover:bg-blue-50"}`}
-          >
-            <ZoomIn size={13} className="text-blue-400" />
-          </button>
-          <button
-            onClick={onDelete}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90
-              ${dark ? "bg-white/[0.04] hover:bg-red-500/15" : "bg-slate-50 hover:bg-red-50"}`}
-          >
-            <Trash2 size={13} className="text-red-400" />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`relative rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer group
-      ${dark ? "border-blue-900/30" : "border-blue-100/60"}`}
-      style={{
-        aspectRatio: "1",
-        boxShadow: hover
-          ? dark
-            ? "0 8px 32px rgba(37,99,235,0.25)"
-            : "0 8px 24px rgba(37,99,235,0.15)"
-          : "none",
-      }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onClick={onPreview}
-    >
-      {/* image */}
-      <div className="w-full h-full bg-blue-900/10">
-        {photo.thumbnailUrl ? (
-          <img
-            src={photo.thumbnailUrl}
-            alt=""
-            className="w-full h-full object-cover transition-transform duration-500"
-            style={{ transform: hover ? "scale(1.06)" : "scale(1)" }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ImgIcon size={28} className="text-blue-400/30" />
-          </div>
-        )}
-      </div>
-
-      {/* hover overlay */}
-      <div
-        className="absolute inset-0 transition-opacity duration-200"
-        style={{
-          opacity: hover ? 1 : 0,
-          background:
-            "linear-gradient(to top, rgba(3,7,18,0.85) 0%, rgba(3,7,18,0.2) 50%, transparent 100%)",
-        }}
-      />
-
-      {/* top: category badge */}
-      {cat && (
-        <div className="absolute top-2 left-2">
-          <span
-            className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full"
-            style={{
-              background: `${cat.color}90`,
-              color: "#fff",
-              backdropFilter: "blur(8px)",
-              border: `1px solid ${cat.color}50`,
-            }}
-          >
-            {cat.icon} {cat.label}
-          </span>
-        </div>
-      )}
-
-      {/* top-right: delete */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="absolute top-2 right-2 w-7 h-7 rounded-xl flex items-center justify-center transition-all active:scale-90"
-        style={{
-          opacity: hover ? 1 : 0,
-          background: "rgba(239,68,68,0.75)",
-          backdropFilter: "blur(8px)",
-          border: "1px solid rgba(239,68,68,0.4)",
-        }}
-      >
-        <Trash2 size={11} className="text-white" />
-      </button>
-
-      {/* bottom info */}
-      <div
-        className="absolute bottom-0 left-0 right-0 px-2.5 pb-2.5 pt-6 transition-opacity duration-200"
-        style={{ opacity: hover ? 1 : 0 }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            {photo.viewCount != null && (
-              <span className="text-[9.5px] font-medium text-white/80 flex items-center gap-0.5">
-                <Eye size={8} /> {photo.viewCount.toLocaleString()}
-              </span>
-            )}
-          </div>
-          <span className="text-[9px] text-white/60">
-            {timeAgo(photo.createTime)}
-          </span>
-        </div>
-      </div>
-
-      {/* video badge */}
-      {photo.mediaFormat === "VIDEO" && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{
-              background: "rgba(0,0,0,0.55)",
-              backdropFilter: "blur(4px)",
-            }}
-          >
-            <Video size={16} className="text-white ml-0.5" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   STATS STRIP
-════════════════════════════════════════════════════════ */
-function StatsStrip({ items, dark }: { items: GBPMedia[]; dark: boolean }) {
-  const totalViews = items.reduce((a, i) => a + (i.viewCount ?? 0), 0);
-  const totalPhotos = items.filter((i) => i.mediaFormat === "PHOTO").length;
-  const totalVideos = items.filter((i) => i.mediaFormat === "VIDEO").length;
-  const categories = new Set(items.map((i) => i.locationAssociation?.category))
-    .size;
-  const hasCover = items.some(
-    (i) => i.locationAssociation?.category === "COVER",
-  );
-  const hasLogo = items.some((i) => i.locationAssociation?.category === "LOGO");
-
-  const stats = [
-    {
-      label: "Photos",
-      value: totalPhotos,
-      icon: <Camera size={12} />,
-      color: "#3b82f6",
-    },
-    {
-      label: "Videos",
-      value: totalVideos,
-      icon: <Video size={12} />,
-      color: "#8b5cf6",
-    },
-    {
-      label: "Total Views",
-      value: totalViews.toLocaleString(),
-      icon: <Eye size={12} />,
-      color: "#06b6d4",
-    },
-    {
-      label: "Categories",
-      value: categories,
-      icon: <LayoutGrid size={12} />,
-      color: "#10b981",
-    },
-  ];
-
-  return (
-    <div className="grid grid-cols-4 gap-2 mb-4">
-      {stats.map((s, i) => (
-        <div
-          key={i}
-          className={`rounded-2xl px-3 py-2.5 border text-center
-          ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100/80 shadow-sm"}`}
-        >
-          <div
-            className="flex items-center justify-center mb-1"
-            style={{ color: s.color }}
-          >
-            {s.icon}
-          </div>
-          <p
-            className="text-[13px] font-black leading-none"
-            style={{
-              color: s.color,
-              fontFamily: "-apple-system,'SF Pro Display',sans-serif",
-            }}
-          >
-            {s.value}
-          </p>
-          <p
-            className={`text-[8.5px] font-semibold mt-0.5 ${dark ? "text-slate-600" : "text-slate-400"}`}
-          >
-            {s.label}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   SKELETON
-════════════════════════════════════════════════════════ */
-function GridSkeleton({ dark }: { dark: boolean }) {
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      {Array.from({ length: 9 }).map((_, i) => (
-        <div
-          key={i}
-          className={`rounded-2xl animate-pulse ${dark ? "bg-white/[0.05]" : "bg-blue-100/50"}`}
-          style={{ aspectRatio: "1" }}
-        />
-      ))}
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   EMPTY STATE
-════════════════════════════════════════════════════════ */
-function EmptyState({ dark, onAdd }: { dark: boolean; onAdd: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-      <div
-        className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-5
-        ${dark ? "bg-blue-500/10" : "bg-blue-50"}`}
-        style={{ border: "1px solid rgba(59,130,246,0.2)" }}
-      >
-        <Camera size={32} className="text-blue-400" />
-      </div>
-      <h3
-        className={`text-[17px] font-black mb-2 ${dark ? "text-white" : "text-slate-900"}`}
-        style={{ letterSpacing: "-0.03em" }}
-      >
-        No Photos Yet
-      </h3>
-      <p
-        className={`text-[12px] mb-6 max-w-[220px] leading-relaxed ${dark ? "text-slate-500" : "text-slate-400"}`}
-      >
-        Add photos to your Google Business Profile to attract more customers.
-      </p>
-      <button
-        onClick={onAdd}
-        className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-black text-white"
-        style={{
-          background: "linear-gradient(135deg,#1e40af,#3b82f6)",
-          boxShadow: "0 8px 24px rgba(59,130,246,0.35)",
-        }}
-      >
-        <Plus size={15} /> Add First Photo
-      </button>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   AI INSIGHT BANNER
-════════════════════════════════════════════════════════ */
-function AIBanner({ items, dark }: { items: GBPMedia[]; dark: boolean }) {
-  const hasCover = items.some(
-    (i) => i.locationAssociation?.category === "COVER",
-  );
-  const interiors = items.filter(
-    (i) => i.locationAssociation?.category === "INTERIOR",
-  ).length;
-  const products = items.filter(
-    (i) => i.locationAssociation?.category === "PRODUCT",
-  ).length;
-
-  const tips = [
-    !hasCover && {
-      msg: "No cover photo detected — this is the most-viewed element of your profile. Add one to increase clicks by 42%.",
-      icon: <Star size={11} />,
-    },
-    interiors < 3 && {
-      msg: `You have ${interiors} interior photo${interiors === 1 ? "" : "s"}. Businesses with 5+ interiors see 29% more walk-ins.`,
-      icon: <ImgIcon size={11} />,
-    },
-    products < 5 && {
-      msg: `Only ${products} product photo${products === 1 ? "" : "s"} — add at least 10 to unlock 94% more profile views.`,
-      icon: <Package size={11} />,
-    },
-  ].filter(Boolean) as { msg: string; icon: React.ReactNode }[];
-
-  if (!tips.length) return null;
-
-  return (
-    <div
-      className={`rounded-2xl border px-4 py-3 mb-4 flex items-start gap-3
-      ${dark ? "bg-[#080f1e] border-blue-900/40" : "bg-blue-50/80 border-blue-200/60"}`}
-    >
-      <div
-        className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5
-        ${dark ? "bg-blue-500/15" : "bg-blue-100"}`}
-      >
-        <Brain size={13} style={{ color: "#60a5fa" }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1">
-          <Sparkles size={9} className="text-blue-400" />
-          <span
-            className={`text-[9.5px] font-black uppercase tracking-widest ${dark ? "text-blue-400" : "text-blue-600"}`}
-          >
-            AI Insight
-          </span>
-        </div>
-        <p
-          className={`text-[11.5px] leading-relaxed ${dark ? "text-blue-200/70" : "text-blue-800"}`}
-        >
-          {tips[0].msg}
-        </p>
-        {tips.length > 1 && (
-          <p
-            className={`text-[10px] mt-1 ${dark ? "text-blue-400/50" : "text-blue-500/70"}`}
-          >
-            +{tips.length - 1} more insight{tips.length > 2 ? "s" : ""}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   AI ADD PHOTO BUTTON (full-width, animated)
-════════════════════════════════════════════════════════ */
-function AIAddPhotoButton({
-  dark,
-  onClick,
-}: {
-  dark: boolean;
-  onClick: () => void;
-}) {
-  const [pressed, setPressed] = useState(false);
-  const [tick, setTick] = useState(0);
-  const [sparkle, setSparkle] = useState(false);
-
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => (t + 1) % 100), 40);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setSparkle(true);
-      setTimeout(() => setSparkle(false), 500);
-    }, 3200);
-    return () => clearInterval(id);
-  }, []);
-
-  const dots = [
-    { left: "8%", top: "30%", delay: "0s", r: 2 },
-    { left: "18%", top: "65%", delay: "0.7s", r: 1.5 },
-    { left: "75%", top: "25%", delay: "0.35s", r: 2 },
-    { left: "88%", top: "60%", delay: "1.1s", r: 1.5 },
-    { left: "50%", top: "20%", delay: "0.55s", r: 1.5 },
-    { left: "62%", top: "75%", delay: "0.9s", r: 2 },
-  ];
-
-  return (
-    <button
-      onClick={onClick}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
-      className="w-full mb-4 relative overflow-hidden"
-      style={{
-        height: 56,
-        borderRadius: 18,
-        border: "1px solid rgba(96,165,250,0.25)",
-        background:
-          "linear-gradient(118deg,#0d1f45 0%,#1a3a8f 45%,#2563eb 100%)",
-        transform: pressed ? "scale(0.978)" : "scale(1)",
-        transition:
-          "transform 0.13s cubic-bezier(0.4,0,0.2,1), box-shadow 0.13s",
-        boxShadow: pressed
-          ? "0 2px 8px rgba(37,99,235,0.2)"
-          : "0 6px 24px rgba(37,99,235,0.4), inset 0 1px 0 rgba(255,255,255,0.07)",
-        WebkitTapHighlightColor: "transparent",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        color: "#fff",
-        fontFamily: "-apple-system,'SF Pro Display',sans-serif",
-        fontSize: 14,
-        fontWeight: 800,
-        letterSpacing: "-0.02em",
-      }}
-    >
-      {/* shimmer */}
-      <span
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          background: `linear-gradient(108deg,
-          transparent ${tick - 5}%,
-          rgba(147,197,253,0.1) ${tick + 5}%,
-          rgba(219,234,254,0.07) ${tick + 12}%,
-          transparent ${tick + 22}%)`,
-        }}
-      />
-
-      {/* dot grid */}
-      <span
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          opacity: 0.04,
-          backgroundImage:
-            "repeating-linear-gradient(0deg,#93c5fd 0,#93c5fd 1px,transparent 1px,transparent 24px)," +
-            "repeating-linear-gradient(90deg,#93c5fd 0,#93c5fd 1px,transparent 1px,transparent 24px)",
-        }}
-      />
-
-      {/* top highlight */}
-      <span
-        style={{
-          position: "absolute",
-          top: 0,
-          left: "8%",
-          right: "8%",
-          height: 1,
-          pointerEvents: "none",
-          background:
-            "linear-gradient(90deg,transparent,rgba(147,197,253,0.5),transparent)",
-        }}
-      />
-
-      {/* bottom accent */}
-      <span
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: "20%",
-          right: "20%",
-          height: 1,
-          pointerEvents: "none",
-          background:
-            "linear-gradient(90deg,transparent,rgba(96,165,250,0.4),transparent)",
-        }}
-      />
-
-      {/* left bloom */}
-      <span
-        style={{
-          position: "absolute",
-          left: -20,
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: 80,
-          height: 80,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle,rgba(59,130,246,0.2) 0%,transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* floating dots */}
-      {dots.map((d, i) => (
-        <span
-          key={i}
-          style={{
-            position: "absolute",
-            left: d.left,
-            top: d.top,
-            width: d.r,
-            height: d.r,
-            borderRadius: "50%",
-            background: "rgba(147,197,253,0.6)",
-            pointerEvents: "none",
-            animation: `aibtn-dot ${2.2 + i * 0.18}s ease-in-out ${d.delay} infinite`,
-          }}
-        />
-      ))}
-
-      {/* Brain + sparkle */}
-      <span
-        style={{
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Brain size={17} style={{ color: "#93c5fd" }} />
-        <Sparkles
-          size={8}
-          style={{
-            position: "absolute",
-            top: -5,
-            right: -5,
-            color: "#fbbf24",
-            opacity: sparkle ? 1 : 0.45,
-            transform: sparkle ? "scale(1.4) rotate(15deg)" : "scale(1)",
-            transition: "opacity 0.2s, transform 0.2s",
-          }}
-        />
-      </span>
-
-      <span>Add Photos with AI</span>
-
-      {/* AI pill */}
-      <span
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 3,
-          padding: "2px 8px",
-          borderRadius: 999,
-          background: "rgba(37,99,235,0.45)",
-          border: "1px solid rgba(96,165,250,0.35)",
-          fontSize: 10,
-          fontWeight: 800,
-          color: "#93c5fd",
-          letterSpacing: "0.04em",
-        }}
-      >
-        <Zap size={8} style={{ color: "#fbbf24" }} /> AI
-      </span>
-
-      <Plus
-        size={13}
-        style={{ color: "rgba(147,197,253,0.7)", flexShrink: 0 }}
-      />
-
-      <style>{`
-        @keyframes aibtn-dot {
-          0%,100% { opacity:.4; transform:scale(1); }
-          50%      { opacity:1; transform:scale(2); }
-        }
-      `}</style>
-    </button>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   MAIN PAGE
-════════════════════════════════════════════════════════ */
-export default function PhotosPage() {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const dark = mounted && resolvedTheme === "dark";
-
-  const router = useRouter();
-  const queryClient = useQueryClient();
-
-  const [view, setView] = useState<"grid" | "list">("grid");
-  const [filter, setFilter] = useState<MediaCategory | "ALL">("ALL");
-  const [lightbox, setLightbox] = useState<{
-    photos: GBPMedia[];
-    index: number;
-  } | null>(null);
-  const [toDelete, setToDelete] = useState<GBPMedia | null>(null);
-
-  const { data: user } = useUser();
-  const locationId = user?.googleLocationId ?? "";
-
-  /* ── data ── */
-  const { data, isLoading, isError, refetch, isFetching } =
-    useQuery<MediaResponse>({
-      queryKey: ["gbp-media"],
-      queryFn: () => fetchMedia(),
-      staleTime: 5 * 60 * 1000,
-      // enabled: !!locationId,
-    });
-
-  const deleteMut = useMutation({
-    mutationFn: (name: string) => deleteMedia(name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gbp-media"] });
-      setToDelete(null);
-    },
-  });
-
-  const items = data?.mediaItems ?? [];
-
-  /* ── filter ── */
-  const cats = Array.from(
-    new Set(items.map((i) => i.locationAssociation?.category).filter(Boolean)),
-  ) as MediaCategory[];
-  const filtered =
-    filter === "ALL"
-      ? items
-      : items.filter((i) => i.locationAssociation?.category === filter);
-
-  /* ── open lightbox only on filtered set ── */
-  function openLightbox(index: number) {
-    setLightbox({ photos: filtered, index });
-  }
-
-  return (
-    <div
-      className={`min-h-screen transition-colors ${dark ? "bg-[#050d1a]" : "bg-[#eef4ff]"}`}
-      style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}
-    >
-      {/* dot grid bg */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.015]"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px,#3b82f6 1px,transparent 0)",
-          backgroundSize: "32px 32px",
-        }}
-      />
-
-      <div className="relative max-w-lg mx-auto px-4 pb-28">
-        {/* ── HEADER ── */}
-        <div className="pt-5 pb-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9.5px] font-black uppercase tracking-widest
-                  ${dark ? "bg-blue-500/10 border-blue-700/60 text-blue-400" : "bg-blue-50 border-blue-300 text-blue-600"}`}
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  Google Business
-                </div>
-              </div>
-              <h1
-                className={`text-[22px] font-black leading-tight ${dark ? "text-white" : "text-slate-900"}`}
-                style={{ letterSpacing: "-0.04em" }}
-              >
-                Profile Photos
-              </h1>
-              <p
-                className={`text-[12px] mt-0.5 ${dark ? "text-slate-500" : "text-blue-500/80"}`}
-              >
-                {isLoading
-                  ? "Loading…"
-                  : `${items.length} media · ${data?.totalMediaItemCount ?? 0} total`}
-              </p>
-            </div>
-
-            {/* actions */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => refetch()}
-                disabled={isFetching}
-                className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90 border
-                  ${dark ? "bg-white/[0.04] border-white/[0.06] text-slate-400" : "bg-white border-blue-100 text-slate-500"}`}
-              >
-                <RefreshCw
-                  size={14}
-                  style={{
-                    animation: isFetching ? "spin .8s linear infinite" : "none",
-                  }}
-                />
-              </button>
-              <button
-                onClick={() => router.push("/photos/create")}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[12px] font-black text-white transition-all active:scale-95"
-                style={{
-                  background: "linear-gradient(135deg,#1e40af,#3b82f6)",
-                  boxShadow: "0 6px 20px rgba(59,130,246,0.38)",
-                }}
-              >
-                <Plus size={14} /> Add Photo
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ── STATS ── */}
-        {!isLoading && items.length > 0 && (
-          <StatsStrip items={items} dark={dark} />
-        )}
-
-        {/* ── AI BANNER ── */}
-        {!isLoading && items.length > 0 && (
-          <AIBanner items={items} dark={dark} />
-        )}
-
-        {/* ── FILTER + VIEW TOGGLE ── */}
-        {!isLoading && items.length > 0 && (
-          <div className="flex items-center gap-2 mb-4">
-            {/* filter tabs */}
-            <div className="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-              <button
-                onClick={() => setFilter("ALL")}
-                className="shrink-0 px-3 py-1.5 rounded-full text-[10.5px] font-bold transition-all border"
-                style={
-                  filter === "ALL"
-                    ? {
-                        background: "rgba(59,130,246,0.15)",
-                        color: "#60a5fa",
-                        borderColor: "rgba(59,130,246,0.3)",
-                      }
-                    : {
-                        background: "transparent",
-                        color: dark ? "#475569" : "#94a3b8",
-                        borderColor: "transparent",
-                      }
-                }
-              >
-                All ({items.length})
-              </button>
-              {cats.map((c) => {
-                const cfg = CAT_CFG[c];
-                const count = items.filter(
-                  (i) => i.locationAssociation?.category === c,
-                ).length;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => setFilter(c)}
-                    className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[10.5px] font-bold transition-all border"
-                    style={
-                      filter === c
-                        ? {
-                            background: `${cfg.color}18`,
-                            color: cfg.color,
-                            borderColor: `${cfg.color}35`,
-                          }
-                        : {
-                            background: "transparent",
-                            color: dark ? "#475569" : "#94a3b8",
-                            borderColor: "transparent",
-                          }
-                    }
-                  >
-                    {cfg.icon} {cfg.label} ({count})
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* view toggle */}
-            <div
-              className={`flex gap-0.5 p-1 rounded-xl border shrink-0
-              ${dark ? "bg-white/[0.03] border-white/[0.06]" : "bg-white border-blue-100"}`}
-            >
-              {(["grid", "list"] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
-                  style={
-                    view === v
-                      ? { background: "rgba(59,130,246,0.2)", color: "#60a5fa" }
-                      : { color: dark ? "#475569" : "#94a3b8" }
-                  }
-                >
-                  {v === "grid" ? <LayoutGrid size={12} /> : <List size={12} />}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── CONTENT ── */}
-        {isLoading ? (
-          <GridSkeleton dark={dark} />
-        ) : isError ? (
-          <div
-            className={`rounded-2xl border p-6 text-center
-    ${dark ? "bg-red-500/[0.06] border-red-500/20" : "bg-red-50 border-red-200/60"}`}
-          >
-            <AlertTriangle size={24} className="text-red-400 mx-auto mb-2" />
-            <p
-              className={`text-[13px] font-bold mb-1 ${dark ? "text-white" : "text-slate-900"}`}
-            >
-              Failed to load photos
-            </p>
-            <p className="text-[11px] text-red-400 mb-3">
-              Could not connect to Google Business API
-            </p>
-            <button
-              onClick={() => refetch()}
-              className="text-[11px] font-bold text-blue-400 flex items-center gap-1 mx-auto"
-            >
-              <RefreshCw size={11} /> Try Again
-            </button>
-          </div>
-        ) : filtered.length === 0 ? (
-          filter === "ALL" ? (
-            <EmptyState
-              dark={dark}
-              onAdd={() => router.push("/photos/create")}
-            />
-          ) : (
-            <div
-              className={`rounded-2xl border p-8 text-center
-        ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100"}`}
-            >
-              <Camera size={28} className="text-blue-400/40 mx-auto mb-2" />
-              <p
-                className={`text-[12px] ${dark ? "text-slate-500" : "text-slate-400"}`}
-              >
-                No {CAT_CFG[filter as MediaCategory]?.label} photos yet
-              </p>
-            </div>
-          )
-        ) : (
-          <>
-            {/* ── AI ADD BUTTON — always visible above grid/list ── */}
-            <AIAddPhotoButton
-              dark={dark}
-              onClick={() => router.push("/photos/create")}
-            />
-
-            {view === "grid" ? (
-              <div
-                className="grid grid-cols-3 gap-2"
-                style={{
-                  animation:
-                    "pgrid-in 0.35s cubic-bezier(0.34,1.56,0.64,1) both",
-                }}
-              >
-                {filtered.map((p, i) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      animation: `pcard-in 0.3s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s both`,
-                    }}
-                  >
-                    <PhotoCard
-                      photo={p}
-                      dark={dark}
-                      view="grid"
-                      onPreview={() => openLightbox(i)}
-                      onDelete={() => setToDelete(p)}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {filtered.map((p, i) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      animation: `plist-in 0.28s ease-out ${i * 0.05}s both`,
-                    }}
-                  >
-                    <PhotoCard
-                      photo={p}
-                      dark={dark}
-                      view="list"
-                      onPreview={() => openLightbox(i)}
-                      onDelete={() => setToDelete(p)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ── CATEGORY GUIDE ── */}
-        {!isLoading && items.length > 0 && (
-          <div className="mt-6">
-            <p
-              className={`text-[10px] font-black uppercase tracking-widest mb-3 ${dark ? "text-slate-600" : "text-slate-400"}`}
-            >
-              Coverage Guide
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {(
-                [
-                  "COVER",
-                  "LOGO",
-                  "EXTERIOR",
-                  "INTERIOR",
-                  "PRODUCT",
-                  "AT_WORK",
-                ] as MediaCategory[]
-              ).map((c) => {
-                const cfg = CAT_CFG[c];
-                const count = items.filter(
-                  (i) => i.locationAssociation?.category === c,
-                ).length;
-                const targets: Record<string, number> = {
-                  COVER: 1,
-                  LOGO: 1,
-                  EXTERIOR: 5,
-                  INTERIOR: 8,
-                  PRODUCT: 10,
-                  AT_WORK: 3,
-                };
-                const target = targets[c] ?? 3;
-                const pct = Math.min(100, Math.round((count / target) * 100));
-                return (
-                  <div
-                    key={c}
-                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border
-                    ${dark ? "bg-[#0a1020] border-blue-900/30" : "bg-white border-blue-100/80"}`}
-                  >
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: `${cfg.color}15`, color: cfg.color }}
-                    >
-                      {cfg.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between mb-0.5">
-                        <span
-                          className={`text-[10px] font-bold ${dark ? "text-slate-300" : "text-slate-700"}`}
-                        >
-                          {cfg.label}
-                        </span>
-                        <span
-                          className="text-[9.5px] font-bold"
-                          style={{ color: cfg.color }}
-                        >
-                          {count}/{target}
-                        </span>
-                      </div>
-                      <div
-                        className={`h-1 rounded-full overflow-hidden ${dark ? "bg-white/[0.05]" : "bg-blue-50"}`}
-                      >
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, background: cfg.color }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── LIGHTBOX ── */}
-      {lightbox && (
-        <Lightbox
-          photos={lightbox.photos}
-          index={lightbox.index}
-          dark={dark}
-          onClose={() => setLightbox(null)}
-          onDelete={(p) => {
-            setLightbox(null);
-            setToDelete(p);
-          }}
-        />
-      )}
-
-      {/* ── DELETE MODAL ── */}
-      {toDelete && (
-        <DeleteModal
-          photo={toDelete}
-          dark={dark}
-          loading={deleteMut.isPending}
-          onCancel={() => setToDelete(null)}
-          onConfirm={() => deleteMut.mutate(toDelete.name)}
-        />
-      )}
-
-      <style>{`
-        @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
-        .no-scrollbar::-webkit-scrollbar { display:none }
-        .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none }
-      `}</style>
-
-      <style>{`
-        @keyframes spin     { from{transform:rotate(0)} to{transform:rotate(360deg)} }
-        @keyframes pgrid-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-        @keyframes pcard-in { from{opacity:0;transform:scale(0.88)} to{opacity:1;transform:scale(1)} }
-        @keyframes plist-in { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:none} }
-        .no-scrollbar::-webkit-scrollbar { display:none }
-        .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none }
-        `}</style>
-    </div>
-  );
-}
