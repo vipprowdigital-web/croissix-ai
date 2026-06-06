@@ -141,22 +141,9 @@ export async function GET(req: Request) {
       </head>
       <body>
         <div class="container">
-          
           <h1>Successfully Connected!</h1>
           <p>You can now safely close this window<br>and return to the app.</p>
-          
-          // <button class="btn" onclick="window.location.href='croissix://oauth-success?linked=true'">
-            // Back to Croissix
-          // </button>
         </div>
-
-        // <script>
-          // Attempt auto-redirect immediately
-          // window.location.href = "croissix://oauth-success?linked=true";
-          
-          // Optional: Some browsers allow self.close() if the window was opened via JS, 
-          // but it's unreliable, so the manual button/message is the safest UX.
-        // </script>
       </body>
     </html>
     `,
@@ -175,3 +162,14 @@ export async function GET(req: Request) {
     );
   }
 }
+
+// <button class="btn" onclick="window.location.href='croissix://oauth-success?linked=true'">
+//            Back to Croissix
+//            </button>
+// <script>
+// Attempt auto-redirect immediately
+// window.location.href = "croissix://oauth-success?linked=true";
+
+// Optional: Some browsers allow self.close() if the window was opened via JS,
+// but it's unreliable, so the manual button/message is the safest UX.
+// </script>
