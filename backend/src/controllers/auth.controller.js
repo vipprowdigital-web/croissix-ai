@@ -618,7 +618,7 @@ export const facebookAuthCallback = async (req, res) => {
   }
 
   try {
-    const exactRedirectUri = `https://2f30-2405-201-3025-d0bc-f5d1-acfe-aa05-4daa.ngrok-free.app/api/v1/auth/facebook`;
+    const exactRedirectUri = `https://b98e-2405-201-3025-d0bc-f8c2-ca43-dc2-1940.ngrok-free.app/api/v1/auth/facebook`;
     const tokenExchangeUrl = `https://graph.facebook.com/v25.0/oauth/access_token`;
 
     // 1. Exchange temporary code for short-lived token
@@ -847,7 +847,7 @@ export const disconnectFacebookProfile = async (req, res) => {
       {
         $unset: {
           facebookUserId: "",
-          facebookUserAccessToken: "",
+          facebookAccessToken: "",
           facebookPageId: "",
           facebookPageToken: "",
           facebookPageName: "",

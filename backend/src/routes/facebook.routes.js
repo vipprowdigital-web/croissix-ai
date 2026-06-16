@@ -5,11 +5,14 @@ import {
   createPost,
   deleteComment,
   deletePost,
+  getConversationThread,
   getFacebookPostDetails,
   getFacebookStatus,
   getFeedCommentsUnified,
   getPageFeedPerformance,
+  getPageMessages,
   replyToComment,
+  sendMessage,
   updateComment,
 } from "../controllers/facebook.controller.js";
 
@@ -30,5 +33,10 @@ router.post("/comments/reply", ensureAuth, replyToComment);
 router.post("/comments/reply/bulk", ensureAuth, bulkReplyToComments);
 router.put("/comments/:id", ensureAuth, updateComment);
 router.delete("/comments/:id", ensureAuth, deleteComment);
+
+// facebook messages
+router.get("/messages", ensureAuth, getPageMessages);
+router.post("/messages/send", ensureAuth, sendMessage);
+router.get("/messages/:conversationId", ensureAuth, getConversationThread);
 
 export default router;

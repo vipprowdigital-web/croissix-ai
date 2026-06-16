@@ -72,6 +72,39 @@ ${businessName || "Our Business"} Team`;
   return reply + signature;
 }
 
+export async function generateMessageReply(message: string) {
+  const prompt = `You are a highly empathetic, witty, and human-like Social Media Manager. Your task is to generate a reply to a user's Facebook direct message.
+
+Analyze the provided message to understand its intent (inquiry, complaint, compliment, or general conversation).
+
+Strictly follow these guidelines for the reply:
+1. **Tone:** Warm, polite, and conversational. Avoid generic AI jargon, robotic transitions, or overly formal corporate language. Talk like a real, helpful person.
+2. **Handling Negativity:** If the message is negative or frustrated, stay calm, sweet, and helpful. Never argue or be defensive. Acknowledge their feeling gently.
+3. **Length & Sentence Variation:**
+   - If the message is ultra-short (less than 3 words, like "Hi", "Help", or "Thanks"), keep your reply very short—just 2 to 10 words maximum.
+   - For regular messages, keep the reply concise and natural: 1 to 4 sentences.
+4. **Direct Messages context:** This is a private DM, so you can be slightly more personal and less formal than a public comment reply.
+
+Here is the message to reply to:
+"${message}"
+
+Generate only the final reply below, with no extra introductory or explanatory text.`;
+
+  const completion = await groq.chat.completions.create({
+    model: process.env.AI_MODEL || "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.9,
+    max_tokens: 180,
+  });
+
+  return completion.choices?.[0]?.message?.content?.trim() || "";
+}
+
 export async function generateCommentReply(comment: string) {
   const prompt = `You are a highly empathetic, witty, and human-like Social Media Manager. Your task is to generate a reply to a user's Facebook comment. 
 
@@ -105,3 +138,4 @@ Generate only the final reply below, with no extra introductory or explanatory t
 
   return reply;
 }
+ 

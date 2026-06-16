@@ -953,61 +953,7 @@ export const deletePost = async (req, res) => {
 // Body: { message, link?, attached_media?, scheduled_publish_time? }
 //   attached_media: [{ media_fbid: string }]  (IDs from the Page's photo/video uploads)
 //   scheduled_publish_time: Unix timestamp (seconds) — omit to publish immediately
-// export const createPost = async (req, res) => {
-//   try {
-//     const { message, link, attached_media, scheduled_publish_time } = req.body;
 
-//     if (!message?.trim() && !attached_media?.length && !link) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "At least one of message, link, or attached_media is required.",
-//       });
-//     }
-
-//     const userDoc = await User.findById(req.user?.id);
-//     if (!userDoc?.facebookPageId || !userDoc?.facebookPageToken) {
-//       return res.status(400).json({ success: false, message: "Facebook integration not active." });
-//     }
-
-//     const { facebookPageId, facebookPageToken } = userDoc;
-
-//     const payload = {};
-//     if (message?.trim()) payload.message = message.trim();
-//     if (link) payload.link = link;
-//     if (Array.isArray(attached_media) && attached_media.length > 0) {
-//       payload.attached_media = attached_media;
-//     }
-
-//     const isScheduled = !!scheduled_publish_time;
-//     if (isScheduled) {
-//       payload.published = false;
-//       payload.scheduled_publish_time = scheduled_publish_time;
-//     }
-
-//     const response = await axios.post(
-//       `${facebookBaseUrl}/${facebookPageId}/feed`,
-//       payload,
-//       {
-//         params: { access_token: facebookPageToken },
-//         timeout: 15000,
-//       },
-//     );
-
-//     return res.status(201).json({
-//       success: true,
-//       message: isScheduled ? "Post scheduled successfully." : "Post published successfully.",
-//       data: { postId: response.data.id },
-//     });
-//   } catch (err) {
-//     console.error("[createPost] Error:", err?.response?.data || err.message);
-//     const fbError = err?.response?.data?.error;
-//     return res.status(fbError ? 400 : 500).json({
-//       success: false,
-//       message: fbError?.message || err.message || "Failed to create post.",
-//       fbErrorCode: fbError?.code,
-//     });
-//   }
-// };
 export const createPost = async (req, res) => {
   try {
     const { message, link, attached_media, scheduled_publish_time } = req.body;
@@ -1096,6 +1042,220 @@ export const createPost = async (req, res) => {
       success: false,
       message: fbError?.message || err.message || "Failed to create post.",
       fbErrorCode: fbError?.code,
+    });
+  }
+};
+
+// Fetches Facebook Page Messenger conversations and their messages
+// Requires: pages_messaging scope + valid page access token stored in DB
+export const getPageMessages = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // --- Step 1: Get the stored page access token from DB ---
+    const user = await User.findById(userId);
+    // console.log("user: ", user);
+
+    if (!user?.facebookPageToken || !user?.facebookPageId) {
+      return res.status(400).json({
+        success: false,
+        message: "Facebook page not connected. Please reconnect.",
+      });
+    }
+
+    const PAGE_ACCESS_TOKEN = user.facebookPageToken;
+    const PAGE_ID = user.facebookPageId;
+
+    // --- Step 2: Fetch conversations list from Graph API ---
+    // Each conversation = one thread with a user
+    const conversationsRes = await axios.get(
+      `${facebookBaseUrl}/${PAGE_ID}/conversations`,
+      {
+        params: {
+          fields: "id,snippet,updated_time,unread_count,participants",
+          access_token: PAGE_ACCESS_TOKEN,
+          limit: 25, // adjust as needed
+        },
+      },
+    );
+
+    const conversations = conversationsRes.data?.data || [];
+
+    // --- Step 3: For each conversation, fetch the latest message details ---
+    const messagesWithDetails = await Promise.all(
+      conversations.map(async (conv) => {
+        try {
+          // Fetch messages inside this conversation thread
+          const msgRes = await axios.get(
+            `${facebookBaseUrl}/${conv.id}/messages`,
+            {
+              params: {
+                fields: "id,message,from,created_time",
+                access_token: PAGE_ACCESS_TOKEN,
+                limit: 1, // only latest message for list view
+              },
+            },
+          );
+
+          const latestMsg = msgRes.data?.data?.[0] || null;
+
+          // Find the participant who is NOT the page (i.e., the customer)
+          const customer = conv.participants?.data?.find(
+            (p) => p.id !== PAGE_ID,
+          );
+
+          return {
+            conversationId: conv.id,
+            sender: customer?.name || "Unknown User",
+            senderId: customer?.id || null,
+            preview: conv.snippet || latestMsg?.message || "",
+            time: conv.updated_time,
+            unreadCount: conv.unread_count || 0,
+            unread: (conv.unread_count || 0) > 0,
+          };
+        } catch (err) {
+          // If a single conversation fetch fails, skip it gracefully
+          console.error(
+            `Failed to fetch messages for conv ${conv.id}:`,
+            err.message,
+          );
+          return null;
+        }
+      }),
+    );
+
+    // Filter out any failed conversations
+    const filtered = messagesWithDetails.filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        conversations: filtered,
+        total: filtered.length,
+        unreadCount: filtered.filter((m) => m.unread).length,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "getPageMessages error:",
+      error?.response?.data || error.message,
+    );
+
+    // Handle token expiry specifically
+    if (error?.response?.data?.error?.code === 190) {
+      return res.status(401).json({
+        success: false,
+        message: "Facebook access token expired. Please reconnect your page.",
+        code: "TOKEN_EXPIRED",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch messages.",
+      error: error?.response?.data?.error || error.message,
+    });
+  }
+};
+
+// --- Get full thread messages for a single conversation ---
+export const getConversationThread = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId } = req.params;
+
+    const user = await User.findById(userId);
+
+    if (!user?.facebookPageToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Page not connected." });
+    }
+
+    const PAGE_ACCESS_TOKEN = user.facebookPageToken;
+
+    // Fetch all messages in this conversation thread
+    const msgRes = await axios.get(
+      `${facebookBaseUrl}/${conversationId}/messages`,
+      {
+        params: {
+          fields: "id,message,from,created_time",
+          access_token: PAGE_ACCESS_TOKEN,
+          limit: 50,
+        },
+      },
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        messages: msgRes.data?.data || [],
+        paging: msgRes.data?.paging || null,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "getConversationThread error:",
+      error?.response?.data || error.message,
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch conversation thread.",
+      error: error?.response?.data?.error || error.message,
+    });
+  }
+};
+
+// --- Send a reply to a conversation ---
+export const sendMessage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { recipientId, message } = req.body;
+
+    if (!recipientId || !message?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "recipientId and message are required.",
+      });
+    }
+
+    const user = await User.findById(userId).select(
+      "facebookPageToken facebookPageId",
+    );
+
+    if (!user?.facebookPageToken || !user?.facebookPageId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Page not connected." });
+    }
+
+    const PAGE_ACCESS_TOKEN = user.facebookPageToken;
+    const PAGE_ID = user.facebookPageId;
+
+    // Send message via Graph API
+    // NOTE: Only works within the 24-hour messaging window
+    const sendRes = await axios.post(
+      `${facebookBaseUrl}/${PAGE_ID}/messages`,
+      {
+        recipient: { id: recipientId },
+        message: { text: message.trim() },
+        messaging_type: "RESPONSE", // RESPONSE = reply within 24hr window
+      },
+      {
+        params: { access_token: PAGE_ACCESS_TOKEN },
+      },
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: sendRes.data,
+    });
+  } catch (error) {
+    console.error("sendMessage error:", error?.response?.data || error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send message.",
+      error: error?.response?.data?.error || error.message,
     });
   }
 };
