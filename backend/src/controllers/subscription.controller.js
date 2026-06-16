@@ -224,7 +224,7 @@ export const getMySubscription = async (req, res) => {
     const sub = await Subscription.findOne({ user: req.user.id })
       .sort({ createdAt: -1 })
       .lean();
-    console.log("sub: ", sub);
+    // console.log("sub: ", sub);
 
     if (!sub) {
       return res.json(null);

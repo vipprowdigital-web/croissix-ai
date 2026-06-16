@@ -1389,6 +1389,7 @@ function ActivityFeed({
 ═══════════════════════════════════════════════════════════════ */
 function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
   const [notified, setNotified] = useState(false);
+  const router = useRouter();
   return (
     <motion.div
       variants={fadeUp}
@@ -1480,12 +1481,13 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
             </div>
           </div>
           <div className="absolute inset-0 flex items-center">
-            <div
+            <button
               className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-[11.5px] font-bold border
               ${isDark ? "bg-[#1877F2]/15 text-blue-300 border-[#1877F2]/25" : "bg-[#1877F2]/10 text-blue-700 border-[#1877F2]/20"}`}
+              onClick={() => router.push("/facebook")}
             >
               <Lock size={11} /> Connect Facebook to unlock
-            </div>
+            </button>
           </div>
         </div>
       </div>

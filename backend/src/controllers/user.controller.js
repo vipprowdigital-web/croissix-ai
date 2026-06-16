@@ -11,10 +11,10 @@ export const getProfile = async (req, res) => {
     console.log("Inside getProfile...... from backend");
 
     const userId = req.user?.id;
-    console.log("userId: ", userId);
+    // console.log("userId: ", userId);
 
     if (!userId) {
-      console.log("user id : ", userId);
+      // console.log("user id : ", userId);
 
       console.log("Unauthorized. Please login again.");
 
@@ -24,7 +24,7 @@ export const getProfile = async (req, res) => {
     }
 
     const user = await User.findById(userId).select("-password").lean();
-    console.log("User: ", user);
+    // console.log("User: ", user);
 
     if (!user) {
       return res.status(404).json({

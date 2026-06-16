@@ -407,9 +407,9 @@ function SubscriptionGate({
           if (callbackUrl) {
             const decoded = decodeURIComponent(callbackUrl);
             console.log("Redirecting to mobile callback:", decoded);
-            // setTimeout(() => {
-            window.location.href = decoded;
-            // }, 1200);
+            setTimeout(() => {
+              window.location.href = decoded;
+            }, 1200);
           }
 
           // const params = new URLSearchParams(window.location.search);
@@ -1177,25 +1177,40 @@ function GuardInner({ children }: { children: React.ReactNode }) {
   useEffect(() => setMounted(true), []);
   const dark = mounted && resolvedTheme === "dark";
 
-  // searchParams.get("callback") returns the decoded value, e.g. "croissix://subscription/success"
+  // Read callback from searchParams for passing to SubscriptionGate (safe after hydration)
   const callbackRaw = searchParams.get("callback");
 
   useEffect(() => {
+    // Read directly from window.location to avoid useSearchParams hydration timing issues.
+    // searchParams may be null on the first effect run (before hydration resolves), which
+    // would cause the redirect to /login to silently drop the callback param.
+    const params = new URLSearchParams(window.location.search);
+    const callback = params.get("callback");
+
     const token = getToken();
     if (!token) {
-      // ── KEY FIX: forward the callback param to /login ──
-      // Without this the param is lost and the web app never redirects back
-      const loginUrl = callbackRaw
-        ? `/login?callback=${encodeURIComponent(callbackRaw)}`
+      const loginUrl = callback
+        ? `/login?callback=${encodeURIComponent(callback)}`
         : "/login";
       router.replace(loginUrl);
       return;
     }
     setAuthed(true);
-  }, [router, callbackRaw]);
+  }, [router]);
 
   const { isActive, isLoading: subLoading } = useSubscription();
   const isExempt = EXEMPT.some((p) => pathname?.startsWith(p));
+
+  // If subscription is already active and we have a mobile callback, fire the redirect.
+  // This handles the case where the user was already subscribed before arriving at the gate.
+  useEffect(() => {
+    if (!authed || subLoading || !isActive) return;
+    const params = new URLSearchParams(window.location.search);
+    const callback = params.get("callback");
+    if (callback) {
+      window.location.href = callback;
+    }
+  }, [authed, subLoading, isActive]);
 
   if (!authed) return null;
   if (subLoading) return <AppSkeleton dark={dark} />;

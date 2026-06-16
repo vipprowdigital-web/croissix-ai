@@ -12,6 +12,11 @@ export interface User {
   googleLocationName: string;
   googleLocationCategory?: string;
   businessCategory?: string;
+  facebookPageAvatar?: string;
+  facebookPageName?: string;
+  facebookPageToken?: string;
+  facebookAccessToken?: string;
+  instagramBusinessAccountId?: string;
   createdAt: string;
   updatedAt: string;
 }

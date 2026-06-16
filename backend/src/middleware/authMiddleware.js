@@ -7,7 +7,7 @@ import User from "../models/user.model.js";
 export const ensureAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    console.log("Auth Header: ", authHeader);
+    // console.log("Auth Header: ", authHeader);
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       console.log("Inside !authHeader");

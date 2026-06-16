@@ -341,9 +341,6 @@ export const linkGoogleAccount = async (req, res) => {
 // -------------------------
 // Refresh Token (JWT)
 // -------------------------
-// -------------------------
-// Refresh Token (JWT)
-// -------------------------
 export const refreshToken = async (req, res) => {
   try {
     const { refreshToken: incomingToken } = req.body;
@@ -621,7 +618,7 @@ export const facebookAuthCallback = async (req, res) => {
   }
 
   try {
-    const exactRedirectUri = `https://5bb9-2405-201-3025-d0bc-1d3c-dbcd-fd9-6458.ngrok-free.app/api/v1/auth/facebook`;
+    const exactRedirectUri = `https://2f30-2405-201-3025-d0bc-f5d1-acfe-aa05-4daa.ngrok-free.app/api/v1/auth/facebook`;
     const tokenExchangeUrl = `https://graph.facebook.com/v25.0/oauth/access_token`;
 
     // 1. Exchange temporary code for short-lived token
