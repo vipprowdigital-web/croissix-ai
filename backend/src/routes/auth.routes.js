@@ -3,6 +3,7 @@ import {
   googleAuth,
   googleAuthCallback,
   googleReviews,
+  facebookOauthInitiate,
   facebookAuthCallback,
   linkGoogleAccount,
   login,
@@ -25,8 +26,9 @@ router.get("/google", googleAuth);
 router.get("/google/callback", googleAuthCallback);
 router.get("/google/reviews", googleReviews);
 
-// For facebook outh
-router.get("/facebook", facebookAuthCallback);
+// Facebook OAuth
+router.get("/facebook/oauth", ensureAuth, facebookOauthInitiate); // initiates OAuth with correct scopes
+router.get("/facebook", facebookAuthCallback);                     // Meta callback — no auth, called by Facebook
 router.post("/facebook/connect-page", ensureAuth, connectSingleFacebookPage);
 router.post("/facebook/disconnect-page", ensureAuth, disconnectFacebookProfile);
 

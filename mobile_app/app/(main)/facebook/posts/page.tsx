@@ -326,11 +326,13 @@ function PostCard({
   dark,
   onDelete,
   isDeleting,
+  priority,
 }: {
   post: FacebookPost;
   dark: boolean;
   onDelete: (p: FacebookPost) => void;
   isDeleting: boolean;
+  priority?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -352,10 +354,11 @@ function PostCard({
       {/* Thumbnail strip */}
       {post.mediaUrl && (
         <div className="relative h-44 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={post.mediaUrl}
             alt=""
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -1009,12 +1012,13 @@ export default function FacebookPostsPage() {
             {/* ── Post grid ── */}
             {visible.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {visible.map((p) => (
+                {visible.map((p, i) => (
                   <PostCard
                     key={p.id}
                     post={p}
                     dark={dark}
                     onDelete={setDeleteTarget}
+                    priority={i < 3}
                     isDeleting={
                       deleteMutation.isPending &&
                       deleteMutation.variables === p.id

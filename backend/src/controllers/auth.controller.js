@@ -6,6 +6,12 @@ import { sendWelcomeEmail } from "./email.servce.js";
 import { google } from "googleapis";
 import axios from "axios";
 
+// The redirect URI registered in the Facebook app's OAuth settings.
+// Set FACEBOOK_REDIRECT_URI in .env; falls back to the dev ngrok URL.
+const FB_REDIRECT_URI =
+  process.env.FACEBOOK_REDIRECT_URI ||
+  "https://8827-2405-201-3025-d0bc-c813-49b2-210a-b662.ngrok-free.app/api/v1/auth/facebook";
+
 /*
 ========================================
 GOOGLE OAUTH CLIENT
@@ -598,16 +604,75 @@ export const googleReviews = async (req, res) => {
   }
 };
 
+// GET /api/v1/auth/facebook/oauth
+// Protected by ensureAuth middleware — returns the Facebook OAuth URL as JSON so the
+// frontend can navigate to it after a proper authenticated fetch (with auto token-refresh).
+// Query params:
+//   - callback: the web URL to return to after OAuth (optional; mobile uses croissix:// deep link)
+export const facebookOauthInitiate = (req, res) => {
+  const userId = req.user?.id;
+  const { callback } = req.query;
+
+  const SCOPES = [
+    "pages_show_list",
+    "pages_read_engagement",
+    "pages_read_user_content",
+    "pages_manage_posts",
+    "instagram_basic",
+    "instagram_content_publishing",
+    "instagram_manage_comments",
+    "instagram_manage_messages",
+    "pages_messaging",
+  ].join(",");
+
+  const redirectUri = FB_REDIRECT_URI;
+  const state = JSON.stringify({ userId, callback: callback || "" });
+
+  console.log("callback Url: ", callback);
+  console.log("Redirect uri: ", redirectUri);
+
+  const fbUrl =
+    `https://www.facebook.com/dialog/oauth` +
+    `?client_id=${process.env.FACEBOOK_APP_ID}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${encodeURIComponent(SCOPES)}` +
+    `&state=${encodeURIComponent(state)}`;
+
+  return res.json({ url: fbUrl });
+};
+
 export const facebookAuthCallback = async (req, res) => {
   // code = auth code from Meta
-  // state = the user ID we forwarded from the mobile app
-  const { code, state: appUserId } = req.query;
-  // console.log("Query: ", req.query);
+  // state = JSON { userId, callback } (web) OR raw userId string (mobile legacy)
+  const { code, state: rawState } = req.query;
 
   if (!code) {
     return res.status(400).json({
       message: "Authorization code missing from Meta redirect callback.",
     });
+  }
+
+  if (!rawState) {
+    return res.status(400).json({
+      message: "Application context state missing from callback.",
+    });
+  }
+
+  // Parse state — try base64 first (web), then URL-encoded JSON, then plain userId (mobile legacy)
+  let appUserId, callbackUrl;
+  try {
+    const parsed = JSON.parse(Buffer.from(rawState, "base64").toString("utf8"));
+    appUserId = parsed.userId;
+    callbackUrl = parsed.callback || "";
+  } catch {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(rawState));
+      appUserId = parsed.userId;
+      callbackUrl = parsed.callback || "";
+    } catch {
+      appUserId = rawState;
+      callbackUrl = "";
+    }
   }
 
   if (!appUserId) {
@@ -618,7 +683,7 @@ export const facebookAuthCallback = async (req, res) => {
   }
 
   try {
-    const exactRedirectUri = `https://b98e-2405-201-3025-d0bc-f8c2-ca43-dc2-1940.ngrok-free.app/api/v1/auth/facebook`;
+    const exactRedirectUri = FB_REDIRECT_URI;
     const tokenExchangeUrl = `https://graph.facebook.com/v25.0/oauth/access_token`;
 
     // 1. Exchange temporary code for short-lived token
@@ -675,7 +740,10 @@ export const facebookAuthCallback = async (req, res) => {
     const rawPagesArray = pagesResponse.data.data || [];
 
     if (rawPagesArray.length === 0) {
-      return res.redirect(`croissix://FacebookScreen?error=no_pages_found`);
+      const noPagesDest = callbackUrl
+        ? `${callbackUrl}${callbackUrl.includes("?") ? "&" : "?"}error=no_pages_found`
+        : `croissix://FacebookScreen?error=no_pages_found`;
+      return res.redirect(noPagesDest);
     }
 
     // Temporarily stash the long-lived user token so we can use it to verify their choice in Step 3
@@ -701,7 +769,13 @@ export const facebookAuthCallback = async (req, res) => {
 
     console.log("Encoded Pages Payload:", encodedPagesList);
 
-    // 5. Send the full list directly back to the Mobile App interface!
+    // 5. Redirect back — web app uses callbackUrl, mobile uses deep link
+    if (callbackUrl) {
+      const separator = callbackUrl.includes("?") ? "&" : "?";
+      return res.redirect(
+        `${callbackUrl}${separator}status=select_page&pages=${encodedPagesList}`,
+      );
+    }
     return res.redirect(
       `croissix://FacebookScreen?status=select_page&pages=${encodedPagesList}`,
     );
@@ -746,7 +820,10 @@ export const facebookAuthCallback = async (req, res) => {
       "Meta Token Exchange Failure:",
       error.response?.data || error.message,
     );
-    return res.redirect(`croissix://?error=exchange_failed`);
+    const errorDest = callbackUrl
+      ? `${callbackUrl}${callbackUrl.includes("?") ? "&" : "?"}error=exchange_failed`
+      : `croissix://?error=exchange_failed`;
+    return res.redirect(errorDest);
   }
 };
 

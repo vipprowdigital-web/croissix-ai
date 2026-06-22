@@ -27,6 +27,9 @@ import {
   Share2,
   MessageCircleMore,
 } from "lucide-react";
+import { API } from "@/lib/axiosClient";
+import { useUser } from "@/features/user/hook/useUser";
+import Image from "next/image";
 import { getToken } from "@/lib/token";
 
 /* ═══════════════════════════════════════════════════════
@@ -89,6 +92,9 @@ const CONTENT_TYPE_CFG: Record<
   Link: { icon: <LinkIcon size={13} />, color: "#F59E0B" },
   Text: { icon: <NotebookText size={13} />, color: "#1877F2" },
 };
+
+const ngrokUrl =
+  "https://c7f8-2405-201-3025-d0bc-c813-49b2-210a-b662.ngrok-free.app/api/v1";
 
 /* ═══════════════════════════════════════════════════════
    API
@@ -254,12 +260,21 @@ function TopPostBanner({
 
       {/* Post image — mirrors mobile Image block */}
       {post.mediaUrl && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={post.mediaUrl}
-          alt=""
-          className="w-full h-40 object-cover rounded-xl mt-2 mb-1"
-        />
+        <div className="relative w-full h-40 mt-2 mb-1">
+          <Image
+            src={post.mediaUrl}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 600px"
+            className="object-cover rounded-xl"
+          />
+        </div>
+        // <img
+        //   src={post.mediaUrl}
+        //   alt=""
+        //   className="w-full h-40 object-cover rounded-xl mt-2 mb-1"
+        // />
       )}
 
       {/* Key metrics row — matches mobile: Reach / Engagements / ER */}
@@ -341,9 +356,16 @@ function PostCard({ post, dark }: { post: EnhancedPostData; dark: boolean }) {
         {/* Thumbnail or placeholder icon — mirrors mobile */}
         {post.mediaUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          // <img
+          //   src={post.mediaUrl}
+          //   alt=""
+          //   className="w-16 h-16 rounded-xl object-cover shrink-0"
+          // />
+          <Image
             src={post.mediaUrl}
             alt=""
+            width={64}
+            height={64}
             className="w-16 h-16 rounded-xl object-cover shrink-0"
           />
         ) : (
@@ -643,9 +665,17 @@ function FacebookAnalyticsSection({
             {/* Avatar */}
             {pageProfile.pictureUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img
+              // <img
+              //   src={pageProfile.pictureUrl}
+              //   alt={pageProfile.name}
+              //   className="w-14 h-14 rounded-full object-cover shrink-0"
+              // />
+              <Image
                 src={pageProfile.pictureUrl}
                 alt={pageProfile.name}
+                width={56}
+                height={56}
+                priority
                 className="w-14 h-14 rounded-full object-cover shrink-0"
               />
             ) : (
@@ -754,9 +784,9 @@ function NotConnectedView({
   onConnect: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
       <div
-        className="w-24 h-24 rounded-3xl flex items-center justify-center mb-6"
+        className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
         style={{
           background: "rgba(37,99,235,0.12)",
           border: "1px solid rgba(59,130,246,0.25)",
@@ -787,7 +817,7 @@ function NotConnectedView({
       </p>
       <button
         onClick={onConnect}
-        className="flex items-center gap-2 px-7 py-3.5 rounded-2xl text-[14px] font-black text-white transition-all active:scale-95"
+        className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[12px] sm:text-[14px] font-black text-white transition-all active:scale-95"
         style={{
           background: "linear-gradient(135deg,#1e40af,#3b82f6)",
           boxShadow: "0 8px 24px rgba(59,130,246,0.38)",
@@ -993,6 +1023,7 @@ export default function FacebookPage() {
 
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: currentUser } = useUser();
 
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [availablePages, setAvailablePages] = useState<FacebookPage[]>([]);
@@ -1029,15 +1060,13 @@ export default function FacebookPage() {
   const handleSelectPage = useCallback(
     async (pageId: string) => {
       try {
-        const res = await fetch("/api/auth/facebook/connect-page", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-            "Content-Type": "application/json",
+        const { data } = await API.post(
+          `${ngrokUrl}/auth/facebook/connect-page`,
+          {
+            selectedPageId: pageId,
           },
-          body: JSON.stringify({ selectedPageId: pageId }),
-        });
-        if (res.ok) {
+        );
+        if (data?.success) {
           setShowPageSelect(false);
           setAvailablePages([]);
           queryClient.invalidateQueries({ queryKey: ["facebook-status"] });
@@ -1049,11 +1078,40 @@ export default function FacebookPage() {
     [queryClient],
   );
 
-  /* ── OAuth connect redirect ── */
+  const FACEBOOK_SCOPES = [
+    "pages_show_list",
+    "pages_read_engagement",
+    "pages_read_user_content",
+    "pages_manage_posts",
+    "instagram_basic",
+    "instagram_content_publishing",
+    "instagram_manage_comments",
+    "instagram_manage_messages",
+    "pages_messaging",
+  ].join(",");
+
+  /* ── OAuth connect — mirrors mobile's direct-build pattern,
+     no backend round-trip to fetch the URL ── */
   const handleConnect = useCallback(() => {
-    const callbackUrl = encodeURIComponent(window.location.href);
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/facebook/oauth?callback=${callbackUrl}`;
-  }, []);
+    if (!currentUser?.id) {
+      console.error("Cannot start Facebook OAuth — user not loaded yet.");
+      return;
+    }
+
+    const redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI!;
+    const state = btoa(
+      JSON.stringify({ userId: currentUser.id, callback: window.location.href }),
+    );
+
+    const fbUrl =
+      `https://www.facebook.com/dialog/oauth` +
+      `?client_id=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&scope=${encodeURIComponent(FACEBOOK_SCOPES)}` +
+      `&state=${state}`;
+
+    window.location.href = fbUrl;
+  }, [currentUser]);
 
   /* ── Parse URL params after OAuth redirect returns ── */
   useEffect(() => {

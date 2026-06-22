@@ -391,12 +391,14 @@ function PostCard({
   onDelete,
   onEdit,
   isDeleting,
+  priority,
 }: {
   post: Post;
   isDark: boolean;
   onDelete: (p: Post) => void;
   onEdit: (p: Post) => void;
   isDeleting: boolean;
+  priority?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -416,6 +418,7 @@ function PostCard({
             src={post.imageUrl}
             alt="Post image"
             fill
+            priority={priority}
             className="object-cover"
             unoptimized
           />
@@ -1021,11 +1024,12 @@ export default function GooglePostsPage() {
           {/* post grid: 1-col mobile → 2-col desktop */}
           {visible.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
-              {visible.map((p) => (
+              {visible.map((p, i) => (
                 <PostCard
                   key={p.name}
                   post={p}
                   isDark={isDark}
+                  priority={i < 4}
                   onDelete={setDeleteTarget}
                   onEdit={(p) =>
                     router.push(`/post/edit/${encodeURIComponent(p.name)}`)

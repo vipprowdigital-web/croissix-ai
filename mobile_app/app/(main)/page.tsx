@@ -1618,6 +1618,7 @@ function FacebookComingSoonCard({ isDark }: { isDark: boolean }) {
 ═══════════════════════════════════════════════════════════════ */
 function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
   const [notified, setNotified] = useState(false);
+  const router = useRouter();
   return (
     <motion.div
       variants={fadeUp}
@@ -1733,6 +1734,7 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
                       borderColor: "rgba(225,48,108,0.2)",
                     }
               }
+              onClick={() => router.push("/instagram")}
             >
               <Lock size={11} /> Connect Instagram to unlock
             </div>
