@@ -300,9 +300,13 @@ function CouponInput({
 function SubscriptionGate({
   dark,
   callbackUrl,
+  onSubscribed, // added second time - remove if causes problem
+  onEnter, // added second time - remove if causes problem
 }: {
   dark: boolean;
-  callbackUrl: string | null; // <- receives the mobile callback
+  callbackUrl: string | null;
+  onSubscribed: () => void; // added second time - remove if causes problem
+  onEnter: () => void; // added second time - remove if causes problem
 }) {
   const [screen, setScreen] = useState<Screen>("plans");
   const [coupon, setCoupon] = useState<{
@@ -375,6 +379,14 @@ function SubscriptionGate({
 
     // console.log("Subscription id: ", rzSubId);
 
+    // if (callbackUrl) {
+    //   const decoded = decodeURIComponent(callbackUrl);
+    //   console.log("Redirecting to mobile callback:", decoded);
+    //   setTimeout(() => {
+    //     window.location.href = decoded;
+    //   }, 1200);
+    // }
+
     const rzp = new window.Razorpay({
       key: RZP_KEY,
       subscription_id: rzSubId,
@@ -389,7 +401,7 @@ function SubscriptionGate({
       theme: { color: "#f59e0b" },
       handler: async (resp: any) => {
         try {
-          console.log("resp: ", resp);
+          // console.log("resp: ", resp);
           await verifySubscription({
             razorpay_payment_id: resp.razorpay_payment_id,
             razorpay_subscription_id: resp.razorpay_subscription_id,
@@ -397,6 +409,10 @@ function SubscriptionGate({
             planId,
           });
           // console.log("Verified successfullyy..");
+          // Signal GuardInner to keep SubscriptionGate mounted even after isActive
+          // flips true — must happen before refetchSubscription() to avoid the
+          // guard switching to children and unmounting this component first.
+          onSubscribed();
           await refetchSubscription();
           setScreen("success");
           // ---------------------------
@@ -404,13 +420,13 @@ function SubscriptionGate({
           // Check if came from mobile app
 
           // ── Redirect back to mobile app if callback present ──
-          if (callbackUrl) {
-            const decoded = decodeURIComponent(callbackUrl);
-            console.log("Redirecting to mobile callback:", decoded);
-            setTimeout(() => {
-              window.location.href = decoded;
-            }, 1200);
-          }
+          // if (callbackUrl) {
+          //   const decoded = decodeURIComponent(callbackUrl);
+          //   console.log("Redirecting to mobile callback:", decoded);
+          //   setTimeout(() => {
+          //     window.location.href = decoded;
+          //   }, 1200);
+          // }
 
           // const params = new URLSearchParams(window.location.search);
           // const callback = params.get("callback");
@@ -987,35 +1003,52 @@ function SubscriptionGate({
                 </div>
               </div> */}
               {callbackUrl ? (
-                <div
-                  className="w-full rounded-2xl p-3.5 flex items-center gap-3 text-left"
-                  style={{
-                    background: dark
-                      ? "rgba(34,197,94,0.07)"
-                      : "rgba(220,252,231,0.6)",
-                    border: `1.5px solid ${dark ? "rgba(34,197,94,0.14)" : "rgba(134,239,172,0.4)"}`,
-                  }}
-                >
-                  <RefreshCw
-                    size={14}
-                    className="animate-spin"
-                    style={{ color: "#22c55e", flexShrink: 0 }}
-                  />
-                  <p
-                    className="text-[12.5px] font-extrabold m-0"
-                    style={{ color: dark ? "#4ade80" : "#15803d" }}
+                <div className="w-full flex flex-col gap-3">
+                  <motion.button
+                    onClick={() => {
+                      window.location.href = decodeURIComponent(callbackUrl);
+                    }}
+                    whileTap={{ scale: 0.975 }}
+                    className="w-full py-4 rounded-[18px] text-white text-[15px] font-black relative overflow-hidden"
+                    style={{
+                      background: PLAN.gradient,
+                      boxShadow: "0 10px 32px rgba(217,119,6,0.38)",
+                      letterSpacing: "-0.01em",
+                    }}
                   >
-                    Redirecting you back to the app…
+                    <motion.div
+                      className="absolute inset-0"
+                      style={{
+                        background:
+                          "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)",
+                      }}
+                      animate={{ x: ["-100%", "100%"] }}
+                      transition={{
+                        duration: 2.2,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                    />
+                    <span className="relative">Return to App →</span>
+                  </motion.button>
+                  <p
+                    className="text-center text-[11.5px] font-medium"
+                    style={{ color: dark ? "#475569" : "#94a3b8" }}
+                  >
+                    You can also close this window — your subscription is
+                    active.
                   </p>
                 </div>
               ) : (
                 <motion.button
                   // onClick={() => window.location.reload()}
-                  onClick={async () => {
-                    await refetchSubscription();
-                    // If still on gate, the isActive check in the guard will now pass
-                    // and render children automatically — no reload needed
-                  }}
+                  // onClick={async () => {
+                  // await refetchSubscription();
+                  // If still on gate, the isActive check in the guard will now pass
+                  // and render children automatically — no reload needed
+                  // }}
+                  // Added second time - remove if cases problem
+                  onClick={() => onEnter()}
                   whileTap={{ scale: 0.975 }}
                   className="w-full py-4 rounded-[18px] text-white text-[15px] font-black relative overflow-hidden mt-1"
                   style={{
@@ -1173,6 +1206,9 @@ function GuardInner({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [authed, setAuthed] = useState(false);
+  // Stays true after a successful in-session payment so SubscriptionGate remains
+  // mounted long enough to show the success screen, even though isActive is now true.
+  const [justSubscribed, setJustSubscribed] = useState(false);
 
   useEffect(() => setMounted(true), []);
   const dark = mounted && resolvedTheme === "dark";
@@ -1203,21 +1239,36 @@ function GuardInner({ children }: { children: React.ReactNode }) {
 
   // If subscription is already active and we have a mobile callback, fire the redirect.
   // This handles the case where the user was already subscribed before arriving at the gate.
+  // If already subscribed on arrival (not just subscribed now) and mobile callback present,
+  // fire the redirect. Skip when justSubscribed — the "Return to App" button handles it.
   useEffect(() => {
-    if (!authed || subLoading || !isActive) return;
+    // if (!authed || subLoading || !isActive) return;
+    if (!authed || subLoading || !isActive || justSubscribed) return;
     const params = new URLSearchParams(window.location.search);
     const callback = params.get("callback");
     if (callback) {
-      window.location.href = callback;
+      // window.location.href = callback;
+      window.location.href = decodeURIComponent(callback);
     }
-  }, [authed, subLoading, isActive]);
+    // }, [authed, subLoading, isActive]);
+  }, [authed, subLoading, isActive, justSubscribed]);
 
   if (!authed) return null;
   if (subLoading) return <AppSkeleton dark={dark} />;
-  if (isActive || isExempt) return <>{children}</>;
+  // if (isActive || isExempt) return <>{children}</>;
+  // Keep SubscriptionGate alive after payment so the success screen is shown.
+  if ((isActive && !justSubscribed) || isExempt) return <>{children}</>;
 
   // Pass callbackRaw so SubscriptionGate can redirect back to the app on success
-  return <SubscriptionGate dark={dark} callbackUrl={callbackRaw} />;
+  // return <SubscriptionGate dark={dark} callbackUrl={callbackRaw} />;
+  return (
+    <SubscriptionGate
+      dark={dark}
+      callbackUrl={callbackRaw}
+      onSubscribed={() => setJustSubscribed(true)}
+      onEnter={() => setJustSubscribed(false)}
+    />
+  );
 }
 
 /* ══════════════════════════════════════════════════
