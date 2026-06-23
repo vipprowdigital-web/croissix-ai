@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import Admin from "../models/admin.model.js";
 import User from "../models/user.model.js";
 import Subscription from "../models/subscription.model.js";
+import Business from "../models/business.model.js";
 
 // ── Auth ──────────────────────────────────────────────────────────
 
@@ -15,7 +16,9 @@ export const adminRegister = async (req, res) => {
 
     const existing = await Admin.findOne({ email });
     if (existing) {
-      return res.status(409).json({ message: "Admin with this email already exists" });
+      return res
+        .status(409)
+        .json({ message: "Admin with this email already exists" });
     }
 
     const hashed = await bcrypt.hash(password, 10);
@@ -42,7 +45,9 @@ export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
 
     const admin = await Admin.findOne({ email });
@@ -92,7 +97,9 @@ export const getAllUsers = async (req, res) => {
 
     const [users, total] = await Promise.all([
       User.find(query)
-        .select("-password -refreshToken -googleAccessToken -googleRefreshToken -facebookAccessToken -facebookPageToken")
+        .select(
+          "-password -refreshToken -googleAccessToken -googleRefreshToken -facebookAccessToken -facebookPageToken",
+        )
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -113,7 +120,9 @@ export const getAllUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select("-password -refreshToken -googleAccessToken -googleRefreshToken -facebookAccessToken -facebookPageToken")
+      .select(
+        "-password -refreshToken -googleAccessToken -googleRefreshToken -facebookAccessToken -facebookPageToken",
+      )
       .lean();
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -177,6 +186,47 @@ export const getAllSubscriptions = async (req, res) => {
     });
   } catch (error) {
     console.error("getAllSubscriptions error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ── Businesses ────────────────────────────────────────────────────
+
+export const getAllBusinesses = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || "";
+
+    const businesses = await Business.find()
+      .populate("owner", "name email phone avatar")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log("Businesses: ", businesses);
+
+    const filtered = search
+      ? businesses.filter((b) => {
+          const s = search.toLowerCase();
+          return (
+            b.businessName?.toLowerCase().includes(s) ||
+            b.city?.toLowerCase().includes(s) ||
+            b.state?.toLowerCase().includes(s) ||
+            b.owner?.name?.toLowerCase().includes(s) ||
+            b.owner?.email?.toLowerCase().includes(s)
+          );
+        })
+      : businesses;
+
+    const total = filtered.length;
+    const paginated = filtered.slice((page - 1) * limit, page * limit);
+
+    return res.status(200).json({
+      businesses: paginated,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    console.error("getAllBusinesses error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard, Users, CreditCard, LogOut, ShieldCheck, Menu, X, Sun, Moon,
+  LayoutDashboard, Users, CreditCard, LogOut, ShieldCheck, Menu, X, Sun, Moon, Building2,
 } from "lucide-react";
 import { clearAuth, getAdminInfo } from "@/lib/auth";
 
@@ -13,6 +13,7 @@ const NAV = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/users", icon: Users, label: "Users" },
   { href: "/dashboard/subscriptions", icon: CreditCard, label: "Subscriptions" },
+  { href: "/dashboard/business", icon: Building2, label: "Business" },
 ];
 
 export default function Sidebar() {

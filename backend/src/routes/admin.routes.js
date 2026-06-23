@@ -8,6 +8,7 @@ import {
   deleteUser,
   getAllSubscriptions,
   getDashboardStats,
+  getAllBusinesses,
 } from "../controllers/admin.controller.js";
 import { ensureAdmin } from "../middleware/adminMiddleware.js";
 
@@ -28,5 +29,8 @@ router.delete("/users/:id", ensureAdmin, deleteUser);
 
 // Subscriptions
 router.get("/subscriptions", ensureAdmin, getAllSubscriptions);
+
+// Businesses
+router.get("/businesses", ensureAdmin, getAllBusinesses);
 
 export default router;
