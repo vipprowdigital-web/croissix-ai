@@ -38,6 +38,8 @@ import contatUsRoutes from "./routes/contactus.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
 import facebookRoutes from "./routes/facebook.routes.js";
+import instagramRoutes from "./routes/instagram.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 // ===============================================
 // 🧠 Environment Config
@@ -51,7 +53,9 @@ const allowedOrigins = [
   process.env.ADMIN_FRONTEND_URL, // Admin production site
   process.env.REACT_NATIVE_FRONTEND_URL, // React Native local
   process.env.VIPPROW_LANDING_PAGE_URL,
+  process.env.ADMIN_CONSOLE_URL,
   "http://localhost:3000",
+  "http://localhost:3001",
   "http://192.168.29.15:3000",
   "http://192.168.29.15:8081",
   "http://10.253.118.248:3000",
@@ -151,6 +155,8 @@ app.use(`${routePrefix}/contact`, contatUsRoutes);
 app.use(`${routePrefix}/upload`, uploadRoutes);
 app.use(`${routePrefix}/subscription`, subscriptionRoutes);
 app.use(`${routePrefix}/facebook`, facebookRoutes);
+app.use(`${routePrefix}/instagram`, instagramRoutes);
+app.use(`${routePrefix}/admin`, adminRoutes);
 
 // ===============================================
 // 🩵 Health Check
