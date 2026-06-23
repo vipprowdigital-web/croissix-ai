@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* ── Blue Palette (matches mobile_app) ── */
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+  --color-blue-950: #172554;
+
+  /* ── App Tokens ── */
+  --color-bg-light: #eef2fb;
+  --color-bg-dark: #0d1421;
+  --color-card-light: #ffffff;
+  --color-card-dark: #131c2d;
+  --color-card2-dark: #182236;
+  --color-border-light: rgba(0,0,0,0.06);
+  --color-border-dark: rgba(255,255,255,0.07);
+  --color-sidebar-dark: #0f1a2e;
+  --color-sidebar-light: #f8faff;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.2) transparent;
+}
+
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.25); border-radius: 99px; }
