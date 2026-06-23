@@ -37,8 +37,8 @@ import policyRoutes from "./routes/policy.routes.js";
 import contatUsRoutes from "./routes/contactus.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
-import facebookRoutes from "./routes/facebook.routes.js";
-import instagramRoutes from "./routes/instagram.routes.js";
+// import facebookRoutes from "./routes/facebook.routes.js";
+// import instagramRoutes from "./routes/instagram.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 
 // ===============================================
@@ -154,8 +154,8 @@ app.use(`${routePrefix}/policy`, policyRoutes);
 app.use(`${routePrefix}/contact`, contatUsRoutes);
 app.use(`${routePrefix}/upload`, uploadRoutes);
 app.use(`${routePrefix}/subscription`, subscriptionRoutes);
-app.use(`${routePrefix}/facebook`, facebookRoutes);
-app.use(`${routePrefix}/instagram`, instagramRoutes);
+// app.use(`${routePrefix}/facebook`, facebookRoutes);
+// app.use(`${routePrefix}/instagram`, instagramRoutes);
 app.use(`${routePrefix}/admin`, adminRoutes);
 
 // ===============================================
