@@ -9,6 +9,7 @@ import { KeyRound, Mail, Eye, EyeOff } from "lucide-react";
 import { useLogin } from "@/features/auth/hook/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 import GuestGuard from "@/components/auth/GuestGuard";
+import { resolveCallback } from "@/lib/callbackUrl";
 
 /* ─── Google G ───────────────────────────────────────────── */
 function GoogleG() {
@@ -169,7 +170,10 @@ function LoginForm() {
   const isDark = mounted && resolvedTheme === "dark";
 
   // Grab callback once — it will be present when coming from mobile WebView
-  const callbackParam = searchParams.get("callback");
+  // const callbackParam = searchParams.get("callback");
+
+  // Fixed one
+  const callbackParam = resolveCallback(searchParams);
 
   const handleSubmit = () => {
     setError("");
@@ -181,11 +185,22 @@ function LoginForm() {
     loginMutation.mutate(
       { email, password },
       {
+        // onSuccess: () => {
+        //   setTimeout(() => {
+        //     // ── FIX: after login always redirect to / and carry the callback param ──
+        //     // SubscriptionGuard on / will then read the callback and pass it into
+        //     // SubscriptionGate, which redirects back to the mobile app on success.
+        //     if (callbackParam) {
+        //       router.replace(`/?callback=${encodeURIComponent(callbackParam)}`);
+        //     } else {
+        //       router.replace("/");
+        //     }
+        //   }, 50);
+        // },
+
+        // Fixed one
         onSuccess: () => {
           setTimeout(() => {
-            // ── FIX: after login always redirect to / and carry the callback param ──
-            // SubscriptionGuard on / will then read the callback and pass it into
-            // SubscriptionGate, which redirects back to the mobile app on success.
             if (callbackParam) {
               router.replace(`/?callback=${encodeURIComponent(callbackParam)}`);
             } else {
@@ -193,6 +208,7 @@ function LoginForm() {
             }
           }, 50);
         },
+
         onError: () => {
           setError("Invalid email or password");
         },

@@ -8,6 +8,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getToken } from "@/lib/token";
+import { resolveCallback } from "@/lib/callbackUrl";
 
 function GuestGuardInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,9 +21,16 @@ function GuestGuardInner({ children }: { children: React.ReactNode }) {
       // User is already logged in — redirect away from login/register.
       // If a callback param is present (e.g. from mobile WebView payment flow),
       // forward it so the subscription redirect chain stays intact.
-      const callbackRaw = searchParams.get("callback");
-      const destination = callbackRaw
-        ? `/?callback=${encodeURIComponent(callbackRaw)}`
+      // const callbackRaw = searchParams.get("callback");
+      // const destination = callbackRaw
+      //   ? `/?callback=${encodeURIComponent(callbackRaw)}`
+      //   : "/";
+      // router.replace(destination);
+
+      // new
+      const callback = resolveCallback(searchParams); // falls back to sessionStorage
+      const destination = callback
+        ? `/?callback=${encodeURIComponent(callback)}`
         : "/";
       router.replace(destination);
     } else {

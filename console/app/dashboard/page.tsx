@@ -193,7 +193,7 @@ function QuickLink({
   return (
     <a
       href={href}
-      className="flex items-center gap-4 rounded-[16px] p-4 transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+      className="flex items-center gap-4 rounded-2xl p-4 transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
       style={{
         background: isDark ? "#131c2d" : "#fff",
         border: isDark

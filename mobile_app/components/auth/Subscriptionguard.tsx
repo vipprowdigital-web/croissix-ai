@@ -24,6 +24,7 @@ import { getToken } from "@/lib/token";
 import { useSubscription } from "@/features/subscription/hook/useSubscription";
 import { useSubscriptionActions } from "@/features/subscription/hook/useSubscriptionActions";
 import { useUser } from "@/features/user/hook/useUser";
+import { clearStoredCallback, resolveCallback } from "@/lib/callbackUrl";
 
 /* ══════════════════════════════════════════════════
    PLAN IDs — hardcoded directly (most reliable)
@@ -1007,6 +1008,7 @@ function SubscriptionGate({
                   <motion.button
                     onClick={() => {
                       window.location.href = decodeURIComponent(callbackUrl);
+                      clearStoredCallback();
                     }}
                     whileTap={{ scale: 0.975 }}
                     className="w-full py-4 rounded-[18px] text-white text-[15px] font-black relative overflow-hidden"
@@ -1210,23 +1212,39 @@ function GuardInner({ children }: { children: React.ReactNode }) {
   // mounted long enough to show the success screen, even though isActive is now true.
   const [justSubscribed, setJustSubscribed] = useState(false);
 
+  // Persisted callback — survives any full-page navigation that strips the
+  // ?callback= query param (3DS bank redirect, login round-trip, etc.).
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
+
   useEffect(() => setMounted(true), []);
   const dark = mounted && resolvedTheme === "dark";
 
   // Read callback from searchParams for passing to SubscriptionGate (safe after hydration)
-  const callbackRaw = searchParams.get("callback");
+  // const callbackRaw = searchParams.get("callback");
 
   useEffect(() => {
     // Read directly from window.location to avoid useSearchParams hydration timing issues.
     // searchParams may be null on the first effect run (before hydration resolves), which
     // would cause the redirect to /login to silently drop the callback param.
-    const params = new URLSearchParams(window.location.search);
-    const callback = params.get("callback");
+    // const params = new URLSearchParams(window.location.search);
+    // const callback = params.get("callback");
+
+    // const token = getToken();
+    // if (!token) {
+    //   const loginUrl = callback
+    //     ? `/login?callback=${encodeURIComponent(callback)}`
+    //     : "/login";
+    //   router.replace(loginUrl);
+    //   return;
+    // }
+    // setAuthed(true);
+    const resolvedCallback = resolveCallback();
+    setCallbackUrl(resolvedCallback);
 
     const token = getToken();
     if (!token) {
-      const loginUrl = callback
-        ? `/login?callback=${encodeURIComponent(callback)}`
+      const loginUrl = resolvedCallback
+        ? `/login?callback=${encodeURIComponent(resolvedCallback)}`
         : "/login";
       router.replace(loginUrl);
       return;
@@ -1241,17 +1259,26 @@ function GuardInner({ children }: { children: React.ReactNode }) {
   // This handles the case where the user was already subscribed before arriving at the gate.
   // If already subscribed on arrival (not just subscribed now) and mobile callback present,
   // fire the redirect. Skip when justSubscribed — the "Return to App" button handles it.
+  // useEffect(() => {
+  //   // if (!authed || subLoading || !isActive) return;
+  //   if (!authed || subLoading || !isActive || justSubscribed) return;
+  //   const params = new URLSearchParams(window.location.search);
+  //   const callback = params.get("callback");
+  //   if (callback) {
+  //     // window.location.href = callback;
+  //     window.location.href = decodeURIComponent(callback);
+  //   }
+  //   // }, [authed, subLoading, isActive]);
+  // }, [authed, subLoading, isActive, justSubscribed]);
+
+  // Fixed one
   useEffect(() => {
-    // if (!authed || subLoading || !isActive) return;
     if (!authed || subLoading || !isActive || justSubscribed) return;
-    const params = new URLSearchParams(window.location.search);
-    const callback = params.get("callback");
-    if (callback) {
-      // window.location.href = callback;
-      window.location.href = decodeURIComponent(callback);
+    if (callbackUrl) {
+      window.location.href = decodeURIComponent(callbackUrl);
+      clearStoredCallback();
     }
-    // }, [authed, subLoading, isActive]);
-  }, [authed, subLoading, isActive, justSubscribed]);
+  }, [authed, subLoading, isActive, justSubscribed, callbackUrl]);
 
   if (!authed) return null;
   if (subLoading) return <AppSkeleton dark={dark} />;
@@ -1264,7 +1291,8 @@ function GuardInner({ children }: { children: React.ReactNode }) {
   return (
     <SubscriptionGate
       dark={dark}
-      callbackUrl={callbackRaw}
+      // callbackUrl={callbackRaw}
+      callbackUrl={callbackUrl}
       onSubscribed={() => setJustSubscribed(true)}
       onEnter={() => setJustSubscribed(false)}
     />
