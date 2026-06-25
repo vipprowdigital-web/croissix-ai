@@ -621,7 +621,7 @@ export const facebookAuthCallback = async (req, res) => {
   }
 
   try {
-    const exactRedirectUri = `https://5bb9-2405-201-3025-d0bc-1d3c-dbcd-fd9-6458.ngrok-free.app/api/v1/auth/facebook`;
+    const exactRedirectUri = `https://4787-2405-201-3025-d0bc-146c-772-bfa8-9170.ngrok-free.app/api/v1/auth/facebook`;
     const tokenExchangeUrl = `https://graph.facebook.com/v25.0/oauth/access_token`;
 
     // 1. Exchange temporary code for short-lived token
