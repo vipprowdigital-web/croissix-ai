@@ -244,7 +244,7 @@ export const getInstagramComments = async (req, res) => {
             timestamp: c.timestamp,
             mediaId: media.id,
             mediaCaption: media.caption || "[Media Post]",
-            mediaUrl: media.media_url || media.thumbnail_url || null,
+            mediaUrl: media.media_type === "VIDEO" ? (media.thumbnail_url || null) : (media.media_url || media.thumbnail_url || null),
             mediaPermalink: media.permalink,
             mediaType: media.media_type,
             replies: (c.replies?.data || []).map((r) => ({
@@ -497,15 +497,16 @@ export const deleteInstagramPost = async (req, res) => {
     console.error("deleteInstagramPost error:", error.response?.data || error.message);
     const fbError = error.response?.data?.error;
 
-    // Code 10 = instagram_content_publishing permission not granted on the stored token.
-    // The user must reconnect their Facebook account to re-authorise with the new scope.
-    if (fbError?.code === 10) {
+    // Codes 3, 10, 200 all indicate a missing permission on the stored token.
+    // instagram_content_publishing is required to delete posts.
+    const PERMISSION_CODES = [3, 10, 200];
+    if (PERMISSION_CODES.includes(fbError?.code) || error.response?.status === 403) {
       return res.status(403).json({
         success: false,
         message:
           "Deleting Instagram posts requires the instagram_content_publishing permission. " +
           "Please disconnect and reconnect your Facebook account to grant this permission.",
-        fbCode: 10,
+        fbCode: fbError?.code || null,
         permissionRequired: true,
       });
     }

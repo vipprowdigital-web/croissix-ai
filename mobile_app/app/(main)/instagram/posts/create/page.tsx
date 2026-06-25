@@ -27,6 +27,15 @@ import {
   Lightbulb,
   Calendar,
   Clock,
+  Target,
+  Smile,
+  Rocket,
+  Camera,
+  Palette,
+  Minimize2,
+  Film,
+  Sunrise,
+  type LucideIcon,
 } from "lucide-react";
 import { API } from "@/lib/axiosClient";
 
@@ -44,18 +53,18 @@ const IMG_GEN_KEY_COUNT = "ig_img_gen_count";
 type Tone = "Professional" | "Friendly" | "Enthusiastic";
 type ImgStyle = "photorealistic" | "illustration" | "minimalist" | "cinematic" | "warm";
 
-const TONES: { id: Tone; emoji: string; label: string }[] = [
-  { id: "Professional", emoji: "🎯", label: "Professional" },
-  { id: "Friendly", emoji: "😊", label: "Friendly" },
-  { id: "Enthusiastic", emoji: "🚀", label: "Enthusiastic" },
+const TONES: { id: Tone; icon: LucideIcon; label: string }[] = [
+  { id: "Professional", icon: Target, label: "Professional" },
+  { id: "Friendly", icon: Smile, label: "Friendly" },
+  { id: "Enthusiastic", icon: Rocket, label: "Enthusiastic" },
 ];
 
-const IMG_STYLES: { id: ImgStyle; emoji: string; label: string }[] = [
-  { id: "photorealistic", emoji: "📸", label: "Photo" },
-  { id: "illustration", emoji: "🎨", label: "Illustration" },
-  { id: "minimalist", emoji: "⬜", label: "Minimal" },
-  { id: "cinematic", emoji: "🎬", label: "Cinematic" },
-  { id: "warm", emoji: "🌅", label: "Warm" },
+const IMG_STYLES: { id: ImgStyle; icon: LucideIcon; label: string }[] = [
+  { id: "photorealistic", icon: Camera, label: "Photo" },
+  { id: "illustration", icon: Palette, label: "Illustration" },
+  { id: "minimalist", icon: Minimize2, label: "Minimal" },
+  { id: "cinematic", icon: Film, label: "Cinematic" },
+  { id: "warm", icon: Sunrise, label: "Warm" },
 ];
 
 interface ScheduleDate {
@@ -590,7 +599,10 @@ function AIImageCard({
                   : dark ? "bg-white/[0.03] border-pink-900/30 text-slate-500" : "bg-slate-50 border-pink-100 text-slate-500"
                 }`}
             >
-              <span className="text-[13px]">{s.emoji}</span> {s.label}
+              <s.icon
+              size={12}
+              color={imgStyle === s.id ? (dark ? "#c084fc" : "#9333ea") : (dark ? "#64748b" : "#94a3b8")}
+            /> {s.label}
             </button>
           ))}
         </div>
@@ -1055,7 +1067,10 @@ export default function InstagramCreatePostPage() {
                     }`}
                   style={tone === t.id ? { background: dark ? "rgba(193,53,132,0.12)" : "rgba(193,53,132,0.06)" } : {}}
                 >
-                  <span>{t.emoji}</span> {t.label}
+                  <t.icon
+              size={12}
+              color={tone === t.id ? (dark ? "#f472b6" : "#db2777") : (dark ? "#64748b" : "#94a3b8")}
+            /> {t.label}
                 </button>
               ))}
             </div>

@@ -10,7 +10,7 @@ import axios from "axios";
 // Set FACEBOOK_REDIRECT_URI in .env; falls back to the dev ngrok URL.
 const FB_REDIRECT_URI =
   process.env.FACEBOOK_REDIRECT_URI ||
-  "https://8827-2405-201-3025-d0bc-c813-49b2-210a-b662.ngrok-free.app/api/v1/auth/facebook";
+  "https://46c3-2405-201-3025-d0bc-146c-772-bfa8-9170.ngrok-free.app/api/v1/auth/facebook";
 
 /*
 ========================================

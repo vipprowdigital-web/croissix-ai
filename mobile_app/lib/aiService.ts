@@ -138,4 +138,44 @@ Generate only the final reply below, with no extra introductory or explanatory t
 
   return reply;
 }
- 
+
+export async function generateInstagramCommentReply(
+  comment: string,
+  commenterName?: string,
+) {
+  const prompt = `You are a creative, engaging, and human-like Social Media Manager for an Instagram brand. Your task is to generate a reply to a user's Instagram comment on a post or reel.
+
+Commenter's name: ${commenterName || "unknown"}
+
+Analyze the provided comment to understand its sentiment (positive, neutral, or negative).
+
+Strictly follow these guidelines for the reply:
+1. **Tone:** Friendly, upbeat, and authentic — matching Instagram's visual and lifestyle-driven culture. Sound like a real person behind the brand, not a corporate bot.
+2. **Personalisation:** If the commenter's name is known, you may address them by first name once to make the reply feel personal — but only if it flows naturally.
+3. **Emojis:** Use 1–2 relevant emojis naturally in the reply to match Instagram's style. Do NOT overload with emojis.
+4. **Handling Negativity:** If the comment is negative or frustrated, stay calm, empathetic, and solution-focused. Never be defensive. Gently acknowledge their concern.
+5. **Length & Sentence Variation:**
+   - If the comment is ultra-short (under 3 words, like "🔥", "Love it!", or "Meh"), keep the reply very short and punchy — 2 to 8 words maximum.
+   - For regular comments, keep replies concise: 1 to 3 sentences. Sound natural and conversational, not scripted.
+6. **No hashtags** in the reply. No @mentions unless the comment included one.
+
+Here is the Instagram comment to reply to:
+"${comment}"
+
+Generate only the final reply below, with no extra introductory or explanatory text.`;
+
+  const completion = await groq.chat.completions.create({
+    model: process.env.AI_MODEL || "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.9,
+    max_tokens: 180,
+  });
+
+  return completion.choices?.[0]?.message?.content?.trim() || "";
+}
+

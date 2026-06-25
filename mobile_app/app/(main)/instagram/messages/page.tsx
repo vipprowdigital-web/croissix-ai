@@ -8,12 +8,10 @@ import {
   RefreshCw,
   Send,
   ArrowLeft,
-  CheckCircle2,
   WifiOff,
   Mail,
   ChevronRight,
   Loader2,
-  X,
   AlertTriangle,
   Lock,
 } from "lucide-react";
@@ -65,9 +63,24 @@ const IG_ACCENT = "#C13584";
    API
 ═══════════════════════════════════════════════════════ */
 async function fetchConversations(): Promise<ConversationsResponse> {
-  const res = await API.get("/instagram/messages");
-  if (!res.data.success) throw Object.assign(new Error(res.data.message ?? "Failed to fetch"), { permissionRequired: res.data.permissionRequired });
-  return res.data;
+  try {
+    const res = await API.get("/instagram/messages");
+    if (!res.data.success)
+      throw Object.assign(new Error(res.data.message ?? "Failed to fetch"), {
+        permissionRequired: res.data.permissionRequired,
+      });
+    return res.data;
+  } catch (err: any) {
+    // Axios throws for non-2xx (e.g. 403) before we can check res.data,
+    // so extract permissionRequired from the response body here.
+    if (err.response?.data) {
+      const d = err.response.data;
+      throw Object.assign(new Error(d.message ?? "Failed to fetch messages"), {
+        permissionRequired: !!d.permissionRequired,
+      });
+    }
+    throw err;
+  }
 }
 
 async function fetchThread(conversationId: string): Promise<ThreadResponse> {

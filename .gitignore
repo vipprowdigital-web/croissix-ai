@@ -42,6 +42,10 @@ mobile_app/.env
 *.tsbuildinfo
 next-env.d.ts
 
+# console app — push to main only, not to feature branches
+# remove this line when you're ready to commit console/ to main
+console/
+
 pnpm-lock.yaml
 yarn.lock
 bun.lockb

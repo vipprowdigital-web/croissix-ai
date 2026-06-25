@@ -1079,15 +1079,31 @@ export default function FacebookPage() {
   );
 
   const FACEBOOK_SCOPES = [
+    "email",
+    "public_profile",
+    // --- Facebook Pages Essential Core ---
     "pages_show_list",
     "pages_read_engagement",
     "pages_read_user_content",
+
+    "pages_messaging", // For messages
+
+    // --- Future-Proofing: Facebook Advanced Utilities ---
+    "pages_manage_metadata",
     "pages_manage_posts",
+    "pages_manage_engagement",
+
+    // --- Instagram Professional Core ---
     "instagram_basic",
+    "instagram_manage_insights",
+
     "instagram_content_publishing",
+    "instagram_content_publish",
+    "instagram_manage_contents",
+
+    // --- Future-Proofing: Instagram Advanced Utilities ---
     "instagram_manage_comments",
     "instagram_manage_messages",
-    "pages_messaging",
   ].join(",");
 
   /* ── OAuth connect — mirrors mobile's direct-build pattern,
@@ -1100,7 +1116,10 @@ export default function FacebookPage() {
 
     const redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI!;
     const state = btoa(
-      JSON.stringify({ userId: currentUser.id, callback: window.location.href }),
+      JSON.stringify({
+        userId: currentUser.id,
+        callback: window.location.href,
+      }),
     );
 
     const fbUrl =
