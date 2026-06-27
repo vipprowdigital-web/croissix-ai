@@ -143,10 +143,30 @@ const MONTHS = [
 ];
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MAX_CHARS = 63206; // Facebook's actual limit
+const IMG_GEN_LIMIT = 4;
+const IMG_GEN_KEY_DATE = "fb_img_gen_date";
+const IMG_GEN_KEY_COUNT = "fb_img_gen_count";
 
 /* ══════════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════════ */
+function getImgGenCount(): number {
+  if (typeof window === "undefined") return 0;
+  const today = new Date().toDateString();
+  const storedDate = localStorage.getItem(IMG_GEN_KEY_DATE);
+  if (storedDate !== today) {
+    localStorage.setItem(IMG_GEN_KEY_DATE, today);
+    localStorage.setItem(IMG_GEN_KEY_COUNT, "0");
+    return 0;
+  }
+  return parseInt(localStorage.getItem(IMG_GEN_KEY_COUNT) ?? "0", 10);
+}
+
+function incrementImgGenCount(): number {
+  const next = getImgGenCount() + 1;
+  localStorage.setItem(IMG_GEN_KEY_COUNT, String(next));
+  return next;
+}
 const getDaysInMonth = (y: number, m: number) =>
   new Date(y, m + 1, 0).getDate();
 const getFirstDay = (y: number, m: number) => new Date(y, m, 1).getDay();
@@ -368,10 +388,18 @@ function AIImageCard({
 }) {
   const [generating, setGenerating] = useState(false);
   const [imgError, setImgError] = useState("");
+  const [genCount, setGenCount] = useState(0);
+
+  useEffect(() => {
+    setGenCount(getImgGenCount());
+  }, []);
+
+  const remaining = IMG_GEN_LIMIT - genCount;
+  const limitReached = remaining <= 0;
 
   const generate = useCallback(
     async (forceNewSeed = false) => {
-      if (!title.trim() || generating || disabled) return;
+      if (!title.trim() || generating || disabled || limitReached) return;
       setGenerating(true);
       setImgError("");
       try {
@@ -387,6 +415,8 @@ function AIImageCard({
           seed,
         });
         setAiImage(result);
+        const newCount = incrementImgGenCount();
+        setGenCount(newCount);
       } catch (e: any) {
         setImgError(e.message ?? "Image generation failed");
       } finally {
@@ -401,6 +431,7 @@ function AIImageCard({
       imgStyle,
       generating,
       disabled,
+      limitReached,
       aiImage?.seed,
     ],
   );
@@ -434,9 +465,19 @@ function AIImageCard({
             Generated
           </span>
         )}
+        <span
+          className="ml-auto text-[9.5px] font-bold px-2 py-0.5 rounded-full border"
+          style={{
+            color: limitReached ? "#ef4444" : remaining <= 1 ? "#f59e0b" : dark ? "#334155" : "#94a3b8",
+            borderColor: limitReached ? "rgba(239,68,68,0.3)" : remaining <= 1 ? "rgba(245,158,11,0.3)" : "transparent",
+            background: limitReached ? "rgba(239,68,68,0.08)" : remaining <= 1 ? "rgba(245,158,11,0.08)" : "transparent",
+          }}
+        >
+          {limitReached ? "Limit reached" : `${remaining} left today`}
+        </span>
         {aiImage && (
           <span
-            className="ml-auto text-[9px] font-bold"
+            className="text-[9px] font-bold"
             style={{ color: dark ? "#334155" : "#cbd5e1" }}
           >
             via {aiImage.provider}
@@ -524,7 +565,7 @@ function AIImageCard({
               </p>
               <button
                 onClick={() => generate(true)}
-                disabled={generating}
+                disabled={generating || limitReached}
                 className="flex items-center gap-1 px-2 py-1 rounded-xl text-white text-[10px] font-black active:scale-95 disabled:opacity-50"
                 style={{
                   background: "rgba(255,255,255,0.15)",
@@ -538,7 +579,7 @@ function AIImageCard({
         ) : (
           <button
             onClick={() => generate(true)}
-            disabled={!title.trim() || generating || disabled}
+            disabled={!title.trim() || generating || disabled || limitReached}
             className="w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-40"
             style={{
               aspectRatio: "1/1",
@@ -564,15 +605,17 @@ function AIImageCard({
               <p
                 className={`text-[13px] font-black ${dark ? "text-purple-300" : "text-purple-600"}`}
               >
-                Generate AI Image
+                {limitReached ? "Daily Limit Reached" : "Generate AI Image"}
               </p>
               <p
                 className="text-[10.5px] mt-0.5"
                 style={{ color: dark ? "#334155" : "#94a3b8" }}
               >
-                {title.trim()
-                  ? "FLUX AI · Free · Square format"
-                  : "Enter a topic first"}
+                {limitReached
+                  ? "4 images used · Resets tomorrow"
+                  : title.trim()
+                    ? `FLUX AI · Free · ${remaining} of ${IMG_GEN_LIMIT} left today`
+                    : "Enter a topic first"}
               </p>
             </div>
           </button>
@@ -606,7 +649,7 @@ function AIImageCard({
             </button>
             <button
               onClick={() => generate(true)}
-              disabled={generating}
+              disabled={generating || limitReached}
               className={`flex items-center gap-1.5 h-9 px-3 rounded-2xl text-[11.5px] font-bold border active:scale-95 disabled:opacity-50
                 ${dark ? "bg-white/[0.04] border-blue-900/40 text-purple-400" : "bg-purple-50 border-purple-200/60 text-purple-600"}`}
             >
@@ -1075,18 +1118,21 @@ export default function FacebookCreatePostPage() {
   const generateBoth = useCallback(async () => {
     if (!topic.trim() || isGenerating) return;
     generateText(); // manages its own loading state
-    // Fire image in parallel — non-blocking
-    try {
-      const imgResult = await callGenerateImage({
-        topic,
-        postType,
-        pageName: bizName,
-        businessCategory: bizCat,
-        style: imgStyle,
-      });
-      setAiImage(imgResult);
-    } catch {
-      /* image failure is non-fatal */
+    // Fire image in parallel only if daily limit not reached
+    if (getImgGenCount() < IMG_GEN_LIMIT) {
+      try {
+        const imgResult = await callGenerateImage({
+          topic,
+          postType,
+          pageName: bizName,
+          businessCategory: bizCat,
+          style: imgStyle,
+        });
+        setAiImage(imgResult);
+        incrementImgGenCount();
+      } catch {
+        /* image failure is non-fatal */
+      }
     }
   }, [topic, postType, bizName, bizCat, imgStyle, generateText, isGenerating]);
 
