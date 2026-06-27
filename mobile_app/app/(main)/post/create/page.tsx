@@ -173,6 +173,9 @@ const MONTHS = [
 ];
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MAX_CHARS = 1500;
+const IMG_GEN_LIMIT = 4;
+const IMG_GEN_KEY_DATE = "google_img_gen_date";
+const IMG_GEN_KEY_COUNT = "google_img_gen_count";
 
 /* ══════════════════════════════════════════════════════════
    HELPERS
@@ -209,6 +212,22 @@ function seoGrade(score: number): { label: string; color: string; bg: string } {
 // Simple hash to detect when image-relevant inputs changed
 function makeImageKey(title: string, postType: string, bizName: string) {
   return `${title.trim().toLowerCase()}|${postType}|${bizName.toLowerCase()}`;
+}
+function getImgGenCount(): number {
+  if (typeof window === "undefined") return 0;
+  const today = new Date().toDateString();
+  const storedDate = localStorage.getItem(IMG_GEN_KEY_DATE);
+  if (storedDate !== today) {
+    localStorage.setItem(IMG_GEN_KEY_DATE, today);
+    localStorage.setItem(IMG_GEN_KEY_COUNT, "0");
+    return 0;
+  }
+  return parseInt(localStorage.getItem(IMG_GEN_KEY_COUNT) ?? "0", 10);
+}
+function incrementImgGenCount(): number {
+  const next = getImgGenCount() + 1;
+  localStorage.setItem(IMG_GEN_KEY_COUNT, String(next));
+  return next;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -294,6 +313,8 @@ function AIImageCard({
   onImageAccepted,
   dark,
   disabled,
+  genCount,
+  onGenerated,
 }: {
   title: string;
   postType: string;
@@ -306,17 +327,21 @@ function AIImageCard({
   onImageAccepted: (dataUrl: string) => void;
   dark: boolean;
   disabled: boolean;
+  genCount: number;
+  onGenerated: () => void;
 }) {
   const [generating, setGenerating] = useState(false);
   const [imgError, setImgError] = useState("");
   const lastKeyRef = useRef("");
+  const remaining = IMG_GEN_LIMIT - genCount;
+  const limitReached = genCount >= IMG_GEN_LIMIT;
 
   // The "image key" — only regenerates when these change
   const imageKey = makeImageKey(title, postType, bizName);
 
   const generate = useCallback(
     async (forceNewSeed = false) => {
-      if (!title.trim() || generating || disabled) return;
+      if (!title.trim() || generating || disabled || limitReached) return;
       setGenerating(true);
       setImgError("");
       try {
@@ -334,6 +359,7 @@ function AIImageCard({
         });
         setAiImage(result);
         lastKeyRef.current = imageKey;
+        onGenerated();
       } catch (e: any) {
         setImgError(e.message ?? "Image generation failed");
       } finally {
@@ -348,8 +374,10 @@ function AIImageCard({
       imgStyle,
       generating,
       disabled,
+      limitReached,
       aiImage?.seed,
       imageKey,
+      onGenerated,
     ],
   );
 
@@ -360,7 +388,7 @@ function AIImageCard({
   // After style changes, user taps Regenerate → will use new style
   const handleStyleRegen = useCallback(
     async (s: ImgStyle) => {
-      if (!title.trim() || generating || disabled) return;
+      if (!title.trim() || generating || disabled || limitReached) return;
       setGenerating(true);
       setImgError("");
       try {
@@ -374,13 +402,14 @@ function AIImageCard({
           seed: aiImage?.seed,
         });
         setAiImage(result);
+        onGenerated();
       } catch (e: any) {
         setImgError(e.message ?? "Failed");
       } finally {
         setGenerating(false);
       }
     },
-    [title, postType, bizName, bizCat, aiImage?.seed, generating, disabled],
+    [title, postType, bizName, bizCat, aiImage?.seed, generating, disabled, limitReached, onGenerated],
   );
 
   const card = `rounded-2xl border overflow-hidden ${dark ? "bg-[#0a1628] border-[#1a2d4a]" : "bg-white border-slate-200/80 shadow-sm"}`;
@@ -415,11 +444,23 @@ function AIImageCard({
         )}
         {aiImage && (
           <span
-            className={`ml-auto text-[9px] font-bold ${dark ? "text-slate-700" : "text-slate-300"}`}
+            className={`text-[9px] font-bold ${dark ? "text-slate-700" : "text-slate-300"}`}
           >
             via {aiImage.provider}
           </span>
         )}
+        <span
+          className="text-[9px] font-black px-2 py-0.5 rounded-full ml-auto"
+          style={
+            limitReached
+              ? { background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }
+              : remaining === 1
+                ? { background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)" }
+                : { background: "rgba(99,102,241,0.08)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.2)" }
+          }
+        >
+          {limitReached ? "Limit reached" : `${remaining} left today`}
+        </span>
       </div>
 
       <div className="p-3 flex flex-col gap-3">
@@ -566,7 +607,7 @@ function AIImageCard({
               {/* Regenerate same style */}
               <button
                 onClick={() => generate(true)}
-                disabled={generating}
+                disabled={generating || limitReached}
                 className="flex items-center gap-1 px-2 py-1 rounded-xl text-white text-[10px] font-black transition-all active:scale-95 disabled:opacity-50"
                 style={{
                   background: "rgba(255,255,255,0.15)",
@@ -581,7 +622,7 @@ function AIImageCard({
           /* placeholder — generate button */
           <button
             onClick={() => generate(true)}
-            disabled={!title.trim() || generating || disabled}
+            disabled={!title.trim() || generating || disabled || limitReached}
             className={`w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-40`}
             style={{
               aspectRatio: "16/9",
@@ -607,14 +648,16 @@ function AIImageCard({
               <p
                 className={`text-[13px] font-black ${dark ? "text-purple-300" : "text-purple-600"}`}
               >
-                Generate AI Image
+                {limitReached ? "Daily Limit Reached" : "Generate AI Image"}
               </p>
               <p
                 className={`text-[10.5px] mt-0.5 ${dark ? "text-slate-600" : "text-slate-400"}`}
               >
-                {title.trim()
-                  ? "FLUX AI · Free · 1200×675"
-                  : "Enter a title first"}
+                {limitReached
+                  ? "4 images used · Resets tomorrow"
+                  : title.trim()
+                    ? "FLUX AI · Free · 1200×675"
+                    : "Enter a title first"}
               </p>
             </div>
           </button>
@@ -656,14 +699,14 @@ function AIImageCard({
             </button>
             <button
               onClick={() => handleStyleRegen(imgStyle)}
-              disabled={generating}
+              disabled={generating || limitReached}
               className={`flex items-center gap-1.5 h-9 px-3 rounded-2xl text-[11.5px] font-bold border transition-all active:scale-95 disabled:opacity-50 ${dark ? "bg-white/[0.04] border-white/[0.07] text-purple-400" : "bg-purple-50 border-purple-200/60 text-purple-600"}`}
             >
               <RefreshCw size={12} /> Regen Style
             </button>
             <button
               onClick={() => generate(true)}
-              disabled={generating}
+              disabled={generating || limitReached}
               className={`flex items-center gap-1.5 h-9 px-3 rounded-2xl text-[11.5px] font-bold border transition-all active:scale-95 disabled:opacity-50 ${dark ? "bg-white/[0.04] border-white/[0.07] text-slate-400" : "bg-slate-50 border-slate-200/60 text-slate-500"}`}
             >
               <RefreshCw size={12} /> New Seed
@@ -1499,6 +1542,7 @@ export default function GooglePostPage() {
   /* ── AI image state ── */
   const [imgStyle, setImgStyle] = useState<ImgStyle>("photorealistic");
   const [aiImage, setAiImage] = useState<ImageResult | null>(null);
+  const [imgGenCount, setImgGenCount] = useState(() => getImgGenCount());
 
   /* ── upload progress ── */
   const [uploadProgress, setUploadProgress] = useState({
@@ -1620,21 +1664,24 @@ export default function GooglePostPage() {
     if (!postTitle.trim() || isGenerating) return;
     // Fire text (handles its own state) and image in parallel
     generateText(); // starts typewriter, manages isGenerating
-    // Image: fire independently — doesn't block text
-    try {
-      const imgResult = await callGenerateImage({
-        title: postTitle,
-        content: text,
-        postType,
-        businessName: user?.googleLocationName ?? "",
-        businessCategory: user?.businessCategory ?? "",
-        style: imgStyle,
-      });
-      setAiImage(imgResult);
-    } catch {
-      // image failure is non-fatal — AIImageCard shows its own error if user retries
+    // Image: fire independently — doesn't block text, obeys daily limit
+    if (getImgGenCount() < IMG_GEN_LIMIT) {
+      try {
+        const imgResult = await callGenerateImage({
+          title: postTitle,
+          content: text,
+          postType,
+          businessName: user?.googleLocationName ?? "",
+          businessCategory: user?.businessCategory ?? "",
+          style: imgStyle,
+        });
+        setAiImage(imgResult);
+        setImgGenCount(incrementImgGenCount());
+      } catch {
+        // image failure is non-fatal — AIImageCard shows its own error if user retries
+      }
     }
-  }, [postTitle, postType, user, imgStyle, generateText, isGenerating]);
+  }, [postTitle, postType, user, imgStyle, generateText, isGenerating, setImgGenCount]);
 
   /* ── keyword helpers ── */
   const addKeyword = (kw: string) => {
@@ -2162,6 +2209,8 @@ export default function GooglePostPage() {
             }
             dark={isDark}
             disabled={isSubmitting}
+            genCount={imgGenCount}
+            onGenerated={() => setImgGenCount(incrementImgGenCount())}
           />
         </div>
 
