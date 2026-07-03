@@ -517,6 +517,13 @@ function PlatformsStrip({
       bg: isDark ? "rgba(225,48,108,0.18)" : "rgba(225,48,108,0.1)",
       live: false,
     },
+    {
+      id: "whatsapp",
+      name: "WhatsApp",
+      logo: <WhatsAppLogo size={18} />,
+      bg: isDark ? "rgba(37,211,102,0.18)" : "rgba(37,211,102,0.1)",
+      live: true,
+    },
   ];
   return (
     <motion.div
@@ -1858,6 +1865,152 @@ function InstagramComingSoonCard({ isDark }: { isDark: boolean }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   WHATSAPP LOGO
+═══════════════════════════════════════════════════════════════ */
+function WhatsAppLogo({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#25D366" />
+      <path
+        d="M12 4C7.58 4 4 7.58 4 12c0 1.42.37 2.75 1.01 3.91L4 20l4.24-1.11A7.95 7.95 0 0 0 12 20c4.42 0 8-3.58 8-8s-3.58-8-8-8zm3.9 11.3c-.16.45-.95.87-1.31.93-.33.05-.75.07-1.21-.08-.28-.09-.64-.21-1.1-.41-1.93-.83-3.19-2.79-3.29-2.92-.1-.13-.8-1.06-.8-2.02 0-.96.5-1.43.68-1.63.18-.2.39-.25.52-.25h.37c.12 0 .28-.05.43.33l.55 1.38c.05.12.08.26.02.38l-.21.4-.32.38c-.1.12-.2.24-.09.47.11.23.5.82 1.07 1.33.73.65 1.35.85 1.54.94.19.09.3.08.41-.05l.54-.64c.11-.14.22-.12.37-.07l1.18.56c.14.07.23.1.27.16.04.06.04.36-.12.82z"
+        fill="white"
+      />
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WHATSAPP CARD
+═══════════════════════════════════════════════════════════════ */
+function WhatsAppCard({ isDark }: { isDark: boolean }) {
+  const router = useRouter();
+  return (
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: "-20px" }}
+      className={`rounded-3xl overflow-hidden border ${isDark ? "border-[#25D366]/20" : "border-[#25D366]/15"}`}
+      style={{
+        boxShadow: isDark
+          ? "0 8px 40px rgba(37,211,102,0.1)"
+          : "0 8px 40px rgba(37,211,102,0.08)",
+      }}
+    >
+      {/* Top section */}
+      <div
+        className="relative p-5 overflow-hidden"
+        style={{
+          background: isDark
+            ? "linear-gradient(135deg,#071a0f 0%,#0d2b18 55%,#071a0f 100%)"
+            : "linear-gradient(135deg,#f0faf3 0%,#dcf5e4 55%,#f0faf3 100%)",
+        }}
+      >
+        <motion.div
+          className="absolute -top-8 -right-8 w-40 h-40 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle,rgba(37,211,102,0.18),transparent 70%)" }}
+          animate={{ scale: [1, 1.25, 1] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <div className="relative flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center"
+              style={{ background: isDark ? "rgba(37,211,102,0.2)" : "rgba(37,211,102,0.12)" }}
+            >
+              <WhatsAppLogo size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-[16px] font-black ${isDark ? "text-white" : "text-slate-900"}`}
+                  style={{ letterSpacing: "-0.03em" }}
+                >
+                  WhatsApp
+                </span>
+                <span
+                  className="text-[9px] font-black px-2 py-0.5 rounded-full text-white tracking-widest"
+                  style={{ background: "linear-gradient(90deg,#128C7E,#25D366)" }}
+                >
+                  NEW
+                </span>
+              </div>
+              <p className={`text-[11px] mt-0.5 ${isDark ? "text-slate-500" : "text-slate-500"}`}>
+                AI Messages · Quick Share · Business Updates
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature pills */}
+        <div className="relative flex flex-wrap gap-1.5">
+          {[
+            { icon: <Sparkles size={10} />, label: "AI Writing", color: "#25D366" },
+            { icon: <MessageSquare size={10} />, label: "Quick Share", color: "#128C7E" },
+            { icon: <Users size={10} />, label: "Bulk Message", color: "#075E54" },
+            { icon: <Zap size={10} />, label: "Promotions", color: "#34b27a" },
+          ].map((f, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+              style={{
+                background: isDark ? "rgba(37,211,102,0.1)" : "rgba(37,211,102,0.08)",
+                border: "1px solid rgba(37,211,102,0.2)",
+              }}
+            >
+              <span style={{ color: f.color }}>{f.icon}</span>
+              <span
+                className="text-[10px] font-semibold"
+                style={{ color: isDark ? "#4ade80" : "#166534" }}
+              >
+                {f.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className={`grid grid-cols-4 border-b ${isDark ? "bg-[#071a0f] border-white/[0.05]" : "bg-[#f3fdf6] border-slate-100"}`}>
+        {[
+          { label: "Messages", icon: <MessageSquare size={12} />, color: "#25D366" },
+          { label: "Delivery", icon: <Eye size={12} />, color: "#128C7E" },
+          { label: "Read Rate", icon: <Heart size={12} />, color: "#34b27a" },
+          { label: "Replies", icon: <MessageSquare size={12} />, color: "#075E54" },
+        ].map((m, i) => (
+          <div
+            key={i}
+            className={`flex flex-col items-center py-3.5 gap-1 ${i < 3 ? `border-r ${isDark ? "border-white/[0.05]" : "border-slate-100"}` : ""}`}
+          >
+            <span style={{ color: m.color }}>{m.icon}</span>
+            <span className={`text-[13px] font-black ${isDark ? "text-green-400/50" : "text-green-600/40"}`}>—</span>
+            <span className={`text-[9px] font-semibold uppercase tracking-wide leading-tight text-center ${isDark ? "text-slate-600" : "text-slate-500"}`}>
+              {m.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <div className={`p-4 ${isDark ? "bg-[#0d1421]" : "bg-white"}`}>
+        <p className={`text-[11px] mb-3 leading-relaxed ${isDark ? "text-slate-500" : "text-slate-500"}`}>
+          Craft the perfect WhatsApp message with AI — then share it directly to any contact or group.
+        </p>
+        <motion.button
+          onClick={() => router.push("/whatsapp")}
+          whileTap={{ scale: 0.96 }}
+          className="w-full py-3 rounded-2xl text-[13px] font-black text-white flex items-center justify-center gap-2"
+          style={{ background: "linear-gradient(135deg,#128C7E,#25D366)" }}
+        >
+          <WhatsAppLogo size={16} />
+          Create WhatsApp Message
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
    NOT CONNECTED BANNER
 ═══════════════════════════════════════════════════════════════ */
 function NotConnectedBanner({
@@ -1917,6 +2070,7 @@ export default function HomePage() {
   const router = useRouter();
   const fbRef = useRef<HTMLDivElement>(null);
   const igRef = useRef<HTMLDivElement>(null);
+  const waRef = useRef<HTMLDivElement>(null);
 
   const { data: user, isLoading: userLoading } = useUser();
 
@@ -1991,6 +2145,7 @@ export default function HomePage() {
     const m: Record<string, React.RefObject<HTMLDivElement | null>> = {
       facebook: fbRef,
       instagram: igRef,
+      whatsapp: waRef,
     };
     m[id]?.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -2486,6 +2641,16 @@ export default function HomePage() {
                     isDark={isDark}
                   />
                   <InstagramComingSoonCard isDark={isDark} />
+                </motion.div>
+
+                {/* WhatsApp */}
+                <motion.div ref={waRef} variants={fadeUp}>
+                  <SectionHeader
+                    title="WhatsApp"
+                    subtitle="AI messages · Share instantly"
+                    isDark={isDark}
+                  />
+                  <WhatsAppCard isDark={isDark} />
                 </motion.div>
               </div>
             </div>
