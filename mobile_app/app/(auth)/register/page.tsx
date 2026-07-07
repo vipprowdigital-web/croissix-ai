@@ -252,8 +252,9 @@ function validate(fields: {
 
   if (!/^\+?[\d\s\-]{8,}$/.test(fields.phone))
     errs.phone = "Enter a valid phone number.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email))
-    errs.email = "Enter a valid email.";
+  if (!/^[a-zA-Z0-9._%+-]{6,30}@gmail\.com$/.test(fields.email))
+    errs.email =
+      "Enter a valid Gmail address with at least 6 characters (e.g. name@gmail.com)";
   if (fields.password.length < 8) errs.password = "Minimum 8 characters.";
   if (fields.confirm !== fields.password)
     errs.confirm = "Passwords don't match.";
