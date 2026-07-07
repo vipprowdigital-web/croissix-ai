@@ -33,6 +33,6 @@ export const updateUserProfile = async (
   if (data.city) formData.append("city", data.city);
   if (data.state) formData.append("state", data.state);
 
-  const res = await API.post("/users/profile/update", formData);
+  const res = await API.patch("/users/profile/update", formData);
   return res.data.data;
 };

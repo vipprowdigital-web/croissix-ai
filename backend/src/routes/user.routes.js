@@ -12,7 +12,7 @@ import upload from "../config/multer.js";
 const router = Router();
 
 router.get("/profile/view", ensureAuth, getProfile);
-router.post(
+router.patch(
   "/profile/update",
   ensureAuth,
   upload.fields([{ name: "avatar", maxCount: 1 }]),
