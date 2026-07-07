@@ -231,6 +231,8 @@ export const login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    const business = await Business.findOne({ owner: user._id }).lean();
+
     return res.status(200).json({
       status: "success",
       message: "Login successful.",
@@ -246,6 +248,10 @@ export const login = async (req, res) => {
         googleLocationId: user.googleLocationId || null,
         googleLocationName: user.googleLocationName || null,
         avatar: user.avatar || null,
+        businessName: business?.businessName || null,
+        employeeCount: business?.employeeCount ?? null,
+        city: business?.city || null,
+        state: business?.state || null,
       },
     });
   } catch (error) {
