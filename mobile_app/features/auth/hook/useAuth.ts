@@ -3,13 +3,38 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { loginUser, logoutUser, registerUser } from "../services/auth.api";
+import {
+  forgotPassword,
+  loginUser,
+  logoutUser,
+  registerUser,
+  resetPassword,
+  verifyOtp,
+} from "../services/auth.api";
 import { useDispatch } from "react-redux";
 import { clearUser, setUser } from "@/redux/slices/userSlice";
 
 export const useRegister = () => {
   return useMutation({
     mutationFn: registerUser,
+  });
+};
+
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: forgotPassword,
+  });
+};
+
+export const useVerifyOtp = () => {
+  return useMutation({
+    mutationFn: verifyOtp,
+  });
+};
+
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: resetPassword,
   });
 };
 

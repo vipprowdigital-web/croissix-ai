@@ -20,6 +20,7 @@ import { useDispatch } from "react-redux";
 import { setUser, clearUser } from "@/redux/slices/userSlice";
 import { useRouter } from "next/navigation";
 import { useLogout } from "@/features/auth/hook/useAuth";
+import QRCode from "react-qr-code";
 
 /* ══════════════════════════════════════════════════
    TOKENS
@@ -484,24 +485,6 @@ function Section({ children, t }: { children: React.ReactNode; t: typeof D }) {
    QR PATTERN GENERATOR
 ══════════════════════════════════════════════════ */
 function QRPattern({ url, size = 180 }: { url: string; size: number }) {
-  const seed = url.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  const cells = 21;
-  const cell = size / cells;
-  const grid = Array.from({ length: cells }, (_, r) =>
-    Array.from({ length: cells }, (_, c) => {
-      const inTL = r < 7 && c < 7,
-        inTR = r < 7 && c >= cells - 7,
-        inBL = r >= cells - 7 && c < 7;
-      if (inTL || inTR || inBL) {
-        const lr = inTL ? r : inTR ? r : r - (cells - 7);
-        const lc = inTL ? c : inTR ? c - (cells - 7) : c;
-        if (lr === 0 || lr === 6 || lc === 0 || lc === 6) return true;
-        if (lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4) return true;
-        return false;
-      }
-      return (seed * (r * 31 + c * 17) + r + c) % 3 !== 0;
-    }),
-  );
   return (
     <div
       style={{
@@ -512,23 +495,12 @@ function QRPattern({ url, size = 180 }: { url: string; size: number }) {
         boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
       }}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {grid.map((row, r) =>
-          row.map((on, c) =>
-            on ? (
-              <rect
-                key={`${r}-${c}`}
-                x={c * cell}
-                y={r * cell}
-                width={cell}
-                height={cell}
-                fill="#0f172a"
-                rx={0.5}
-              />
-            ) : null,
-          ),
-        )}
-      </svg>
+      <QRCode
+        value={url || "https://example.com"}
+        size={size}
+        fgColor="#0f172a"
+        bgColor="white"
+      />
     </div>
   );
 }
@@ -549,35 +521,40 @@ function QRModal({
   locationName?: string;
   locationId?: string;
 }) {
-  const [activeTab, setActiveTab] = useState<
-    "review" | "profile" | "directions"
-  >("review");
+  const [activeTab, setActiveTab] = useState<"profile" | "directions">(
+    "profile",
+  );
+  // const [activeTab, setActiveTab] = useState<
+  //   "review" | "profile" | "directions"
+  // >("review");
   const [copied, setCopied] = useState(false);
 
   const base =
     typeof window !== "undefined"
       ? window.location.origin
-      : "https://app.croissix.com";
+      : "https://ai.croissix.com";
   const urls = {
-    review: locationId
-      ? `https://search.google.com/local/writereview?placeid=${locationId}`
-      : `${base}/review`,
+    // review: locationId
+    //   ? `https://search.google.com/local/writereview?placeid=${locationId}`
+    //   : `${base}/review`,
     profile: locationId
-      ? `https://www.google.com/maps/place/?q=place_id:${locationId}`
+      ? // ? `https://www.google.com/maps/place/?q=place_id:${locationId}`
+        `https://www.google.com/maps/search/?api=1&query=${locationName}`
       : `${base}/profile`,
     directions: locationId
-      ? `https://www.google.com/maps/dir/?api=1&destination_place_id=${locationId}`
+      ? // ? `https://www.google.com/maps/dir/?api=1&destination_place_id=${locationId}`
+        `https://www.google.com/maps/search/?api=1&query=${locationName}`
       : `${base}/directions`,
   };
 
   const tabs = [
-    {
-      id: "review" as const,
-      label: "Review QR",
-      icon: <Star size={13} />,
-      color: "#f59e0b",
-      desc: "Let customers leave a Google review instantly",
-    },
+    // {
+    //   id: "review" as const,
+    //   label: "Review QR",
+    //   icon: <Star size={13} />,
+    //   color: "#f59e0b",
+    //   desc: "Let customers leave a Google review instantly",
+    // },
     {
       id: "profile" as const,
       label: "Profile QR",
@@ -759,7 +736,7 @@ function QRModal({
                   boxShadow: `0 4px 14px ${active.color}40`,
                 }}
               >
-                <Share2 size={15} /> Share QR
+                <Share2 size={15} /> Share Link
               </button>
             </div>
 
@@ -767,11 +744,14 @@ function QRModal({
               className="text-[11px] text-center leading-relaxed"
               style={{ color: t.sub }}
             >
-              {activeTab === "review"
+              {activeTab === "profile"
+                ? "Share on social media, email signatures, or print materials."
+                : "Print near your entrance or parking area for easy navigation."}
+              {/* {activeTab === "review"
                 ? "Display this on receipts, tables, or counters to collect more reviews."
                 : activeTab === "profile"
                   ? "Share on social media, email signatures, or print materials."
-                  : "Print near your entrance or parking area for easy navigation."}
+                  : "Print near your entrance or parking area for easy navigation."} */}
             </p>
           </div>
         </div>
@@ -1146,6 +1126,13 @@ export default function ProfilePage() {
     <Section t={t}>
       {/* <Row icon={<IcoNotif />} iconBg="#f97316" label="Notifications" t={t} /> */}
       <Row
+        icon={<IcoEdit />}
+        iconBg="#0ea5e9"
+        label="Update Profile"
+        t={t}
+        onClick={() => router.push("/profile/edit")}
+      />
+      <Row
         icon={<IcoLock />}
         iconBg="#8b5cf6"
         label="Privacy"
@@ -1207,26 +1194,43 @@ export default function ProfilePage() {
           >
             {/* Avatar */}
             <div style={{ position: "relative" }}>
-              <div
-                style={{
-                  width: 92,
-                  height: 92,
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg,#3b82f6 0%,#8b5cf6 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 38,
-                  fontWeight: 700,
-                  color: "white",
-                  boxShadow: isDark
-                    ? "0 4px 28px rgba(59,130,246,0.45)"
-                    : "0 4px 20px rgba(59,130,246,0.3)",
-                }}
-              >
-                {user?.name?.[0]?.toUpperCase() ?? "A"}
-              </div>
-              <button
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user?.name ?? "Avatar"}
+                  style={{
+                    width: 92,
+                    height: 92,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    boxShadow: isDark
+                      ? "0 4px 28px rgba(59,130,246,0.45)"
+                      : "0 4px 20px rgba(59,130,246,0.3)",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 92,
+                    height: 92,
+                    borderRadius: "50%",
+                    background:
+                      "linear-gradient(135deg,#3b82f6 0%,#8b5cf6 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 38,
+                    fontWeight: 700,
+                    color: "white",
+                    boxShadow: isDark
+                      ? "0 4px 28px rgba(59,130,246,0.45)"
+                      : "0 4px 20px rgba(59,130,246,0.3)",
+                  }}
+                >
+                  {user?.name?.[0]?.toUpperCase() ?? "A"}
+                </div>
+              )}
+              {/* <button
                 style={{
                   position: "absolute",
                   bottom: 0,
@@ -1243,7 +1247,7 @@ export default function ProfilePage() {
                 }}
               >
                 <IcoCamera />
-              </button>
+              </button> */}
             </div>
 
             {/* Name */}
@@ -1268,12 +1272,12 @@ export default function ProfilePage() {
                 >
                   {user?.name ?? "N/A"}
                 </span>
-                <span
+                {/* <span
                   style={{ color: "#3b82f6", cursor: "pointer" }}
                   onClick={() => router.push("/profile/google-profile/edit")}
                 >
                   <IcoEdit />
-                </span>
+                </span> */}
               </div>
               <div
                 style={{

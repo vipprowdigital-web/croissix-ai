@@ -70,6 +70,10 @@ const userSchema = new mongoose.Schema(
     refreshToken: {
       type: String,
     },
+
+    // --- PASSWORD RESET (OTP) ---
+    resetPasswordOtp: { type: String },
+    resetPasswordOtpExpires: { type: Date },
   },
   {
     timestamps: true,

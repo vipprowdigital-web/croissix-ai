@@ -12,6 +12,10 @@ export interface User {
   googleLocationName: string;
   googleLocationCategory?: string;
   businessCategory?: string;
+  businessName?: string | null;
+  employeeCount?: number | null;
+  city?: string | null;
+  state?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import Business from "../models/business.model.js";
-import { sendWelcomeEmail } from "./email.servce.js";
+import { sendWelcomeEmail, sendOtpEmail } from "./email.servce.js";
 import { google } from "googleapis";
 import axios from "axios";
 
@@ -254,6 +254,138 @@ export const login = async (req, res) => {
       status: "error",
       message: "Something went wrong. Please try again later.",
     });
+  }
+};
+
+// -------------------------
+// Forgot Password — generate & email an OTP
+// -------------------------
+export const forgotPassword = async (req, res) => {
+  try {
+    const email = req.body.email?.trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "No account found with this email." });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.resetPasswordOtp = await bcrypt.hash(otp, 10);
+    user.resetPasswordOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    const emailResult = await sendOtpEmail({ name: user.name, email, otp });
+    if (!emailResult.success) {
+      return res
+        .status(500)
+        .json({ message: "Failed to send OTP email. Please try again." });
+    }
+
+    return res.status(200).json({ message: "OTP sent to your email." });
+  } catch (error) {
+    console.error("Forgot password error:", error.message);
+    return res.status(500).json({ message: "Internal Server Error." });
+  }
+};
+
+// -------------------------
+// Verify OTP — issues a short-lived reset token
+// -------------------------
+export const verifyOtp = async (req, res) => {
+  try {
+    const email = req.body.email?.trim().toLowerCase();
+    const { otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !user.resetPasswordOtp || !user.resetPasswordOtpExpires) {
+      return res.status(400).json({ message: "Invalid or expired OTP." });
+    }
+
+    if (user.resetPasswordOtpExpires < Date.now()) {
+      return res
+        .status(400)
+        .json({ message: "OTP has expired. Please request a new one." });
+    }
+
+    const isMatch = await bcrypt.compare(otp, user.resetPasswordOtp);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid OTP." });
+    }
+
+    // Consume the OTP so it can't be reused
+    user.resetPasswordOtp = undefined;
+    user.resetPasswordOtpExpires = undefined;
+    await user.save();
+
+    const resetToken = jwt.sign(
+      { id: user._id, purpose: "reset-password" },
+      process.env.JWT_SECRET,
+      { expiresIn: "10m" },
+    );
+
+    return res.status(200).json({ message: "OTP verified.", resetToken });
+  } catch (error) {
+    console.error("Verify OTP error:", error.message);
+    return res.status(500).json({ message: "Internal Server Error." });
+  }
+};
+
+// -------------------------
+// Reset Password — consumes the reset token from verifyOtp
+// -------------------------
+export const resetPassword = async (req, res) => {
+  try {
+    const { resetToken, password } = req.body;
+
+    if (!resetToken || !password) {
+      return res
+        .status(400)
+        .json({ message: "Reset token and new password are required." });
+    }
+
+    if (password.length < 8) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 8 characters." });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(403).json({
+        message: "Invalid or expired reset session. Please start over.",
+      });
+    }
+
+    if (decoded.purpose !== "reset-password") {
+      return res.status(403).json({ message: "Invalid reset session." });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.refreshToken = null; // force re-login on all devices
+    await user.save();
+
+    return res.status(200).json({ message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Reset password error:", error.message);
+    return res.status(500).json({ message: "Internal Server Error." });
   }
 };
 
@@ -882,3 +1014,6 @@ export const disconnectFacebookProfile = async (req, res) => {
     });
   }
 };
+
+
+

@@ -11,6 +11,9 @@ import {
   register,
   connectSingleFacebookPage,
   disconnectFacebookProfile,
+  forgotPassword,
+  verifyOtp,
+  resetPassword,
 } from "../controllers/auth.controller.js";
 import { ensureAuth } from "../middleware/authMiddleware.js";
 
@@ -18,6 +21,9 @@ const router = Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/forgot-password", forgotPassword);
+router.post("/verify-otp", verifyOtp);
+router.post("/reset-password", resetPassword);
 router.post("/link-google", ensureAuth, linkGoogleAccount);
 router.post("/refresh", refreshToken);
 router.post("/logout", ensureAuth, logout);

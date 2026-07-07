@@ -1,5 +1,5 @@
-import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
+import Business from "../models/business.model.js";
 import {
   destroyFromCloudinary,
   uploadToCloudinary,
@@ -32,6 +32,8 @@ export const getProfile = async (req, res) => {
       });
     }
 
+    const business = await Business.findOne({ owner: userId }).lean();
+
     return res.status(200).json({
       message: "Profile fetch successfully",
       user: {
@@ -48,6 +50,10 @@ export const getProfile = async (req, res) => {
         googleLocationName: user.googleLocationName || null,
         avatar: user.avatar || null,
         createdAt: user.createdAt,
+        businessName: business?.businessName || null,
+        employeeCount: business?.employeeCount ?? null,
+        city: business?.city || null,
+        state: business?.state || null,
       },
     });
   } catch (error) {
@@ -64,7 +70,8 @@ export const updateProfileById = async (req, res) => {
   try {
     // ✅ Use ID from token (set by ensureAuth middleware)
     const userId = req.user?.id;
-    const { name, email, password } = req.body || {};
+    const { name, email, phone, businessName, employeeCount, city, state } =
+      req.body || {};
 
     if (!userId) {
       return res
@@ -77,10 +84,15 @@ export const updateProfileById = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
+    const business = await Business.findOne({ owner: userId });
+
     let updatedFields = {};
+    let updatedBusinessFields = {};
     let avatarUrl = null;
 
     // ✅ Handle avatar upload (form-data)
+
+    console.log("req.files: ", req.files);
     if (req.files?.avatar?.[0]?.path) {
       try {
         const upload = await uploadToCloudinary(
@@ -97,36 +109,93 @@ export const updateProfileById = async (req, res) => {
 
         updatedFields.avatar = avatarUrl;
       } catch (err) {
-        console.warn("⚠️ Avatar upload failed:", err.message);
+        console.error("⚠️ Avatar upload failed:", err.message);
+        return res.status(500).json({
+          message: "Avatar upload failed. Please try again.",
+        });
       }
     }
 
-    // ✅ Hash password if provided
-    if (password?.trim()) {
-      updatedFields.password = await bcrypt.hash(password, 10);
-    }
-
-    // ✅ Update name/email if provided
+    // ✅ Update name/email/phone if provided
     if (name && name !== user.name) updatedFields.name = name;
     if (email && email !== user.email) updatedFields.email = email;
+    if (phone && phone !== user.phone) updatedFields.phone = phone;
+
+    // ✅ Update business details if provided
+    if (businessName && businessName !== business?.businessName)
+      updatedBusinessFields.businessName = businessName;
+    if (
+      employeeCount !== undefined &&
+      employeeCount !== "" &&
+      Number(employeeCount) !== business?.employeeCount
+    )
+      updatedBusinessFields.employeeCount = Number(employeeCount);
+    if (city && city !== business?.city) updatedBusinessFields.city = city;
+    if (state && state !== business?.state) updatedBusinessFields.state = state;
 
     // ✅ If nothing changed
-    if (Object.keys(updatedFields).length === 0) {
+    if (
+      Object.keys(updatedFields).length === 0 &&
+      Object.keys(updatedBusinessFields).length === 0
+    ) {
       return res.status(400).json({ message: "No changes detected." });
     }
 
     // ✅ Update user
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $set: updatedFields },
-      { new: true, runValidators: true, select: "-password" },
-    );
+    if (Object.keys(updatedFields).length > 0) {
+      await User.findByIdAndUpdate(
+        userId,
+        { $set: updatedFields },
+        { runValidators: true },
+      );
+    }
+
+    // ✅ Update (or create, if missing) the linked business record
+    if (Object.keys(updatedBusinessFields).length > 0) {
+      const canCreate = business || updatedBusinessFields.businessName;
+      if (canCreate) {
+        await Business.findOneAndUpdate(
+          { owner: userId },
+          {
+            $set: updatedBusinessFields,
+            $setOnInsert: { owner: userId },
+          },
+          { upsert: true, runValidators: true },
+        );
+      }
+    }
+
+    const updatedUser = await User.findById(userId).select("-password").lean();
+    const updatedBusiness = await Business.findOne({ owner: userId }).lean();
 
     return res.status(200).json({
       message: "✅ User profile updated successfully.",
-      data: updatedUser,
+      data: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        provider: updatedUser.provider,
+        googleId: updatedUser.googleId,
+        googleLocationId: updatedUser.googleLocationId || null,
+        googleLocationName: updatedUser.googleLocationName || null,
+        avatar: updatedUser.avatar || null,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.updatedAt,
+        businessName: updatedBusiness?.businessName || null,
+        employeeCount: updatedBusiness?.employeeCount ?? null,
+        city: updatedBusiness?.city || null,
+        state: updatedBusiness?.state || null,
+      },
     });
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || "field";
+      return res.status(409).json({
+        message: `This ${field} is already in use.`,
+      });
+    }
+
     console.error("❌ Error updating user profile:", error);
     return res.status(500).json({
       message: "Internal Server Error while updating profile.",

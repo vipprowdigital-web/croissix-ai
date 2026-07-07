@@ -459,7 +459,7 @@ export default function RegisterPage() {
             type="email"
             value={email}
             onChange={setEmail}
-            placeholder="you@example.com"
+            placeholder="you@gmail.com"
             isDark={isDark}
             autoComplete="email"
             leftIcon={<Mail size={15} strokeWidth={1.8} />}

@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
 import { useEffect } from "react";
-import { fetchUserProfile } from "../services/user.api";
+import { fetchUserProfile, updateUserProfile } from "../services/user.api";
 import { setUser } from "@/redux/slices/userSlice";
 import { User } from "@/types/user";
 import { getToken } from "@/lib/token";
@@ -29,4 +29,18 @@ export const useUser = () => {
   }, [query.data, dispatch]);
 
   return query;
+};
+
+export const useUpdateProfile = () => {
+  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateUserProfile,
+
+    onSuccess: (data) => {
+      dispatch(setUser(data));
+      queryClient.setQueryData(["user-profile"], data);
+    },
+  });
 };

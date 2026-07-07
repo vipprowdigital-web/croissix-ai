@@ -52,6 +52,135 @@ export async function sendWelcomeEmail({
   }
 }
 
+/**
+ * Sends a password-reset OTP email.
+ * @param {Object} params
+ * @param {string} params.name
+ * @param {string} params.email
+ * @param {string} params.otp
+ */
+export async function sendOtpEmail({ name, email, otp }) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "Croissix <noreply@mail.croissix.com>",
+      to: email,
+      subject: `Your Croissix password reset code: ${otp}`,
+      html: buildOtpTemplate({ name, otp }),
+    });
+
+    if (error) {
+      console.error("Resend error:", error);
+      return { success: false, error };
+    }
+
+    console.log("✅ OTP email sent:", data?.id);
+    return { success: true, id: data?.id };
+  } catch (err) {
+    console.error("Email service error:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// ─── HTML Template ────────────────────────────────────────────────────────────
+function buildOtpTemplate({ name, otp }) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Croissix Password Reset</title>
+</head>
+<body style="margin:0; padding:0; background-color:#0d0d14; font-family: 'Segoe UI', Helvetica, Arial, sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0d0d14; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px;">
+
+          <!-- ── Header ── -->
+          <tr>
+            <td style="
+              background: linear-gradient(135deg, #2a0e45 0%, #9f57f5 100%);
+              border-radius: 20px 20px 0 0;
+              padding: 40px 32px 32px;
+              text-align: center;
+            ">
+              <div style="
+                display: inline-block;
+                background: rgba(255,255,255,0.12);
+                border-radius: 14px;
+                padding: 12px 24px;
+                margin-bottom: 20px;
+              ">
+                <span style="color: white; font-size: 22px; font-weight: 800; letter-spacing: 1px;">
+                  CROISSIX
+                </span>
+              </div>
+
+              <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 700; line-height: 1.3;">
+                Reset your password
+              </h1>
+              <p style="margin: 12px 0 0; color: rgba(255,255,255,0.75); font-size: 15px;">
+                Hi ${name || "there"}, use the code below to continue.
+              </p>
+            </td>
+          </tr>
+
+          <!-- ── Body ── -->
+          <tr>
+            <td style="background-color: #130d22; padding: 32px; text-align: center;">
+
+              <p style="margin: 0 0 20px; color: #c4aee8; font-size: 15px; line-height: 1.6;">
+                Your one-time verification code is:
+              </p>
+
+              <div style="
+                display: inline-block;
+                background-color: #1a0f2e;
+                border: 1px solid #2a1a40;
+                border-radius: 12px;
+                padding: 18px 32px;
+                margin-bottom: 24px;
+              ">
+                <span style="color: #ffffff; font-size: 34px; font-weight: 800; letter-spacing: 10px;">
+                  ${otp}
+                </span>
+              </div>
+
+              <p style="margin: 0; color: #a78bca; font-size: 13px; line-height: 1.6;">
+                This code expires in 10 minutes. If you didn't request a password reset, you can safely ignore this email.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- ── Footer ── -->
+          <tr>
+            <td style="
+              background-color: #0d0d14;
+              border-radius: 0 0 20px 20px;
+              border-top: 1px solid #2a1a40;
+              padding: 24px 32px;
+              text-align: center;
+            ">
+              <p style="margin: 0; color: #6b5a8a; font-size: 12px;">
+                © ${new Date().getFullYear()} Croissix. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+  `.trim();
+}
+
 // ─── HTML Template ────────────────────────────────────────────────────────────
 function buildWelcomeTemplate({
   name,
