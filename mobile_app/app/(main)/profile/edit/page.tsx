@@ -11,7 +11,6 @@ import {
   ArrowLeft,
   Camera,
   User as UserIcon,
-  Mail,
   Phone,
   Building2,
   Users,
@@ -198,7 +197,6 @@ export default function EditProfilePage() {
   const { mutate, isPending } = useUpdateProfile();
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [employeeCount, setEmployeeCount] = useState("");
@@ -212,7 +210,6 @@ export default function EditProfilePage() {
   useEffect(() => {
     if (!user) return;
     setName(user.name ?? "");
-    setEmail(user.email ?? "");
     setPhone(user.phone ?? "");
     setBusinessName(user.businessName ?? "");
     setEmployeeCount(
@@ -238,20 +235,13 @@ export default function EditProfilePage() {
   const handleSubmit = () => {
     setError(null);
 
-    if (!name.trim() || !email.trim() || !phone.trim()) {
-      setError("Name, email and phone are required.");
-      return;
-    }
-    if (!/^[a-zA-Z0-9._%+-]{6,30}@gmail\.com$/.test(email.trim())) {
-      setError(
-        "Enter a valid Gmail address with at least 6 characters (e.g. name@gmail.com)",
-      );
+    if (!name.trim() || !phone.trim()) {
+      setError("Name and phone are required.");
       return;
     }
     mutate(
       {
         name: name.trim(),
-        email: email.trim(),
         phone: phone.trim(),
         businessName: businessName.trim() || undefined,
         employeeCount: employeeCount ? Number(employeeCount) : undefined,
@@ -447,15 +437,6 @@ export default function EditProfilePage() {
               onChange={setName}
               dark={dark}
               placeholder="Your name"
-            />
-          </Field>
-          <Field label="Email" icon={<Mail size={14} />} dark={dark}>
-            <Input
-              value={email}
-              onChange={setEmail}
-              dark={dark}
-              type="email"
-              placeholder="you@example.com"
             />
           </Field>
           <Field label="Phone" icon={<Phone size={14} />} dark={dark}>

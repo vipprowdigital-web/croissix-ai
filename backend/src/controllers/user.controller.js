@@ -70,7 +70,7 @@ export const updateProfileById = async (req, res) => {
   try {
     // ✅ Use ID from token (set by ensureAuth middleware)
     const userId = req.user?.id;
-    const { name, email, phone, businessName, employeeCount, city, state } =
+    const { name, phone, businessName, employeeCount, city, state } =
       req.body || {};
 
     if (!userId) {
@@ -92,7 +92,7 @@ export const updateProfileById = async (req, res) => {
 
     // ✅ Handle avatar upload (form-data)
 
-    console.log("req.files: ", req.files);
+    // console.log("req.files: ", req.files);
     if (req.files?.avatar?.[0]?.path) {
       try {
         const upload = await uploadToCloudinary(
@@ -116,9 +116,8 @@ export const updateProfileById = async (req, res) => {
       }
     }
 
-    // ✅ Update name/email/phone if provided
+    // ✅ Update name/phone if provided
     if (name && name !== user.name) updatedFields.name = name;
-    if (email && email !== user.email) updatedFields.email = email;
     if (phone && phone !== user.phone) updatedFields.phone = phone;
 
     // ✅ Update business details if provided

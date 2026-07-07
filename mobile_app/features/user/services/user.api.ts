@@ -10,7 +10,6 @@ export const fetchUserProfile = async (): Promise<User> => {
 
 export interface UpdateProfilePayload {
   name?: string;
-  email?: string;
   phone?: string;
   avatar?: File;
   businessName?: string;
@@ -24,7 +23,6 @@ export const updateUserProfile = async (
 ): Promise<User> => {
   const formData = new FormData();
   if (data.name) formData.append("name", data.name);
-  if (data.email) formData.append("email", data.email);
   if (data.phone) formData.append("phone", data.phone);
   if (data.avatar) formData.append("avatar", data.avatar);
   if (data.businessName) formData.append("businessName", data.businessName);
