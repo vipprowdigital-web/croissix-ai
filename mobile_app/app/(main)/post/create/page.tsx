@@ -58,6 +58,15 @@ import {
   Brain,
   Type,
   Wand2,
+  Briefcase,
+  Smile,
+  Rocket,
+  Camera,
+  Palette,
+  Square,
+  Film,
+  Sunrise,
+  PenLine,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -145,17 +154,17 @@ const CTA_OPTIONS: { id: CTA; label: string; icon: React.ReactNode }[] = [
   { id: "SIGN_UP", label: "Sign Up", icon: <Link2 size={12} /> },
   { id: "CALL", label: "Call Now", icon: <Phone size={12} /> },
 ];
-const TONES: { id: Tone; emoji: string; label: string }[] = [
-  { id: "Professional", emoji: "🎯", label: "Professional" },
-  { id: "Friendly", emoji: "😊", label: "Friendly" },
-  { id: "Enthusiastic", emoji: "🚀", label: "Enthusiastic" },
+const TONES: { id: Tone; icon: React.ElementType; label: string }[] = [
+  { id: "Professional", icon: Briefcase, label: "Professional" },
+  { id: "Friendly", icon: Smile, label: "Friendly" },
+  { id: "Enthusiastic", icon: Rocket, label: "Enthusiastic" },
 ];
-const IMG_STYLES: { id: ImgStyle; emoji: string; label: string }[] = [
-  { id: "photorealistic", emoji: "📸", label: "Photo" },
-  { id: "illustration", emoji: "🎨", label: "Illustration" },
-  { id: "minimalist", emoji: "⬜", label: "Minimal" },
-  { id: "cinematic", emoji: "🎬", label: "Cinematic" },
-  { id: "warm", emoji: "🌅", label: "Warm" },
+const IMG_STYLES: { id: ImgStyle; icon: React.ElementType; label: string }[] = [
+  { id: "photorealistic", icon: Camera, label: "Photo" },
+  { id: "illustration", icon: Palette, label: "Illustration" },
+  { id: "minimalist", icon: Square, label: "Minimal" },
+  { id: "cinematic", icon: Film, label: "Cinematic" },
+  { id: "warm", icon: Sunrise, label: "Warm" },
 ];
 const MONTHS = [
   "January",
@@ -409,7 +418,17 @@ function AIImageCard({
         setGenerating(false);
       }
     },
-    [title, postType, bizName, bizCat, aiImage?.seed, generating, disabled, limitReached, onGenerated],
+    [
+      title,
+      postType,
+      bizName,
+      bizCat,
+      aiImage?.seed,
+      generating,
+      disabled,
+      limitReached,
+      onGenerated,
+    ],
   );
 
   const card = `rounded-2xl border overflow-hidden ${dark ? "bg-[#0a1628] border-[#1a2d4a]" : "bg-white border-slate-200/80 shadow-sm"}`;
@@ -442,21 +461,33 @@ function AIImageCard({
             Generated
           </span>
         )}
-        {aiImage && (
+        {/* {aiImage && (
           <span
             className={`text-[9px] font-bold ${dark ? "text-slate-700" : "text-slate-300"}`}
           >
             via {aiImage.provider}
           </span>
-        )}
+        )} */}
         <span
           className="text-[9px] font-black px-2 py-0.5 rounded-full ml-auto"
           style={
             limitReached
-              ? { background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }
+              ? {
+                  background: "rgba(239,68,68,0.1)",
+                  color: "#ef4444",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                }
               : remaining === 1
-                ? { background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)" }
-                : { background: "rgba(99,102,241,0.08)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.2)" }
+                ? {
+                    background: "rgba(245,158,11,0.1)",
+                    color: "#f59e0b",
+                    border: "1px solid rgba(245,158,11,0.2)",
+                  }
+                : {
+                    background: "rgba(99,102,241,0.08)",
+                    color: "#818cf8",
+                    border: "1px solid rgba(129,140,248,0.2)",
+                  }
           }
         >
           {limitReached ? "Limit reached" : `${remaining} left today`}
@@ -475,25 +506,29 @@ function AIImageCard({
             className="flex gap-1.5 overflow-x-auto pb-0.5"
             style={{ scrollbarWidth: "none" }}
           >
-            {IMG_STYLES.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => handleStyleChange(s.id)}
-                className={`flex items-center gap-1.5 shrink-0 h-8 px-2.5 rounded-xl text-[11px] font-bold border transition-all active:scale-95
-                  ${
-                    imgStyle === s.id
-                      ? dark
-                        ? "bg-purple-500/15 border-purple-500/35 text-purple-400"
-                        : "bg-purple-50 border-purple-300/60 text-purple-600"
-                      : dark
-                        ? "bg-white/[0.03] border-white/[0.05] text-slate-500"
-                        : "bg-slate-50 border-slate-200 text-slate-500"
-                  }`}
-              >
-                <span className="text-[13px]">{s.emoji}</span>
-                {s.label}
-              </button>
-            ))}
+            {IMG_STYLES.map((s) => {
+              const SIcon = s.icon;
+              const active = imgStyle === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => handleStyleChange(s.id)}
+                  className={`flex items-center gap-1.5 shrink-0 h-8 px-2.5 rounded-xl text-[10px] font-bold border transition-all active:scale-95
+                    ${
+                      active
+                        ? dark
+                          ? "bg-purple-500/15 border-purple-500/35 text-purple-400"
+                          : "bg-purple-50 border-purple-300/60 text-purple-600"
+                        : dark
+                          ? "bg-white/[0.03] border-white/[0.05] text-slate-500"
+                          : "bg-slate-50 border-slate-200 text-slate-500"
+                    }`}
+                >
+                  <SIcon size={12} />
+                  {s.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -686,28 +721,28 @@ function AIImageCard({
 
         {/* action row — only shown after generation */}
         {aiImage && !generating && (
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               onClick={() => onImageAccepted(aiImage.imageUrl)}
-              className="flex-1 h-9 rounded-2xl text-[12px] font-black text-white flex items-center justify-center gap-1.5 transition-all active:scale-95"
+              className="flex-1 h-7 rounded-2xl text-[10px] sm:text-[12px] font-semibold text-white flex items-center justify-center gap-1 transition-all active:scale-95"
               style={{
                 background: "linear-gradient(135deg,#16a34a,#22c55e)",
                 boxShadow: "0 4px 16px rgba(34,197,94,0.3)",
               }}
             >
-              <CheckCircle2 size={13} /> Add to Post
+              <CheckCircle2 size={13} /> <span> Add to Post</span>
             </button>
             <button
               onClick={() => handleStyleRegen(imgStyle)}
               disabled={generating || limitReached}
-              className={`flex items-center gap-1.5 h-9 px-3 rounded-2xl text-[11.5px] font-bold border transition-all active:scale-95 disabled:opacity-50 ${dark ? "bg-white/[0.04] border-white/[0.07] text-purple-400" : "bg-purple-50 border-purple-200/60 text-purple-600"}`}
+              className={`flex items-center gap-1.5 h-7 px-3 rounded-2xl text-[10px] sm:text-[11.5px] font-bold border transition-all active:scale-95 disabled:opacity-50 ${dark ? "bg-white/[0.04] border-white/[0.07] text-purple-400" : "bg-purple-50 border-purple-200/60 text-purple-600"}`}
             >
               <RefreshCw size={12} /> Regen Style
             </button>
             <button
               onClick={() => generate(true)}
               disabled={generating || limitReached}
-              className={`flex items-center gap-1.5 h-9 px-3 rounded-2xl text-[11.5px] font-bold border transition-all active:scale-95 disabled:opacity-50 ${dark ? "bg-white/[0.04] border-white/[0.07] text-slate-400" : "bg-slate-50 border-slate-200/60 text-slate-500"}`}
+              className={`flex items-center gap-1.5 h-7 px-3 rounded-2xl text-[10px] sm:text-[11.5px] font-bold border transition-all active:scale-95 disabled:opacity-50 ${dark ? "bg-white/[0.04] border-white/[0.07] text-slate-400" : "bg-slate-50 border-slate-200/60 text-slate-500"}`}
             >
               <RefreshCw size={12} /> New Seed
             </button>
@@ -791,7 +826,7 @@ function SEOMeter({
             className={`text-[10.5px] ${dark ? "text-slate-500" : "text-slate-400"}`}
           >
             {tips.length === 0
-              ? "Your post is fully optimised! 🎉"
+              ? "Your post is fully optimised!"
               : `${tips.length} improvement${tips.length > 1 ? "s" : ""} available`}
           </p>
         </div>
@@ -1582,7 +1617,7 @@ export default function GooglePostPage() {
     mutationFn: publishPost,
     onSuccess: () => {
       submittingRef.current = false;
-      alert("✅ Post created successfully!");
+      alert("Post created successfully!");
       router.push("/post");
     },
     onError: () => {
@@ -1681,7 +1716,15 @@ export default function GooglePostPage() {
         // image failure is non-fatal — AIImageCard shows its own error if user retries
       }
     }
-  }, [postTitle, postType, user, imgStyle, generateText, isGenerating, setImgGenCount]);
+  }, [
+    postTitle,
+    postType,
+    user,
+    imgStyle,
+    generateText,
+    isGenerating,
+    setImgGenCount,
+  ]);
 
   /* ── keyword helpers ── */
   const addKeyword = (kw: string) => {
@@ -1860,7 +1903,7 @@ export default function GooglePostPage() {
               key={t.id}
               onClick={() => !isSubmitting && setPostType(t.id)}
               disabled={isSubmitting}
-              className={`flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl border transition-all active:scale-95 disabled:opacity-50
+              className={`flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border transition-all active:scale-95 disabled:opacity-50
                 ${
                   postType === t.id
                     ? isDark
@@ -1945,25 +1988,40 @@ export default function GooglePostPage() {
               )}
             </div>
             <div className="flex gap-2 mb-3">
-              {TONES.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTone(t.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-xl text-[11px] font-bold border transition-all active:scale-95
-                    ${
-                      tone === t.id
-                        ? isDark
-                          ? "bg-blue-500/15 border-blue-500/35 text-blue-400"
-                          : "bg-blue-50 border-blue-300/60 text-blue-600"
-                        : isDark
-                          ? "bg-white/[0.03] border-white/[0.05] text-slate-500"
-                          : "bg-slate-50 border-slate-200 text-slate-500"
-                    }`}
-                >
-                  <span>{t.emoji}</span>
-                  {t.label}
-                </button>
-              ))}
+              {TONES.map((t) => {
+                const TIcon = t.icon;
+                const active = tone === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTone(t.id)}
+                    className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-xl text-[10px] font-bold border transition-all active:scale-95
+                      ${
+                        active
+                          ? isDark
+                            ? "bg-blue-500/15 border-blue-500/35 text-blue-400"
+                            : "bg-blue-50 border-blue-300/60 text-blue-600"
+                          : isDark
+                            ? "bg-white/[0.03] border-white/[0.05] text-slate-500"
+                            : "bg-slate-50 border-slate-200 text-slate-500"
+                      }`}
+                  >
+                    <TIcon
+                      size={12}
+                      className={
+                        active
+                          ? isDark
+                            ? "text-blue-400"
+                            : "text-blue-600"
+                          : isDark
+                            ? "text-slate-500"
+                            : "text-slate-400"
+                      }
+                    />
+                    {t.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* MAIN GENERATE BUTTON — fires BOTH text + image in parallel */}
@@ -2068,9 +2126,9 @@ export default function GooglePostPage() {
                 setValidErr("");
               }}
               disabled={isSubmitting}
-              placeholder="Your AI-generated post will appear here… or type manually ✍️"
+              placeholder="Your AI-generated post will appear here… or type manually"
               rows={7}
-              className={`w-full bg-transparent outline-none text-[14px] leading-relaxed resize-none p-4 disabled:opacity-60 ${isDark ? "text-white placeholder:text-slate-600" : "text-slate-900 placeholder:text-slate-400"}`}
+              className={`w-full bg-transparent outline-none text-[12px] sm:text-[14px] leading-relaxed resize-none p-4 disabled:opacity-60 ${isDark ? "text-white placeholder:text-slate-600" : "text-slate-900 placeholder:text-slate-400"}`}
               style={{ fontFamily: "-apple-system,'SF Pro Text',sans-serif" }}
             />
           </div>
