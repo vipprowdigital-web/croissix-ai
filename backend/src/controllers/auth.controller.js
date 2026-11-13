@@ -247,6 +247,8 @@ export const login = async (req, res) => {
         googleId: user.googleId || null,
         googleLocationId: user.googleLocationId || null,
         googleLocationName: user.googleLocationName || null,
+        googleLocations: user.googleLocations || [],
+        freeAccess: !!user.freeAccess,
         avatar: user.avatar || null,
         businessName: business?.businessName || null,
         employeeCount: business?.employeeCount ?? null,

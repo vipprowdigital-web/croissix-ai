@@ -48,6 +48,8 @@ export const getProfile = async (req, res) => {
         googleTokenExpiry: user.googleTokenExpiry,
         googleLocationId: user.googleLocationId || null,
         googleLocationName: user.googleLocationName || null,
+        googleLocations: user.googleLocations || [],
+        freeAccess: !!user.freeAccess,
         avatar: user.avatar || null,
         createdAt: user.createdAt,
         businessName: business?.businessName || null,
@@ -178,6 +180,8 @@ export const updateProfileById = async (req, res) => {
         googleId: updatedUser.googleId,
         googleLocationId: updatedUser.googleLocationId || null,
         googleLocationName: updatedUser.googleLocationName || null,
+        googleLocations: updatedUser.googleLocations || [],
+        freeAccess: !!updatedUser.freeAccess,
         avatar: updatedUser.avatar || null,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
@@ -203,36 +207,147 @@ export const updateProfileById = async (req, res) => {
   }
 };
 
-// Set Google Location
+/* ── Google Business locations ───────────────────────────────────
+   googleLocationId/Name always mirror the ACTIVE location; googleLocations
+   holds every linked one. Only freeAccess users may hold more than one. */
+
+// Legacy users have googleLocationId set but an empty googleLocations list.
+const ensureLocationList = (user) => {
+  if (
+    user.googleLocationId &&
+    !user.googleLocations.some((l) => l.locationId === user.googleLocationId)
+  ) {
+    user.googleLocations.push({
+      locationId: user.googleLocationId,
+      locationName: user.googleLocationName,
+    });
+  }
+};
+
+const locationPayload = (user) => ({
+  googleLocationId: user.googleLocationId || null,
+  googleLocationName: user.googleLocationName || null,
+  googleLocations: (user.googleLocations || []).map((l) => ({
+    locationId: l.locationId,
+    locationName: l.locationName,
+  })),
+  freeAccess: !!user.freeAccess,
+});
+
+// Link a Google location (and make it active)
 export const setGoogleLocation = async (req, res) => {
   try {
-    const userId = req.user.id;
     const { locationId, locationName } = req.body;
 
     if (!locationId) {
-      return res.status(400).json({
-        message: "Location ID is required",
+      return res.status(400).json({ message: "Location ID is required" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    ensureLocationList(user);
+
+    const alreadyLinked = user.googleLocations.some(
+      (l) => l.locationId === locationId,
+    );
+
+    if (!alreadyLinked && user.googleLocations.length >= 1 && !user.freeAccess) {
+      return res.status(403).json({
+        message:
+          "You can only connect one Google Business location. Please contact support to change it.",
       });
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      {
-        googleLocationId: locationId,
-        googleLocationName: locationName,
-      },
-      { new: true },
-    ).select("-password");
+    if (!alreadyLinked) {
+      user.googleLocations.push({ locationId, locationName });
+    }
+    user.googleLocationId = locationId;
+    user.googleLocationName = locationName;
+    await user.save();
 
     return res.status(200).json({
       message: "Google location linked successfully",
-      user,
+      user: locationPayload(user),
     });
   } catch (error) {
     console.error("Google location link error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-    return res.status(500).json({
-      message: "Internal server error",
+// Switch the active location (free-access accounts only)
+export const setActiveGoogleLocation = async (req, res) => {
+  try {
+    const { locationId } = req.body;
+    if (!locationId) {
+      return res.status(400).json({ message: "Location ID is required" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user.freeAccess) {
+      return res
+        .status(403)
+        .json({ message: "Multiple locations are not enabled for this account" });
+    }
+
+    ensureLocationList(user);
+    const target = user.googleLocations.find((l) => l.locationId === locationId);
+    if (!target) {
+      return res.status(404).json({ message: "Location is not linked" });
+    }
+
+    user.googleLocationId = target.locationId;
+    user.googleLocationName = target.locationName;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Active location updated",
+      user: locationPayload(user),
     });
+  } catch (error) {
+    console.error("Set active location error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Unlink a location (free-access accounts only)
+export const removeGoogleLocation = async (req, res) => {
+  try {
+    const { locationId } = req.params;
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user.freeAccess) {
+      return res
+        .status(403)
+        .json({ message: "Multiple locations are not enabled for this account" });
+    }
+
+    ensureLocationList(user);
+    const before = user.googleLocations.length;
+    user.googleLocations = user.googleLocations.filter(
+      (l) => l.locationId !== locationId,
+    );
+    if (user.googleLocations.length === before) {
+      return res.status(404).json({ message: "Location is not linked" });
+    }
+
+    // If the active one was removed, fall back to the first remaining (or none)
+    if (user.googleLocationId === locationId) {
+      const next = user.googleLocations[0];
+      user.googleLocationId = next?.locationId;
+      user.googleLocationName = next?.locationName;
+    }
+    await user.save();
+
+    return res.status(200).json({
+      message: "Location unlinked",
+      user: locationPayload(user),
+    });
+  } catch (error) {
+    console.error("Remove location error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

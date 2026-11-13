@@ -58,7 +58,9 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://192.168.29.15:3000",
   "http://192.168.29.15:8081",
+  "http://192.168.1.13:3000",
   "http://10.253.118.248:3000",
+  "https://98b4-2401-4900-1ca3-64df-bd2c-2337-6477-601a.ngrok-free.app",
 ];
 // ===============================================
 // 🔥 WEBHOOK FIRST (VERY IMPORTANT)
@@ -76,12 +78,26 @@ app.use(
         return callback(null, true);
       }
 
+      // Dev only, opt-in: ngrok tunnels get a new random domain on every
+      // restart. Off unless ALLOW_NGROK_ORIGINS=true, so production (where the
+      // variable is simply not set) never accepts ngrok origins.
+      if (
+        process.env.ALLOW_NGROK_ORIGINS === "true" &&
+        /^https:\/\/[a-z0-9-]+\.ngrok(-free)?\.(app|dev|io)$/i.test(origin)
+      ) {
+        return callback(null, true);
+      }
+
       console.log("❌ Blocked by CORS:", origin);
       return callback(new Error("CORS Not Allowed: " + origin));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "ngrok-skip-browser-warning",
+    ],
   }),
 );
 // ===============================================

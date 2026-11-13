@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useSelector } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
 import { RootState } from "@/redux/store";
 import {
   LinkIcon,
@@ -773,44 +774,76 @@ function LocationRow({
   t: any;
 }) {
   const dispatch = useDispatch();
+  const qc = useQueryClient();
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const user = useSelector((s: RootState) => s.user.data);
   const locationId = location.name.split("/").pop();
-  const isConnected = user?.googleLocationId === locationId;
+  const freeAccess = !!user?.freeAccess;
+  // Legacy users have googleLocationId but no googleLocations list yet
+  const isLinked =
+    user?.googleLocationId === locationId ||
+    !!user?.googleLocations?.some((l) => l.locationId === locationId);
+  const isActive = user?.googleLocationId === locationId;
 
-  const handleLink = async () => {
-    if (user?.googleLocationId) {
-      alert(
-        "Already Linked. You can only connect one Google Business location. Please contact support to change it.",
-      );
-      return;
-    }
+  // Calls the location endpoints and syncs redux + the react-query user cache
+  // (pages read the user from react-query, so it must be updated too).
+  const callLocationApi = async (
+    path: string,
+    method: "PATCH" | "DELETE",
+    body?: object,
+  ) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token || !user) return;
+    setLinkingId(locationId);
     try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) return;
-      setLinkingId(locationId);
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/google-location`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/${path}`,
+        {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: body ? JSON.stringify(body) : undefined,
         },
-        body: JSON.stringify({ locationId, locationName: location.title }),
-      });
-      if (!user) return;
-      dispatch(
-        setUser({
-          ...user,
-          googleLocationId: locationId,
-          googleLocationName: location.title,
-        }),
       );
-      alert(`${location.title} linked successfully`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.message || "Something went wrong");
+
+      const next = { ...user, ...json.user };
+      dispatch(setUser(next));
+      qc.setQueryData(["user-profile"], (old: any) => ({ ...old, ...json.user }));
+      return json;
     } catch (e) {
       alert(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setLinkingId(null);
     }
+  };
+
+  const handleLink = async () => {
+    if (!freeAccess && user?.googleLocationId) {
+      alert(
+        "Already Linked. You can only connect one Google Business location. Please contact support to change it.",
+      );
+      return;
+    }
+    const json = await callLocationApi("google-location", "PATCH", {
+      locationId,
+      locationName: location.title,
+    });
+    if (json) alert(`${location.title} linked successfully`);
+  };
+
+  const handleSetActive = () =>
+    callLocationApi("google-location/active", "PATCH", { locationId });
+
+  const handleUnlink = async () => {
+    if (!confirm(`Unlink ${location.title}?`)) return;
+    await callLocationApi(
+      `google-location/${encodeURIComponent(locationId)}`,
+      "DELETE",
+    );
   };
 
   return (
@@ -843,10 +876,32 @@ function LocationRow({
           {location.phoneNumbers?.primaryPhone || "No phone"}
         </div>
       </div>
-      {isConnected ? (
-        <span className="text-green-500 text-xs font-semibold flex items-center gap-1">
-          <Check size={12} /> Connected
-        </span>
+      {isLinked ? (
+        <div className="flex items-center gap-2">
+          {isActive ? (
+            <span className="text-green-500 text-xs font-semibold flex items-center gap-1">
+              <Check size={12} /> {freeAccess ? "Active" : "Connected"}
+            </span>
+          ) : (
+            <button
+              onClick={handleSetActive}
+              disabled={linkingId === locationId}
+              className="text-xs font-semibold px-3 py-1 rounded-full border border-blue-500 text-blue-500 disabled:opacity-60"
+            >
+              Set active
+            </button>
+          )}
+          {freeAccess && (
+            <button
+              onClick={handleUnlink}
+              disabled={linkingId === locationId}
+              aria-label="Unlink"
+              className="text-slate-400 hover:text-red-500 disabled:opacity-60"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       ) : (
         <button
           onClick={handleLink}
@@ -874,6 +929,7 @@ function GoogleProfileRow({
   const [open, setOpen] = useState(false);
   const [pressed, setPressed] = useState(false);
   const [locations, setLocations] = useState<any[]>([]);
+  const [locationsError, setLocationsError] = useState("");
   const [loading, setLoading] = useState(false);
   const user = useSelector((s: RootState) => s.user.data);
 
@@ -894,7 +950,13 @@ function GoogleProfileRow({
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       });
-      const d = await res.json();
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Locations fetch failed:", res.status, d.error);
+        setLocationsError(d.error || `Request failed (${res.status})`);
+      } else {
+        setLocationsError("");
+      }
       setLocations(d.locations || []);
     } catch (e) {
       console.error(e);
@@ -1035,7 +1097,18 @@ function GoogleProfileRow({
               <div style={{ fontSize: 13, color: t.sub, textAlign: "center" }}>
                 No Google Business profiles found
               </div>
-              {!user?.googleId && (
+              {locationsError && (
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: "#ef4444",
+                    textAlign: "center",
+                  }}
+                >
+                  Google said: {locationsError}
+                </div>
+              )}
+              {(!user?.googleId || locationsError) && (
                 <button
                   onClick={() => {
                     const token = localStorage.getItem("accessToken");
@@ -1059,7 +1132,8 @@ function GoogleProfileRow({
                     cursor: "pointer",
                   }}
                 >
-                  <GoogleG /> Link Google Profile
+                  <GoogleG />{" "}
+                  {user?.googleId ? "Reconnect Google" : "Link Google Profile"}
                 </button>
               )}
             </div>

@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "next-themes";
 import { useUser } from "@/features/user/hook/useUser";
+import AutoReplyCard from "@/components/AutoReplyCard";
 import {
   Star, Sparkles, Send, ThumbsUp, Flag, RefreshCw, Filter,
   Search, ChevronDown, CheckCircle2, Clock, TrendingUp,
@@ -508,7 +509,7 @@ function ReplyComposer({ review, isDark, onSend, onClose }: {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ review: review.text ?? "", rating: review.rating,
-          reviewerName: review.author, businessName: user?.googleLocationName, tone: tone || "Professional" }),
+          reviewerName: review.author, businessName: user?.googleLocationName, businessCategory: user?.businessCategory || user?.googleLocationCategory, businessLocation: [user?.city, user?.state].filter(Boolean).join(", "), tone: tone || "Professional" }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || "AI generation failed");
@@ -774,20 +775,16 @@ export default function GoogleReviewsPage() {
       await new Promise(res => setTimeout(res, 600));
       let replyText = "";
       try {
-        if (!r.text || r.text.trim() === "") {
-          replyText = `Hi ${r.author.split(" ")[0]},\n\nThank you for taking the time to leave a rating for ${user?.googleLocationName}. We truly appreciate your support and are glad you chose us.\n\nWe look forward to welcoming you again.\n\nBest Regards,\n${user?.googleLocationName} Team`.trim();
-        } else {
-          setAiItems(prev => prev.map(item => item.reviewId === r.id ? { ...item, status: "writing" } : item));
-          const aiRes = await fetch("/api/ai/reply", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ review: r.text, rating: r.rating, reviewerName: r.author, businessName: user?.googleLocationName, tone: "Professional" }),
-          });
-          const aiJson = await aiRes.json();
-          if (!aiJson.success) throw new Error(aiJson.error ?? "AI failed");
-          replyText = aiJson.reply;
-          setAiItems(prev => prev.map(item => item.reviewId === r.id ? { ...item, reply: replyText } : item));
-          await new Promise(res => setTimeout(res, 400));
-        }
+        setAiItems(prev => prev.map(item => item.reviewId === r.id ? { ...item, status: "writing" } : item));
+        const aiRes = await fetch("/api/ai/reply", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ review: r.text ?? "", rating: r.rating, reviewerName: r.author, businessName: user?.googleLocationName, businessCategory: user?.businessCategory || user?.googleLocationCategory, businessLocation: [user?.city, user?.state].filter(Boolean).join(", "), tone: "Professional" }),
+        });
+        const aiJson = await aiRes.json();
+        if (!aiJson.success) throw new Error(aiJson.error ?? "AI failed");
+        replyText = aiJson.reply;
+        setAiItems(prev => prev.map(item => item.reviewId === r.id ? { ...item, reply: replyText } : item));
+        await new Promise(res => setTimeout(res, 400));
         setAiItems(prev => prev.map(item => item.reviewId === r.id ? { ...item, status: "posting", reply: replyText } : item));
         await postReply(r.name, replyText);
         await new Promise(res => setTimeout(res, 800));
@@ -867,6 +864,8 @@ export default function GoogleReviewsPage() {
           </button>
         </div>
       </div>
+
+      {user?.googleLocationId && <AutoReplyCard isDark={isDark} />}
 
       {/* initial loading */}
       {isInitialLoad && (

@@ -117,7 +117,7 @@ export async function GET(req: Request) {
       if (post.media && post.media.length > 0) {
         post.media = post.media.map((m: any) => ({
           ...m,
-          sourceUrl: m.googleUrl || null,
+          sourceUrl: m.googleUrl || m.sourceUrl || null,
         }));
       }
 

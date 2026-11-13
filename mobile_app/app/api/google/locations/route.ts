@@ -4,6 +4,32 @@ import { google, mybusinessbusinessinformation_v1 } from "googleapis";
 import axios from "axios";
 
 export async function GET(req: Request) {
+  try {
+    return await handleGet(req);
+  } catch (error: any) {
+    // Always answer with JSON so the client never has to parse an empty 500
+    const status = Number(error?.response?.status || error?.code) || 500;
+    const googleMsg =
+      error?.response?.data?.error?.message ||
+      error?.errors?.[0]?.message ||
+      error?.message ||
+      "Failed to load Google Business locations";
+    console.error("GOOGLE LOCATIONS ERROR:", status, googleMsg);
+    const missingScope = /insufficient authentication scopes/i.test(googleMsg);
+    return Response.json(
+      {
+        error: missingScope
+          ? "Business Profile permission was not granted. Tap \"Reconnect Google\" and tick the \"Manage your Business Profile\" checkbox on the Google consent screen."
+          : googleMsg,
+        code: missingScope ? "MISSING_SCOPE" : undefined,
+        locations: [],
+      },
+      { status: status >= 400 && status < 600 ? status : 500 },
+    );
+  }
+}
+
+async function handleGet(req: Request) {
   const token = req.headers.get("authorization");
 
   if (!token) {

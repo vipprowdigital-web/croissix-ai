@@ -77,6 +77,13 @@ interface PostsResponse {
 /* ══════════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════════ */
+function normaliseImageUrl(url?: string | null) {
+  if (!url) return undefined;
+  if (url.startsWith("//")) return `https:${url}`;
+  if (/^https?:\/\//i.test(url)) return url.replace(/^http:\/\//i, "https://");
+  return `https://${url}`;
+}
+
 function normalisePost(g: GMBPost): Post {
   return {
     name: g.name,
@@ -96,7 +103,7 @@ function normalisePost(g: GMBPost): Post {
     }),
     cta: g.callToAction?.actionType,
     ctaUrl: g.callToAction?.url,
-    imageUrl: g.media?.[0]?.sourceUrl,
+    imageUrl: normaliseImageUrl(g.media?.[0]?.sourceUrl),
     eventTitle: g.event?.title,
     couponCode: g.offer?.couponCode,
   };
@@ -742,7 +749,10 @@ export default function GooglePostsPage() {
     return matchFilter && matchSearch;
   });
 
-  const isInitial = userLoading || (isLoading && posts.length === 0);
+  // Until mounted, render the same skeleton the server does (the token lives in
+  // localStorage, so server and client would otherwise disagree on loading state).
+  const isInitial =
+    !mounted || userLoading || (isLoading && posts.length === 0);
 
   return (
     <div
@@ -819,7 +829,7 @@ export default function GooglePostsPage() {
       )}
 
       {/* ── NOT LINKED ── */}
-      {!userLoading && !user?.googleLocationId && (
+      {mounted && !userLoading && !user?.googleLocationId && (
         <div
           className={`rounded-2xl p-8 text-center border
           ${isDark ? "bg-[#131c2d] border-white/[0.06]" : "bg-white border-black/[0.05]"}`}

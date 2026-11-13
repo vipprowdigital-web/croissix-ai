@@ -34,6 +34,20 @@ export async function GET(req: Request) {
     // STEP 1: exchange code
     const { tokens } = await oauth2Client.getToken(code);
 
+    // Google lets users untick individual permissions on the consent screen.
+    // If Business Profile access wasn't granted, don't link a useless token.
+    if (!tokens.scope?.includes("auth/business.manage")) {
+      if (platform === "mobile") {
+        return new Response(
+          `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>Permission needed</h2><p>Croissix needs access to manage your Business Profile. Go back to the app, try again, and keep the "Manage your Business Profile" box ticked.</p></body></html>`,
+          { headers: { "Content-Type": "text/html" } },
+        );
+      }
+      return Response.redirect(
+        `${process.env.NEXT_PUBLIC_FRONTEND_URL}/profile?error=missing_business_scope`,
+      );
+    }
+
     // STEP 2: get profile
     oauth2Client.setCredentials(tokens);
 

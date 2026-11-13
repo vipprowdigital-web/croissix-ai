@@ -11,6 +11,7 @@ import { MobileNavbar } from "@/components/mobile_navbar";
 import { DesktopSidebar } from "@/components/desktop_sidebar";
 import { DesktopTopbar } from "@/components/desktop_topbar";
 import SubscriptionGuard from "@/components/auth/Subscriptionguard";
+import LocationSwitcher from "@/components/LocationSwitcher";
 
 export default function MainLayout({
   children,
@@ -38,6 +39,7 @@ export default function MainLayout({
             flex flex-col flex-1 min-h-0 → full-height children work correctly
           */}
           <main className="flex flex-col flex-1 min-h-0 pt-14 pb-24 px-4 md:pt-0 md:pb-6 md:px-6 lg:px-8">
+            <LocationSwitcher />
             <div className="flex flex-col flex-1 min-h-0 w-full">
               {children}
             </div>

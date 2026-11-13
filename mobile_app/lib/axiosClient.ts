@@ -5,6 +5,9 @@ import { getToken, getRefreshToken } from "./token";
 
 export const API = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
+  // Skips ngrok's free-tier interstitial page, which has no CORS headers and
+  // otherwise breaks XHR calls through a tunnel. Harmless on other hosts.
+  headers: { "ngrok-skip-browser-warning": "true" },
 });
 
 /* ─────────────────────────────

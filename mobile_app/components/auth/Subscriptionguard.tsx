@@ -1252,7 +1252,14 @@ function GuardInner({ children }: { children: React.ReactNode }) {
     setAuthed(true);
   }, [router]);
 
-  const { isActive, isLoading: subLoading } = useSubscription();
+  const { isActive: hasSubscription, isLoading: subLoading0 } =
+    useSubscription();
+  // Free-access accounts (granted from the admin console) skip the paywall.
+  const { data: profile, isLoading: profileLoading } = useUser();
+  const freeAccess = !!profile?.freeAccess;
+  const isActive = hasSubscription || freeAccess;
+  // Don't flash the paywall while we're still finding out if the account is free.
+  const subLoading = subLoading0 || (profileLoading && !hasSubscription);
   const isExempt = EXEMPT.some((p) => pathname?.startsWith(p));
 
   // If subscription is already active and we have a mobile callback, fire the redirect.

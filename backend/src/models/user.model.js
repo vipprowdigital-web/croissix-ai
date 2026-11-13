@@ -57,6 +57,35 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
 
+    // All linked Google Business locations. Only free-access accounts may hold
+    // more than one. googleLocationId/Name above always mirror the ACTIVE one,
+    // so existing features keep working unchanged.
+    googleLocations: [
+      {
+        _id: false,
+        locationId: { type: String, required: true },
+        locationName: { type: String },
+      },
+    ],
+
+    // Granted from the admin console: bypasses the subscription paywall and
+    // allows linking unlimited Google Business locations.
+    freeAccess: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Automatic review replies (see jobs/autoReply.job.js)
+    autoReply: {
+      enabled: { type: Boolean, default: false },
+      tone: { type: String, default: "Warm, professional, and friendly" },
+      // Only reviews posted after this moment are auto-replied to, so turning
+      // the feature on never replies to old reviews.
+      enabledAt: { type: Date },
+      // Google refused our token (revoked / expired): user must reconnect.
+      needsReconnect: { type: Boolean, default: false },
+    },
+
     // Added for facebook oauth
     // --- FACEBOOK & INSTAGRAM INTEGRATION ---
     facebookUserId: { type: String },

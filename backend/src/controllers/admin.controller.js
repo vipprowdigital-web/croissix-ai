@@ -134,10 +134,16 @@ export const getUserById = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, freeAccess } = req.body;
+    // Only set fields that were actually sent (so a freeAccess toggle alone
+    // doesn't blank out name/email/phone)
+    const fields = Object.fromEntries(
+      Object.entries({ name, email, phone }).filter(([, v]) => v !== undefined),
+    );
+    if (typeof freeAccess === "boolean") fields.freeAccess = freeAccess;
     const updated = await User.findByIdAndUpdate(
       req.params.id,
-      { $set: { name, email, phone } },
+      { $set: fields },
       { new: true, runValidators: true, select: "-password" },
     ).lean();
 

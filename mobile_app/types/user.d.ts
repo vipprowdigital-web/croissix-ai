@@ -10,6 +10,8 @@ export interface User {
   avatar?: string;
   googleLocationId?: string;
   googleLocationName: string;
+  googleLocations?: { locationId: string; locationName?: string }[];
+  freeAccess?: boolean;
   googleLocationCategory?: string;
   businessCategory?: string;
   businessName?: string | null;

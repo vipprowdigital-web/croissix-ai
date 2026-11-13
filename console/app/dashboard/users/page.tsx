@@ -14,6 +14,7 @@ interface UserRecord {
   phone: string;
   avatar?: string;
   provider: string;
+  freeAccess?: boolean;
   createdAt: string;
 }
 
@@ -38,6 +39,7 @@ export default function UsersPage() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editFreeAccess, setEditFreeAccess] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
 
@@ -87,6 +89,7 @@ export default function UsersPage() {
     setEditName(u.name);
     setEditEmail(u.email);
     setEditPhone(u.phone);
+    setEditFreeAccess(!!u.freeAccess);
     setEditError("");
   };
 
@@ -95,7 +98,7 @@ export default function UsersPage() {
     setEditError("");
     setEditLoading(true);
     try {
-      await api.patch(`/admin/users/${editUser._id}`, { name: editName, email: editEmail, phone: editPhone });
+      await api.patch(`/admin/users/${editUser._id}`, { name: editName, email: editEmail, phone: editPhone, freeAccess: editFreeAccess });
       showToast("User updated", true);
       setEditUser(null);
       fetchUsers();
@@ -227,7 +230,14 @@ export default function UsersPage() {
                           )}
                         </div>
                         <div>
-                          <p className="text-[13px] font-semibold" style={{ color: textPrimary }}>{u.name}</p>
+                          <p className="text-[13px] font-semibold" style={{ color: textPrimary }}>
+                            {u.name}
+                            {u.freeAccess && (
+                              <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>
+                                FREE
+                              </span>
+                            )}
+                          </p>
                           <p className="text-[11px]" style={{ color: textSub }}>{u.email}</p>
                         </div>
                       </div>
@@ -330,6 +340,22 @@ export default function UsersPage() {
                 style={{ background: isDark ? "#182236" : "#f8fafc", borderColor: cardBorder, color: textPrimary }}
               />
             </ModalField>
+            <label
+              className="flex items-start gap-3 p-3 rounded-[10px] border cursor-pointer"
+              style={{ background: isDark ? "#182236" : "#f8fafc", borderColor: cardBorder }}
+            >
+              <input
+                type="checkbox" checked={editFreeAccess}
+                onChange={e => setEditFreeAccess(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-blue-500"
+              />
+              <span>
+                <span className="block text-[13px] font-semibold" style={{ color: textPrimary }}>Free access</span>
+                <span className="block text-[11px]" style={{ color: textSub }}>
+                  No subscription required, and can link unlimited Google Business profiles.
+                </span>
+              </span>
+            </label>
             {editError && <p className="text-[12px] text-red-400">{editError}</p>}
             <div className="flex gap-2 mt-1">
               <button
