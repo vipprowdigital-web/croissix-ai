@@ -14,9 +14,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Keep the build inside a small VPS's memory. Raise the number if the VPS has
-# more RAM (roughly: RAM minus ~512MB), lower it if the build still gets killed.
-ENV NODE_OPTIONS=--max-old-space-size=1536
+# Heap limit for `next build`, in MB. 1.5 GB was too small for this app (the
+# build died with "JavaScript heap out of memory"). The build machine needs
+# this much free RAM + swap, so on a small VPS add swap or build in CI instead.
+ARG BUILD_MEMORY_MB=3072
+ENV NODE_OPTIONS=--max-old-space-size=${BUILD_MEMORY_MB}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # NEXT_PUBLIC_* values are baked into the JS at build time. They come from
