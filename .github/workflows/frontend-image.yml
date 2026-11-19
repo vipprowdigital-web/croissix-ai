@@ -1,7 +1,7 @@
 # .github/workflows/frontend-image.yml
 #
 # Builds the mobile_app (frontend) Docker image on GitHub's servers instead of
-# on the VPS, pushes it to GitHub Container Registry, then tells the VPS to
+# on the VPS, pushes it to GitHub Container Registry, then asks Coolify to
 # pull and restart it. The VPS never runs `next build`.
 
 name: Frontend image
@@ -53,31 +53,16 @@ jobs:
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
             NEXT_PUBLIC_FRONTEND_URL=${{ vars.NEXT_PUBLIC_FRONTEND_URL }}
-            NEXT_PUBLIC_GOOGLE_MAPS_KEY=${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_KEY }}
             NEXT_PUBLIC_RAZORPAY_KEY_ID=${{ vars.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
             NEXT_PUBLIC_RAZORPAY_PLAN_ID_STARTER=${{ vars.NEXT_PUBLIC_RAZORPAY_PLAN_ID_STARTER }}
             NEXT_PUBLIC_RAZORPAY_PLAN_ID_PRO=${{ vars.NEXT_PUBLIC_RAZORPAY_PLAN_ID_PRO }}
-            NEXT_PUBLIC_RAZORPAY_PLAN_ID_AGENCY=${{ vars.NEXT_PUBLIC_RAZORPAY_PLAN_ID_AGENCY }}
             NEXT_PUBLIC_RAZORPAY_PLAN_ID_CROISSIX=${{ vars.NEXT_PUBLIC_RAZORPAY_PLAN_ID_CROISSIX }}
-            NEXT_PUBLIC_RAZORPAY_PLAN_ID_TEST=${{ vars.NEXT_PUBLIC_RAZORPAY_PLAN_ID_TEST }}
-            NEXT_PUBLIC_RAZORPAY_TEST_KEY_ID=${{ vars.NEXT_PUBLIC_RAZORPAY_TEST_KEY_ID }}
-            NEXT_PUBLIC_RAZORPAY_TEST_PLAN_ID=${{ vars.NEXT_PUBLIC_RAZORPAY_TEST_PLAN_ID }}
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Pull and restart on the VPS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            echo "${{ secrets.GHCR_PULL_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_PULL_USER }}" --password-stdin
-            docker pull ${{ needs.build.outputs.image }}:latest
-            docker rm -f croissix-frontend 2>/dev/null || true
-            docker run -d --name croissix-frontend --restart unless-stopped \
-              -p 3000:3000 --env-file /opt/croissix/frontend.env \
-              ${{ needs.build.outputs.image }}:latest
-            docker image prune -f
+      # Tell Coolify to pull the new image and restart the app.
+      - name: Trigger Coolify deploy
+        run: |
+          curl --fail --silent --show-error -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}&force=false"
