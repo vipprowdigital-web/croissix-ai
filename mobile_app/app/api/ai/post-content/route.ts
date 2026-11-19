@@ -27,7 +27,9 @@
 
 import Groq from "groq-sdk";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Created on first use, not at import time: `next build` imports every route
+// while collecting page data, and Groq throws if the key is missing then.
+const getGroq = () => new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 /* ── build the prompt ──────────────────────────────────────────────── */
 function buildPrompt(params: {
@@ -273,8 +275,8 @@ export async function POST(req: Request) {
       city,
     });
 
-    const completion = await groq.chat.completions.create({
-      model: process.env.AI_MODEL ?? "llama-3.1-8b-instant",
+    const completion = await getGroq().chat.completions.create({
+      model: process.env.AI_MODEL ?? "openai/gpt-oss-120b",
       // model: process.env.AI_MODEL ?? "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.85,

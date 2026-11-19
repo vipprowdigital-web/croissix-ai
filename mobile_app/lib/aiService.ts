@@ -2,9 +2,9 @@
 
 import Groq from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+// Created on first use, not at import time: `next build` imports every route
+// while collecting page data, and Groq throws if the key is missing then.
+const getGroq = () => new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export interface ReviewReplyInput {
   review: string;
@@ -167,14 +167,14 @@ Generate one polished, ready-to-publish reply.
 Language: Write the reply in English only, even if the review is written in another language.
 `.trim();
 
-  const model = process.env.AI_MODEL || "llama-3.1-8b-instant";
+  const model = process.env.AI_MODEL || "openai/gpt-oss-120b";
 
   // Reasoning models (e.g. openai/gpt-oss-*) spend part of max_tokens on hidden
   // "thinking". With a small limit they use it all up and return empty content,
   // so give them headroom and ask for low reasoning effort.
   const isReasoningModel = /gpt-oss|qwen3|deepseek-r1/i.test(model);
 
-  const completion = await groq.chat.completions.create({
+  const completion = await getGroq().chat.completions.create({
     model,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.9,
