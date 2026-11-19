@@ -1,14 +1,14 @@
 # mobile_app/Dockerfile
 
 # ---------- dependencies ----------
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
 # ---------- build ----------
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -43,10 +43,14 @@ ENV NEXT_PUBLIC_RAZORPAY_PLAN_ID_CROISSIX=${NEXT_PUBLIC_RAZORPAY_PLAN_ID_CROISSI
 RUN npm run build
 
 # ---------- production ----------
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Docker sets HOSTNAME to the container id, which Next's standalone server would
+# otherwise bind to. Listen on all interfaces; override PORT in the host if needed.
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
 
 # Copy only necessary files (optimized)
 COPY --from=builder /app/.next/standalone ./
