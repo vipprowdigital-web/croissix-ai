@@ -21,6 +21,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # The NEXT_PUBLIC_* variables are stored in the "Production" environment
+    environment: Production
     outputs:
       image: ${{ steps.meta.outputs.image }}
     steps:
@@ -61,8 +63,24 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Coolify secrets may also live in the "Production" environment
+    environment: Production
     steps:
       # Tell Coolify to pull the new image and restart the app.
+      # Coolify versions differ on whether /deploy takes GET or POST, so try
+      # POST first and fall back to GET only if the server answers 405.
       - name: Trigger Coolify deploy
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_APP_UUID: ${{ secrets.COOLIFY_APP_UUID }}
         run: |
-          curl --fail --silent --show-error -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}&force=false"
+          url="${COOLIFY_URL%/}/api/v1/deploy?uuid=${COOLIFY_APP_UUID}&force=false"
+          for method in POST GET; do
+            code=$(curl -sS -o response.txt -w "%{http_code}" -X "$method"               -H "Authorization: Bearer ${COOLIFY_TOKEN}"               -H "Accept: application/json" "$url") || code=000
+            echo "$method -> HTTP $code"
+            cat response.txt; echo
+            if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then exit 0; fi
+            [ "$code" = "405" ] || break
+          done
+          exit 1
